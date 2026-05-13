@@ -1,0 +1,40 @@
+@* _RoleSwitcher.cshtml
+   Shows a dropdown button ONLY if the user has more than 1 role
+   Always loads default Employee/Participant dashboard on login
+   Switch role button appears in navbar for multi-role users
+*@
+
+@{
+    // UserRoles is a List<string> set in session e.g. ["Admin", "RAAM"]
+    var userRoles = ViewBag.UserRoles as List<string> ?? new List<string>();
+    var activeRole = ViewBag.ActiveRole as string ?? "Participant";
+}
+
+@* Only show if user has more than 1 role *@
+@if (userRoles.Count > 1)
+{
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+            <i class="fas fa-exchange-alt mr-1"></i>
+            <span>@activeRole</span>
+        </a>
+        <div class="dropdown-menu">
+            <h6 class="dropdown-header">Switch Role</h6>
+            @foreach (var role in userRoles)
+            {
+                // Highlight currently active role
+                var isActive = role == activeRole ? "font-weight-bold text-success" : "";
+                <a class="dropdown-item @isActive"
+                   asp-controller="Auth"
+                   asp-action="SwitchRole"
+                   asp-route-role="@role">
+                    <i class="fas fa-user-tag mr-2"></i> @role
+                    @if (role == activeRole)
+                    {
+                        <i class="fas fa-check ml-1 text-success"></i>
+                    }
+                </a>
+            }
+        </div>
+    </li>
+}

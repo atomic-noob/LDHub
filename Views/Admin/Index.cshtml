@@ -1,0 +1,91 @@
+﻿@model LDHub.Models.LoginViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Admin Login";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DENR L&D Hub — Admin Login</title>
+    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css" />
+    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/dist/css/adminlte.min.css" />
+</head>
+<body class="hold-transition login-page">
+
+<div class="login-box">
+
+    @* Logo *@
+    <div class="login-logo">
+        <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo"
+             class="img-circle mb-2"
+             style="width:80px;height:80px;object-fit:cover;" />
+        <br />
+        <b>DENR</b> L&amp;D Hub
+    </div>
+
+    <div class="card">
+        <div class="card-body login-card-body">
+
+            <p class="login-box-msg">Administrator Sign In</p>
+
+            @* Error message *@
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <i class="icon fas fa-ban"></i> @ViewBag.Error
+                </div>
+            }
+
+            <form asp-controller="Admin" asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+
+                @* Email *@
+                <div class="input-group mb-3">
+                    <input asp-for="Email" type="email"
+                           class="form-control"
+                           placeholder="Email" required />
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-envelope"></span>
+                        </div>
+                    </div>
+                </div>
+
+                @* Password *@
+                <div class="input-group mb-3">
+                    <input asp-for="Password" type="password"
+                           class="form-control"
+                           placeholder="Password" required />
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-lock"></span>
+                        </div>
+                    </div>
+                </div>
+
+                @* Submit *@
+                <div class="row">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success btn-block">
+                            <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+<script src="~/plugins/jquery/jquery.min.js"></script>
+<script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="~/dist/js/adminlte.min.js"></script>
+
+</body>
+</html>

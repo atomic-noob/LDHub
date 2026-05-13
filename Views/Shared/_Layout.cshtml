@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    @* Page title set by each view via ViewData["Title"] *@
+    <title>@(ViewData["Title"] ?? "DENR L&D Hub")</title>
+
+    @* AdminLTE + Bootstrap 4 — ~ means wwwroot/ in Razor *@
+    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css" />
+    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/dist/css/adminlte.min.css" />
+    <link rel="stylesheet" href="~/plugins/select2/css/select2.min.css" />
+    <link rel="stylesheet" href="~/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css" />
+    <link rel="stylesheet" href="~/plugins/sweetalert2/sweetalert2.min.css" />
+
+    @* Extra styles added by individual views *@
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="hold-transition sidebar-mini">
+
+@* AdminLTE preloader *@
+<div class="preloader flex-column justify-content-center align-items-center">
+    <img class="animation__shake rounded-circle"
+         src="~/dist/img/denrlogo.jpg"
+         alt="DENR L&D Hub" height="100" width="100" />
+</div>
+
+<div class="wrapper">
+
+    @* Navbar — included from Shared/_Navbar.cshtml *@
+    @await Html.PartialAsync("_Navbar")
+
+ @* Sidebar — role based *@
+    @{
+        var role = Context.Session.GetString("UserRole");
+    }
+
+    @if (role == "Admin")
+    {
+        @await Html.PartialAsync("_SidebarAdmin")
+    }
+    else if (role == "Employee")
+    {
+        @await Html.PartialAsync("_SidebarEmployee")
+    }
+    else if (role == "ResourcePerson")
+    {
+        @await Html.PartialAsync("_SidebarResourcePerson")
+    }
+    else if (role == "CourseManager")
+    {
+        @await Html.PartialAsync("_SidebarCourseManager")
+    }
+    else if (role == "Raam")
+    {
+        @await Html.PartialAsync("_SidebarRaam")
+    }
+    @* Main content area — each view renders here *@
+    <div class="content-wrapper">
+        @RenderBody()
+    </div>
+
+    @* Footer *@
+    <footer class="main-footer">
+        <strong>
+            Copyright &copy; @DateTime.Now.Year
+            <a href="#">DENR L&amp;D Hub</a>.
+        </strong>
+        All rights reserved.
+    </footer>
+
+</div>
+
+@* jQuery must load FIRST before Bootstrap and AdminLTE *@
+<script src="~/plugins/jquery/jquery.min.js"></script>
+<script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="~/plugins/select2/js/select2.full.min.js"></script>
+<script src="~/plugins/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="~/dist/js/adminlte.min.js"></script>
+
+@* Extra scripts added by individual views *@
+@await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>
