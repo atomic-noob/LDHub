@@ -1696,31 +1696,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\DENR\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\raian\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\DENR\\Documents\\DONEL\\csharp\\lndhub\\ldhub\\LDHub.csproj",
+      "projectUniqueName": "C:\\Users\\raian\\Onedrive\\Desktop\\LDHub\\LDHub.csproj",
       "projectName": "LDHub",
-      "projectPath": "C:\\Users\\DENR\\Documents\\DONEL\\csharp\\lndhub\\ldhub\\LDHub.csproj",
-      "packagesPath": "C:\\Users\\DENR\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\DENR\\Documents\\DONEL\\csharp\\lndhub\\ldhub\\obj\\",
+      "projectPath": "C:\\Users\\raian\\Onedrive\\Desktop\\LDHub\\LDHub.csproj",
+      "packagesPath": "C:\\Users\\raian\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\raian\\Onedrive\\Desktop\\LDHub\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\DENR\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "C:\\Users\\raian\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {

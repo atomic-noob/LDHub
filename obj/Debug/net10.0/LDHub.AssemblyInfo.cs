@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LDHub")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5016f4b3ff7a7ca140cd4f9f4ee02405c9ddc6d6")]
 [assembly: System.Reflection.AssemblyProductAttribute("LDHub")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LDHub")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
