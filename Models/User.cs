@@ -78,6 +78,12 @@ namespace LDHub.Models
         [MaxLength(20)]
         public string Status { get; set; } = "Active";
 
+        [Column("in_training")]
+        public bool InTraining { get; set; } = false;
+
+        [Column("is_external")]
+        public bool IsExternal { get; set; } = false;
+
         // ── Location (Foreign Keys) ───────────────────────────────
 
         [Column("region_id")]
