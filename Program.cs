@@ -78,7 +78,7 @@ app.UseAuthorization();      // Check role permissions
 // This will change to Auth/Login in Month 2
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Admin}/{action=Index}/{id?}"
+    pattern: "{controller=Home}/{action=Index}/{id?}"
 );
 
 app.Run();

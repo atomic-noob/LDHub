@@ -81,6 +81,11 @@ public class AdminController : Controller
         SetViewBag();
         return View("~/Views/Admin/Dashboard.cshtml");
     }
+    public IActionResult Hash()
+{
+    var hash = BCrypt.Net.BCrypt.HashPassword("Password@123");
+    return Content(hash);
+}
 
     // ── Manage Users ──────────────────────────────────────────────
     public IActionResult Employees()
