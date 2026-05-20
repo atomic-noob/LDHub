@@ -30,9 +30,7 @@
                 @* Profile photo or default icon *@
                 @if (!string.IsNullOrEmpty(ViewBag.UserPhoto as string))
                 {
-                    <img src="~/uploads/photos/@ViewBag.UserPhoto"
-                         class="img-circle elevation-2"
-                         alt="Profile"
+                    <img src="~/uploads/photos/@ViewBag.UserPhoto" class="img-circle elevation-2" alt="Profile"
                          style="width:30px;height:30px;object-fit:cover;" />
                 }
                 else
@@ -46,7 +44,7 @@
                     <i class="fas fa-user mr-2"></i> My Profile
                 </a>
                 <div class="dropdown-divider"></div>
-                <a asp-controller="Admin" asp-action="Logout" class="dropdown-item text-danger">
+                <a asp-controller="Home" asp-action="Logout" class="dropdown-item text-danger">
                     <i class="fas fa-sign-out-alt mr-2"></i> Logout
                 </a>
             </div>

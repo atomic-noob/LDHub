@@ -1,13 +1,16 @@
 @* _RoleSwitcher.cshtml
-   Shows a dropdown button ONLY if the user has more than 1 role
-   Always loads default Employee/Participant dashboard on login
-   Switch role button appears in navbar for multi-role users
+   Shows a dropdown ONLY if the user has more than 1 role
+   Lets internal users switch between Employee, CourseManager, Raam
 *@
 
 @{
-    // UserRoles is a List<string> set in session e.g. ["Admin", "RAAM"]
-    var userRoles = ViewBag.UserRoles as List<string> ?? new List<string>();
-    var activeRole = ViewBag.ActiveRole as string ?? "Participant";
+    // UserRoles is stored in session as comma-separated string
+    // e.g. "Employee,CourseManager,Raam"
+    var rolesString = Context.Session.GetString("UserRoles") ?? "";
+    var userRoles = rolesString.Split(',')
+                               .Where(r => !string.IsNullOrEmpty(r))
+                               .ToList();
+    var activeRole = Context.Session.GetString("UserRole") ?? "";
 }
 
 @* Only show if user has more than 1 role *@
@@ -22,18 +25,18 @@
             <h6 class="dropdown-header">Switch Role</h6>
             @foreach (var role in userRoles)
             {
-                // Highlight currently active role
                 var isActive = role == activeRole ? "font-weight-bold text-success" : "";
-                <a class="dropdown-item @isActive"
-                   asp-controller="Auth"
-                   asp-action="SwitchRole"
-                   asp-route-role="@role">
-                    <i class="fas fa-user-tag mr-2"></i> @role
-                    @if (role == activeRole)
-                    {
-                        <i class="fas fa-check ml-1 text-success"></i>
-                    }
-                </a>
+                <form asp-controller="Home" asp-action="SwitchRole" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="role" value="@role" />
+                    <button type="submit" class="dropdown-item @isActive">
+                        <i class="fas fa-user-tag mr-2"></i> @role
+                        @if (role == activeRole)
+                        {
+                            <i class="fas fa-check ml-1 text-success"></i>
+                        }
+                    </button>
+                </form>
             }
         </div>
     </li>

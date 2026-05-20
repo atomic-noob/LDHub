@@ -10,23 +10,7 @@
 
         <div class="sidebar">
 
-            <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-                <div class="image">
-                    @if (!string.IsNullOrEmpty(ViewBag.UserPhoto as string))
-                    {
-                        <img src="~/uploads/photos/@ViewBag.UserPhoto" class="img-circle elevation-2" alt="User Image"
-                             style="width:34px;height:34px;object-fit:cover;" />
-                    }
-                    else
-                    {
-                        <img src="~/dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image" />
-                    }
-                </div>
-                <div class="info">
-                    <a href="#" class="d-block">@ViewBag.UserName</a>
-                    <small class="text-muted">Admin</small>
-                </div>
-            </div>
+          
 
             <nav class="mt-2">
                 <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
