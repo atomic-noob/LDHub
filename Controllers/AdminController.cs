@@ -191,6 +191,8 @@ public async Task<IActionResult> Offices()
     if (!IsAdmin()) return RedirectToAction("Index");
     SetViewBag();
 
+    
+
     // Load offices with their region names (like LEFT JOIN in PHP)
     var offices = await _db.Offices
         .Include(o => o.Region)
@@ -205,6 +207,7 @@ public async Task<IActionResult> Offices()
     return View("~/Views/Admin/Offices.cshtml", offices);
 }
 
+
 // POST: /Admin/OfficeCreate — create new office
 [HttpPost]
 [ValidateAntiForgeryToken]
@@ -212,7 +215,12 @@ public async Task<IActionResult> OfficeCreate(Office model)
 {
     if (!IsAdmin()) return RedirectToAction("Index");
 
-    // Check duplicate office name in same region
+    if (model.RegionId == 0)
+    {
+        TempData["Error"] = "Please select a region!";
+        return RedirectToAction("Offices");
+    }
+
     var exists = await _db.Offices
         .AnyAsync(o => o.OfficeName == model.OfficeName 
                     && o.RegionId == model.RegionId);
