@@ -1,8 +1,387 @@
+@model IEnumerable<LDHub.Models.Office>
 @{
-    ViewData["Title"] = "Offices Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage Offices";
+    var regions = ViewBag.Regions as List<LDHub.Models.Region> ?? new List<LDHub.Models.Region>();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>This is Office page welcome</p>
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Manage Offices</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-action="Dashboard">Dashboard</a>
+                    </li>
+                    <li class="breadcrumb-item active">Offices</li>
+                </ol>
+            </div>
+        </div>
+    </div>
 </div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @* Success/Error messages *@
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="icon fas fa-check"></i> @TempData["Success"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="icon fas fa-ban"></i> @TempData["Error"]
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                <button type="button" class="btn btn-primary"
+                        data-toggle="modal" data-target="#addOfficeModal">
+                    <i class="fas fa-plus mr-1"></i> Add New
+                </button>
+                <div class="ml-auto d-flex align-items-center" style="gap:8px;">
+                    <label class="mb-0 font-weight-bold text-nowrap">Filter by Region:</label>
+                    <select id="regionFilter" class="form-control form-control-sm select2bs4" style="min-width:200px;">
+                        <option value="">All Regions</option>
+                        @foreach (var r in regions)
+                        {
+                            <option value="@r.RegionId">@r.RegionName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <table id="officesTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Office Name</th>
+                            <th>Office Code</th>
+                            <th>Region</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var office in Model)
+                        {
+                            <tr data-region-id="@office.RegionId">
+                                <td>@office.OfficeId</td>
+                                <td>@office.OfficeName</td>
+                                <td>@(office.OfficeCode ?? "—")</td>
+                                <td>@(office.Region?.RegionName ?? "—")</td>
+                                <td>
+                                    <button type="button" class="btn btn-warning btn-sm editOfficeBtn"
+                                            data-id="@office.OfficeId"
+                                            data-name="@office.OfficeName"
+                                            data-code="@office.OfficeCode"
+                                            data-region-id="@office.RegionId">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <form asp-action="OfficeDelete" method="post" style="display:inline"
+                                          onsubmit="return confirm('Delete this office?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@office.OfficeId" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+@* ── Add Office Modal ─────────────────────────────────────────── *@
+<div class="modal fade" id="addOfficeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus mr-1"></i> Add New Office</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+
+                @* Step 1: Select Region *@
+                <div class="form-group">
+                    <label class="font-weight-bold">Select Region <span class="text-danger">*</span></label>
+                    <select id="add_region_id" class="form-control select2bs4">
+                        <option value="">-- Select Region --</option>
+                        @foreach (var r in regions)
+                        {
+                            <option value="@r.RegionId">@r.RegionName</option>
+                        }
+                    </select>
+                </div>
+
+                @* Quick Add Presets *@
+                <div id="quickAddWrap" style="display:none;">
+                    <hr />
+                    <label class="font-weight-bold">
+                        <i class="fas fa-bolt mr-1 text-warning"></i> Quick Add Presets
+                    </label>
+                    <p class="text-muted" style="font-size:.82rem;">
+                        Checked = already exists (cannot add again). Unchecked = will be added.
+                    </p>
+                    <div class="row" id="presetCheckboxes"></div>
+                    <button type="button" class="btn btn-success btn-sm mt-2" id="bulkAddBtn">
+                        <i class="fas fa-plus mr-1"></i> Add Selected Presets
+                    </button>
+                    <hr />
+                </div>
+
+                @* Manual Add *@
+                <label class="font-weight-bold">
+                    <i class="fas fa-keyboard mr-1"></i> Or Add Manually
+                </label>
+                <form asp-action="OfficeCreate" method="post" id="addOfficeForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="RegionId" id="add_region_id_hidden" />
+                    <div class="form-group mb-2">
+                        <label>Office Name <span class="text-danger">*</span></label>
+                        <input type="text" name="OfficeName" class="form-control"
+                               placeholder="Enter office name" required />
+                    </div>
+                    <div class="form-group mb-2">
+                        <label>Office Code</label>
+                        <input type="text" name="OfficeCode" class="form-control"
+                               placeholder="Enter office code (optional)" />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-save mr-1"></i> Save Office
+                    </button>
+                </form>
+
+                @* Existing offices list *@
+                <div id="existingOfficesWrap" style="display:none;">
+                    <hr />
+                    <label class="font-weight-bold text-info">
+                        <i class="fas fa-info-circle mr-1"></i> Existing Offices in this Region:
+                    </label>
+                    <div id="existingOfficesList" class="mt-1"
+                         style="max-height:150px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;background:#f8f9fa;">
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Edit Office Modal ────────────────────────────────────────── *@
+<div class="modal fade" id="editOfficeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Office</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form asp-action="OfficeEdit" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="OfficeId" id="editOfficeId" />
+                    <div class="form-group">
+                        <label>Region <span class="text-danger">*</span></label>
+                        <select name="RegionId" id="editOfficeRegion"
+                                class="form-control select2bs4" required>
+                            <option value="">-- Select Region --</option>
+                            @foreach (var r in regions)
+                            {
+                                <option value="@r.RegionId">@r.RegionName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Office Name <span class="text-danger">*</span></label>
+                        <input type="text" name="OfficeName" id="editOfficeName"
+                               class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Office Code</label>
+                        <input type="text" name="OfficeCode" id="editOfficeCode"
+                               class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save mr-1"></i> Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ── Bulk Add Form (hidden, submitted by JS) ──────────────────── *@
+<form id="bulkAddForm" asp-action="OfficeBulkCreate" method="post" style="display:none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="regionId" id="bulkRegionId" />
+    <div id="bulkOfficeInputs"></div>
+</form>
+
+@section Scripts {
+    <script>
+        const PRESETS = [
+            { name: 'CENRO',           code: 'CENRO' },
+            { name: 'PENRO',           code: 'PENRO' },
+            { name: 'REGIONAL OFFICE', code: 'RO'    },
+            { name: 'SUB OFFICE',      code: 'SO'    },
+        ];
+
+        $(function () {
+
+            // ── DataTable ──
+            $('#officesTable').DataTable({
+                responsive: true, lengthChange: true, autoWidth: false,
+                columnDefs: [{ orderable: false, targets: 4 }]
+            });
+
+            // ── Select2 ──
+            $('.select2bs4').select2({ theme: 'bootstrap4' });
+
+            // ── Filter by Region ──
+            $('#regionFilter').select2({ theme: 'bootstrap4' })
+                .on('select2:select select2:unselect', function () {
+                    const name = $(this).val()
+                        ? $(this).find('option:selected').text().trim() : '';
+                    $('#officesTable').DataTable().column(3)
+                        .search(name ? '^' + $.fn.dataTable.util.escapeRegex(name) + '$' : '', true, false)
+                        .draw();
+                });
+
+            // ── Add modal: Region selected ──
+            $('#add_region_id').select2({ theme: 'bootstrap4' })
+                .on('select2:select select2:unselect', function () {
+                    const regionId = $(this).val();
+                    $('#add_region_id_hidden').val(regionId);
+
+                    if (!regionId) {
+                        $('#quickAddWrap').hide();
+                        $('#existingOfficesWrap').hide();
+                        return;
+                    }
+
+                    // Load existing offices for this region
+                    $.get('/Admin/GetOfficesByRegion', { regionId: regionId }, function (data) {
+                        const existingNames = data.map(o => o.officeName.toUpperCase().trim());
+
+                        // Render preset checkboxes
+                        const $presets = $('#presetCheckboxes');
+                        $presets.empty();
+                        PRESETS.forEach(function (p) {
+                            const exists = existingNames.includes(p.name.toUpperCase().trim());
+                            $presets.append(
+                                '<div class="col-6 col-md-3 mb-2">' +
+                                '<div class="card mb-0 border-' + (exists ? 'success' : 'primary') + '">' +
+                                '<div class="card-body py-2 px-3 d-flex align-items-center" style="gap:8px;">' +
+                                '<input type="checkbox" class="preset-checkbox" ' +
+                                'data-name="' + p.name + '" data-code="' + p.code + '" ' +
+                                (exists ? 'checked disabled' : '') + ' ' +
+                                'style="transform:scale(1.3);">' +
+                                '<label class="mb-0" style="font-size:.82rem;font-weight:600;">' +
+                                p.name + (exists ? ' <span class="badge badge-success">Exists</span>' : '') +
+                                '</label></div></div></div>'
+                            );
+                        });
+                        $('#quickAddWrap').show();
+
+                        // Show existing offices
+                        const $list = $('#existingOfficesList');
+                        $list.empty();
+                        if (data.length > 0) {
+                            data.forEach(function (o) {
+                                $list.append(
+                                    '<div class="d-flex justify-content-between align-items-center py-1 px-2 mb-1" ' +
+                                    'style="background:#fff;border:1px solid #e9ecef;border-radius:4px;">' +
+                                    '<span><i class="fas fa-building mr-1 text-secondary"></i>' +
+                                    '<strong>' + o.officeName + '</strong></span>' +
+                                    '<span class="badge badge-secondary">' + (o.officeCode || '—') + '</span>' +
+                                    '</div>'
+                                );
+                            });
+                            $('#existingOfficesWrap').show();
+                        } else {
+                            $('#existingOfficesWrap').hide();
+                        }
+                    });
+                });
+
+            // ── Bulk Add Presets ──
+            $('#bulkAddBtn').on('click', function () {
+                const regionId = $('#add_region_id').val();
+                if (!regionId) {
+                    Swal.fire({ icon: 'warning', title: 'Select a region first', timer: 1500, showConfirmButton: false });
+                    return;
+                }
+
+                const selected = [];
+                $('.preset-checkbox:checked:not(:disabled)').each(function () {
+                    selected.push({ name: $(this).data('name'), code: $(this).data('code') });
+                });
+
+                if (selected.length === 0) {
+                    Swal.fire({ icon: 'info', title: 'No presets selected', timer: 1500, showConfirmButton: false });
+                    return;
+                }
+
+                // Build hidden form inputs and submit
+                $('#bulkRegionId').val(regionId);
+                $('#bulkOfficeInputs').empty();
+                selected.forEach(function (s) {
+                    $('#bulkOfficeInputs').append(
+                        '<input type="hidden" name="officeNames" value="' + s.name + '">' +
+                        '<input type="hidden" name="officeCodes" value="' + s.code + '">'
+                    );
+                });
+                $('#bulkAddForm').submit();
+            });
+
+            // ── Edit button ──
+            $(document).on('click', '.editOfficeBtn', function () {
+                $('#editOfficeId').val($(this).data('id'));
+                $('#editOfficeName').val($(this).data('name'));
+                $('#editOfficeCode').val($(this).data('code'));
+                $('#editOfficeRegion').val($(this).data('region-id')).trigger('change.select2');
+                $('#editOfficeModal').modal('show');
+            });
+
+            // ── Edit modal Select2 ──
+            $('#editOfficeRegion').select2({ theme: 'bootstrap4' });
+
+            // ── Clear add modal on close ──
+            $('#addOfficeModal').on('hidden.bs.modal', function () {
+                $('#add_region_id').val('').trigger('change.select2');
+                $('#quickAddWrap').hide();
+                $('#existingOfficesWrap').hide();
+                $('#existingOfficesList').empty();
+                $('#presetCheckboxes').empty();
+                $('#addOfficeForm')[0].reset();
+            });
+
+            // ── Backdrop cleanup ──
+            $(document).on('hidden.bs.modal', '.modal', function () {
+                if ($('.modal:visible').length === 0) {
+                    $('.modal-backdrop').remove();
+                    $('body').removeClass('modal-open').css('padding-right', '');
+                }
+            });
+        });
+    </script>
+}

@@ -110,26 +110,325 @@ public class AdminController : Controller
     }
 
     // ── Locations ─────────────────────────────────────────────────
-    public IActionResult Regions()
+    // ── REGIONS CRUD ──────────────────────────────────────────────
+
+// GET: /Admin/Regions — list all regions
+public async Task<IActionResult> Regions()
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+    SetViewBag();
+    var regions = await _db.Regions.ToListAsync();
+    return View("~/Views/Admin/Regions.cshtml", regions);
+}
+
+// POST: /Admin/RegionCreate — create new region
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> RegionCreate(Region model)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    // Check for duplicate region name
+    var exists = await _db.Regions
+        .AnyAsync(r => r.RegionName == model.RegionName);
+    if (exists)
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
-        SetViewBag();
-        return View("~/Views/Admin/Regions.cshtml");
+        TempData["Error"] = "Region already exists!";
+        return RedirectToAction("Regions");
     }
 
-    public IActionResult Offices()
+    _db.Regions.Add(model);
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Region added successfully!";
+    return RedirectToAction("Regions");
+}
+
+// POST: /Admin/RegionEdit — update existing region
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> RegionEdit(Region model)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var region = await _db.Regions.FindAsync(model.RegionId);
+    if (region == null)
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
-        SetViewBag();
-        return View("~/Views/Admin/Offices.cshtml");
+        TempData["Error"] = "Region not found!";
+        return RedirectToAction("Regions");
     }
 
-    public IActionResult Divisions()
+    region.RegionName = model.RegionName;
+    region.RegionCode = model.RegionCode;
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Region updated successfully!";
+    return RedirectToAction("Regions");
+}
+
+// POST: /Admin/RegionDelete — delete region
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> RegionDelete(int id)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var region = await _db.Regions.FindAsync(id);
+    if (region == null)
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
-        SetViewBag();
-        return View("~/Views/Admin/Divisions.cshtml");
+        TempData["Error"] = "Region not found!";
+        return RedirectToAction("Regions");
     }
+
+    _db.Regions.Remove(region);
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Region deleted successfully!";
+    return RedirectToAction("Regions");
+}
+    // ── OFFICES CRUD ──────────────────────────────────────────────
+
+// GET: /Admin/Offices — list all offices with regions
+public async Task<IActionResult> Offices()
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+    SetViewBag();
+
+    // Load offices with their region names (like LEFT JOIN in PHP)
+    var offices = await _db.Offices
+        .Include(o => o.Region)
+        .OrderBy(o => o.OfficeName)
+        .ToListAsync();
+
+    // Pass regions to view for dropdown
+    ViewBag.Regions = await _db.Regions
+        .OrderBy(r => r.RegionName)
+        .ToListAsync();
+
+    return View("~/Views/Admin/Offices.cshtml", offices);
+}
+
+// POST: /Admin/OfficeCreate — create new office
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> OfficeCreate(Office model)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    // Check duplicate office name in same region
+    var exists = await _db.Offices
+        .AnyAsync(o => o.OfficeName == model.OfficeName 
+                    && o.RegionId == model.RegionId);
+    if (exists)
+    {
+        TempData["Error"] = "Office already exists in this region!";
+        return RedirectToAction("Offices");
+    }
+
+    _db.Offices.Add(model);
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Office added successfully!";
+    return RedirectToAction("Offices");
+}
+
+// POST: /Admin/OfficeBulkCreate — bulk add preset offices
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> OfficeBulkCreate(int regionId, 
+    List<string> officeNames, List<string> officeCodes)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    int added = 0;
+    for (int i = 0; i < officeNames.Count; i++)
+    {
+        // Skip if already exists
+        var exists = await _db.Offices
+            .AnyAsync(o => o.OfficeName == officeNames[i] 
+                        && o.RegionId == regionId);
+        if (exists) continue;
+
+        _db.Offices.Add(new Office
+        {
+            OfficeName = officeNames[i],
+            OfficeCode = officeCodes.Count > i ? officeCodes[i] : null,
+            RegionId   = regionId
+        });
+        added++;
+    }
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = $"{added} office(s) added successfully!";
+    return RedirectToAction("Offices");
+}
+
+// POST: /Admin/OfficeEdit — update existing office
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> OfficeEdit(Office model)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var office = await _db.Offices.FindAsync(model.OfficeId);
+    if (office == null)
+    {
+        TempData["Error"] = "Office not found!";
+        return RedirectToAction("Offices");
+    }
+
+    office.OfficeName = model.OfficeName;
+    office.OfficeCode = model.OfficeCode;
+    office.RegionId   = model.RegionId;
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Office updated successfully!";
+    return RedirectToAction("Offices");
+}
+
+// POST: /Admin/OfficeDelete — delete office
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> OfficeDelete(int id)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var office = await _db.Offices.FindAsync(id);
+    if (office == null)
+    {
+        TempData["Error"] = "Office not found!";
+        return RedirectToAction("Offices");
+    }
+
+    _db.Offices.Remove(office);
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Office deleted successfully!";
+    return RedirectToAction("Offices");
+}
+
+// ── DIVISIONS CRUD ────────────────────────────────────────────
+
+// GET: /Admin/Divisions — list all divisions
+public async Task<IActionResult> Divisions()
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+    SetViewBag();
+
+    // Load divisions with office and region names
+    var divisions = await _db.Divisions
+        .Include(d => d.Office)
+            .ThenInclude(o => o.Region)
+        .OrderBy(d => d.DivisionName)
+        .ToListAsync();
+
+    // Pass regions for dropdown
+    ViewBag.Regions = await _db.Regions
+        .OrderBy(r => r.RegionName)
+        .ToListAsync();
+
+    return View("~/Views/Admin/Divisions.cshtml", divisions);
+}
+
+// POST: /Admin/DivisionCreate — create single division
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> DivisionCreate(Division model)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var exists = await _db.Divisions
+        .AnyAsync(d => d.DivisionName == model.DivisionName 
+                    && d.OfficeId == model.OfficeId);
+    if (exists)
+    {
+        TempData["Error"] = "Division already exists in this office!";
+        return RedirectToAction("Divisions");
+    }
+
+    _db.Divisions.Add(model);
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Division added successfully!";
+    return RedirectToAction("Divisions");
+}
+
+// POST: /Admin/DivisionBulkCreate — bulk add divisions
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> DivisionBulkCreate(int officeId,
+    List<string> divisionNames, List<string> divisionCodes)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    int added = 0;
+    for (int i = 0; i < divisionNames.Count; i++)
+    {
+        var exists = await _db.Divisions
+            .AnyAsync(d => d.DivisionName == divisionNames[i] 
+                        && d.OfficeId == officeId);
+        if (exists) continue;
+
+        _db.Divisions.Add(new Division
+        {
+            DivisionName = divisionNames[i],
+            DivisionCode = divisionCodes.Count > i ? divisionCodes[i] : null,
+            OfficeId     = officeId
+        });
+        added++;
+    }
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = $"{added} division(s) added successfully!";
+    return RedirectToAction("Divisions");
+}
+
+// POST: /Admin/DivisionEdit — update division
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> DivisionEdit(Division model)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var division = await _db.Divisions.FindAsync(model.DivisionId);
+    if (division == null)
+    {
+        TempData["Error"] = "Division not found!";
+        return RedirectToAction("Divisions");
+    }
+
+    division.DivisionName = model.DivisionName;
+    division.DivisionCode = model.DivisionCode;
+    division.OfficeId     = model.OfficeId;
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Division updated successfully!";
+    return RedirectToAction("Divisions");
+}
+
+// POST: /Admin/DivisionDelete — delete division
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> DivisionDelete(int id)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var division = await _db.Divisions.FindAsync(id);
+    if (division == null)
+    {
+        TempData["Error"] = "Division not found!";
+        return RedirectToAction("Divisions");
+    }
+
+    _db.Divisions.Remove(division);
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Division deleted successfully!";
+    return RedirectToAction("Divisions");
+}
+
+// ── AJAX: Get offices by region (for cascading dropdowns) ─────
+[HttpGet]
+public async Task<IActionResult> GetOfficesByRegion(int regionId)
+{
+    var offices = await _db.Offices
+        .Where(o => o.RegionId == regionId)
+        .OrderBy(o => o.OfficeName)
+        .Select(o => new { o.OfficeId, o.OfficeName, o.OfficeCode })
+        .ToListAsync();
+    return Json(offices);
+}
 
     // ── Trainings ─────────────────────────────────────────────────
     public IActionResult Trainings()

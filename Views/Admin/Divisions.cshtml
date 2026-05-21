@@ -1,8 +1,403 @@
+@model IEnumerable<LDHub.Models.Division>
 @{
-    ViewData["Title"] = "Home Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage Divisions";
+    var regions = ViewBag.Regions as List<LDHub.Models.Region> ?? new List<LDHub.Models.Region>();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>This is Division page welcome</p>
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Manage Divisions</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-action="Dashboard">Dashboard</a>
+                    </li>
+                    <li class="breadcrumb-item active">Divisions</li>
+                </ol>
+            </div>
+        </div>
+    </div>
 </div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="icon fas fa-check"></i> @TempData["Success"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="icon fas fa-ban"></i> @TempData["Error"]
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                <button type="button" class="btn btn-primary"
+                        data-toggle="modal" data-target="#addDivisionModal">
+                    <i class="fas fa-plus mr-1"></i> Add New
+                </button>
+                <div class="ml-auto d-flex align-items-center flex-wrap" style="gap:8px;">
+                    <label class="mb-0 font-weight-bold text-nowrap">Filter:</label>
+                    <select id="filterRegion" class="form-control form-control-sm select2bs4" style="min-width:180px;">
+                        <option value="">All Regions</option>
+                        @foreach (var r in regions)
+                        {
+                            <option value="@r.RegionId">@r.RegionName</option>
+                        }
+                    </select>
+                    <select id="filterOffice" class="form-control form-control-sm select2bs4"
+                            style="min-width:180px;" disabled>
+                        <option value="">All Offices</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <table id="divisionsTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Division Name</th>
+                            <th>Division Code</th>
+                            <th>Office</th>
+                            <th>Region</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Model)
+                        {
+                            <tr>
+                                <td>@d.DivisionId</td>
+                                <td>@d.DivisionName</td>
+                                <td>@(d.DivisionCode ?? "—")</td>
+                                <td>@(d.Office?.OfficeName ?? "—")</td>
+                                <td>@(d.Office?.Region?.RegionName ?? "—")</td>
+                                <td>
+                                    <button type="button" class="btn btn-warning btn-sm editDivisionBtn"
+                                            data-id="@d.DivisionId"
+                                            data-name="@d.DivisionName"
+                                            data-code="@d.DivisionCode"
+                                            data-office-id="@d.OfficeId"
+                                            data-region-id="@(d.Office?.RegionId)">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <form asp-action="DivisionDelete" method="post" style="display:inline"
+                                          onsubmit="return confirm('Delete this division?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@d.DivisionId" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+@* ── Add Division Modal ───────────────────────────────────────── *@
+<div class="modal fade" id="addDivisionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus mr-1"></i> Add New Division(s)</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+
+                @* Step 1: Region *@
+                <div class="form-group">
+                    <label class="font-weight-bold">Step 1 — Select Region <span class="text-danger">*</span></label>
+                    <select id="add_region_id" class="form-control select2bs4">
+                        <option value="">-- Select Region --</option>
+                        @foreach (var r in regions)
+                        {
+                            <option value="@r.RegionId">@r.RegionName</option>
+                        }
+                    </select>
+                </div>
+
+                @* Step 2: Office *@
+                <div class="form-group" id="add_office_wrap" style="display:none;">
+                    <label class="font-weight-bold">Step 2 — Select Office <span class="text-danger">*</span></label>
+                    <select id="add_office_id" class="form-control select2bs4">
+                        <option value="">-- Select Office --</option>
+                    </select>
+                </div>
+
+                @* Step 3: Division rows *@
+                <div id="add_divisions_wrap" style="display:none;">
+                    <hr />
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="font-weight-bold mb-0">
+                            <i class="fas fa-list mr-1"></i> Step 3 — Enter Division(s)
+                        </label>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="addRowBtn">
+                            <i class="fas fa-plus mr-1"></i> Add Row
+                        </button>
+                    </div>
+                    <p class="text-muted" style="font-size:.82rem;">
+                        Add one or more divisions below. Each row is one division.
+                    </p>
+                    <div id="divisionRowsContainer"></div>
+                    <button type="button" class="btn btn-success mt-3 w-100" id="saveBulkBtn">
+                        <i class="fas fa-save mr-1"></i> Save All Divisions
+                    </button>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Edit Division Modal ──────────────────────────────────────── *@
+<div class="modal fade" id="editDivisionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Division</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form asp-action="DivisionEdit" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="DivisionId" id="editDivisionId" />
+                    <div class="form-group">
+                        <label class="font-weight-bold">Region</label>
+                        <select id="editRegionId" class="form-control select2bs4">
+                            <option value="">-- Select Region --</option>
+                            @foreach (var r in regions)
+                            {
+                                <option value="@r.RegionId">@r.RegionName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Office <span class="text-danger">*</span></label>
+                        <select name="OfficeId" id="editOfficeId" class="form-control select2bs4" required>
+                            <option value="">-- Select Office --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Division Name <span class="text-danger">*</span></label>
+                        <input type="text" name="DivisionName" id="editDivisionName"
+                               class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Division Code</label>
+                        <input type="text" name="DivisionCode" id="editDivisionCode"
+                               class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save mr-1"></i> Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ── Bulk Add Form (hidden) ───────────────────────────────────── *@
+<form id="bulkDivisionForm" asp-action="DivisionBulkCreate" method="post" style="display:none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="officeId" id="bulkOfficeId" />
+    <div id="bulkDivisionInputs"></div>
+</form>
+
+@section Scripts {
+    <script>
+        function addDivisionRow() {
+            $('#divisionRowsContainer').append(
+                '<div class="division-row d-flex align-items-center mb-2" style="gap:8px;">' +
+                '<input type="text" class="form-control div-name" placeholder="Division Name *" required>' +
+                '<input type="text" class="form-control div-code" placeholder="Division Code (optional)" style="max-width:160px;">' +
+                '<button type="button" class="btn btn-outline-danger btn-sm remove-row-btn">' +
+                '<i class="fas fa-times"></i></button>' +
+                '</div>'
+            );
+        }
+
+        function loadOffices(regionId, targetSelect, callback) {
+            const $select = $(targetSelect);
+            if ($select.hasClass('select2-hidden-accessible')) $select.select2('destroy');
+            $select.empty().append('<option value="">-- Select Office --</option>');
+            if (!regionId) { $select.select2({ theme: 'bootstrap4' }); return; }
+
+            $.get('/Admin/GetOfficesByRegion', { regionId: regionId }, function (data) {
+                data.forEach(function (o) {
+                    $select.append('<option value="' + o.officeId + '">' + o.officeName + '</option>');
+                });
+                $select.select2({ theme: 'bootstrap4' });
+                if (callback) callback();
+            });
+        }
+
+        $(function () {
+
+            // ── DataTable ──
+            $('#divisionsTable').DataTable({
+                responsive: true, lengthChange: true, autoWidth: false,
+                columnDefs: [{ orderable: false, targets: 5 }]
+            });
+
+            // ── Select2 ──
+            $('.select2bs4').select2({ theme: 'bootstrap4' });
+
+            // ── Filter Region ──
+            $('#filterRegion').select2({ theme: 'bootstrap4' })
+                .on('select2:select select2:unselect', function () {
+                    const regionId   = $(this).val();
+                    const regionName = regionId ? $(this).find('option:selected').text().trim() : '';
+                    $('#divisionsTable').DataTable().column(4)
+                        .search(regionName ? '^' + $.fn.dataTable.util.escapeRegex(regionName) + '$' : '', true, false)
+                        .draw();
+
+                    // Load offices for filter
+                    const $fo = $('#filterOffice');
+                    $fo.empty().append('<option value="">All Offices</option>');
+                    $('#divisionsTable').DataTable().column(3).search('').draw();
+
+                    if (!regionId) { $fo.prop('disabled', true).trigger('change.select2'); return; }
+
+                    $.get('/Admin/GetOfficesByRegion', { regionId: regionId }, function (data) {
+                        data.forEach(function (o) {
+                            $fo.append('<option value="' + o.officeId + '">' + o.officeName + '</option>');
+                        });
+                        $fo.prop('disabled', false).trigger('change.select2');
+                    });
+                });
+
+            // ── Filter Office ──
+            $('#filterOffice').select2({ theme: 'bootstrap4' })
+                .on('select2:select select2:unselect', function () {
+                    const name = $(this).val() ? $(this).find('option:selected').text().trim() : '';
+                    $('#divisionsTable').DataTable().column(3)
+                        .search(name ? '^' + $.fn.dataTable.util.escapeRegex(name) + '$' : '', true, false)
+                        .draw();
+                });
+
+            // ── Add Modal: Region → load offices ──
+            $('#add_region_id').select2({ theme: 'bootstrap4' })
+                .on('select2:select select2:unselect', function () {
+                    const regionId = $(this).val();
+                    $('#add_office_wrap').toggle(!!regionId);
+                    $('#add_divisions_wrap').hide();
+                    $('#divisionRowsContainer').empty();
+                    if (!regionId) return;
+                    loadOffices(regionId, '#add_office_id');
+                });
+
+            // ── Add Modal: Office → show division rows ──
+            $(document).on('change', '#add_office_id', function () {
+                const officeId = $(this).val();
+                if (!officeId) { $('#add_divisions_wrap').hide(); return; }
+                $('#divisionRowsContainer').empty();
+                addDivisionRow();
+                $('#add_divisions_wrap').show();
+            });
+
+            // ── Add Row ──
+            $('#addRowBtn').on('click', addDivisionRow);
+
+            // ── Remove Row ──
+            $(document).on('click', '.remove-row-btn', function () {
+                $(this).closest('.division-row').remove();
+                if ($('#divisionRowsContainer .division-row').length === 0) addDivisionRow();
+            });
+
+            // ── Save Bulk Divisions ──
+            $('#saveBulkBtn').on('click', function () {
+                const officeId = $('#add_office_id').val();
+                if (!officeId) {
+                    Swal.fire({ icon: 'warning', title: 'Select an office first', timer: 1500, showConfirmButton: false });
+                    return;
+                }
+
+                const names = [], codes = [];
+                let valid = true;
+                $('#divisionRowsContainer .division-row').each(function () {
+                    const name = $(this).find('.div-name').val().trim();
+                    const code = $(this).find('.div-code').val().trim();
+                    if (!name) { valid = false; return false; }
+                    names.push(name);
+                    codes.push(code);
+                });
+
+                if (!valid || names.length === 0) {
+                    Swal.fire({ icon: 'warning', title: 'Fill in all division names', timer: 1500, showConfirmButton: false });
+                    return;
+                }
+
+                $('#bulkOfficeId').val(officeId);
+                $('#bulkDivisionInputs').empty();
+                names.forEach(function (n) {
+                    $('#bulkDivisionInputs').append('<input type="hidden" name="divisionNames" value="' + n + '">');
+                });
+                codes.forEach(function (c) {
+                    $('#bulkDivisionInputs').append('<input type="hidden" name="divisionCodes" value="' + c + '">');
+                });
+                $('#bulkDivisionForm').submit();
+            });
+
+            // ── Edit button ──
+            $(document).on('click', '.editDivisionBtn', function () {
+                const regionId = $(this).data('region-id');
+                const officeId = $(this).data('office-id');
+                $('#editDivisionId').val($(this).data('id'));
+                $('#editDivisionName').val($(this).data('name'));
+                $('#editDivisionCode').val($(this).data('code'));
+                $('#editRegionId').val(regionId).trigger('change.select2');
+
+                loadOffices(regionId, '#editOfficeId', function () {
+                    $('#editOfficeId').val(officeId).trigger('change.select2');
+                });
+
+                $('#editDivisionModal').modal('show');
+            });
+
+            // ── Edit Modal: Region change ──
+            $('#editRegionId').select2({ theme: 'bootstrap4' })
+                .on('change', function () {
+                    loadOffices($(this).val(), '#editOfficeId');
+                });
+
+            // ── Clear add modal on close ──
+            $('#addDivisionModal').on('hidden.bs.modal', function () {
+                $('#add_region_id').val('').trigger('change.select2');
+                $('#add_office_wrap').hide();
+                $('#add_divisions_wrap').hide();
+                $('#divisionRowsContainer').empty();
+            });
+
+            // ── Backdrop cleanup ──
+            $(document).on('hidden.bs.modal', '.modal', function () {
+                if ($('.modal:visible').length === 0) {
+                    $('.modal-backdrop').remove();
+                    $('body').removeClass('modal-open').css('padding-right', '');
+                }
+            });
+        });
+    </script>
+}
