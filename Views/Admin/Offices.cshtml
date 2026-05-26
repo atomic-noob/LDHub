@@ -271,8 +271,8 @@
             });
 
         // ── Add modal: Region selected ──
-        $('#add_region_id').select2({ theme: 'bootstrap4' })
-            .on('select2:select select2:unselect change', function () {
+       $('#add_region_id').select2({ theme: 'bootstrap4' })
+    .on('select2:select select2:unselect', function () {
                 const regionId = $(this).val();
                 $('#add_region_id_hidden').val(regionId);
 

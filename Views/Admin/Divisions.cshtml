@@ -5,6 +5,11 @@
     var regions = ViewBag.Regions as List<LDHub.Models.Region> ?? new List<LDHub.Models.Region>();
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="~/plugins/datatables-responsive/css/responsive.bootstrap4.min.css" />
+}
+
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
@@ -13,9 +18,7 @@
             </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item">
-                        <a asp-action="Dashboard">Dashboard</a>
-                    </li>
+                    <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
                     <li class="breadcrumb-item active">Divisions</li>
                 </ol>
             </div>
@@ -111,7 +114,7 @@
     </div>
 </section>
 
-@* ── Add Division Modal ───────────────────────────────────────── *@
+@* ── Add Division Modal ── *@
 <div class="modal fade" id="addDivisionModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -121,10 +124,9 @@
             </div>
             <div class="modal-body">
 
-                @* Step 1: Region *@
                 <div class="form-group">
                     <label class="font-weight-bold">Step 1 — Select Region <span class="text-danger">*</span></label>
-                    <select id="add_region_id" class="form-control select2bs4">
+                    <select id="add_region_id" class="form-control">
                         <option value="">-- Select Region --</option>
                         @foreach (var r in regions)
                         {
@@ -133,15 +135,13 @@
                     </select>
                 </div>
 
-                @* Step 2: Office *@
                 <div class="form-group" id="add_office_wrap" style="display:none;">
                     <label class="font-weight-bold">Step 2 — Select Office <span class="text-danger">*</span></label>
-                    <select id="add_office_id" class="form-control select2bs4">
+                    <select id="add_office_id" class="form-control">
                         <option value="">-- Select Office --</option>
                     </select>
                 </div>
 
-                @* Step 3: Division rows *@
                 <div id="add_divisions_wrap" style="display:none;">
                     <hr />
                     <div class="d-flex align-items-center justify-content-between mb-2">
@@ -152,9 +152,7 @@
                             <i class="fas fa-plus mr-1"></i> Add Row
                         </button>
                     </div>
-                    <p class="text-muted" style="font-size:.82rem;">
-                        Add one or more divisions below. Each row is one division.
-                    </p>
+                    <p class="text-muted" style="font-size:.82rem;">Each row is one division.</p>
                     <div id="divisionRowsContainer"></div>
                     <button type="button" class="btn btn-success mt-3 w-100" id="saveBulkBtn">
                         <i class="fas fa-save mr-1"></i> Save All Divisions
@@ -169,7 +167,7 @@
     </div>
 </div>
 
-@* ── Edit Division Modal ──────────────────────────────────────── *@
+@* ── Edit Division Modal ── *@
 <div class="modal fade" id="editDivisionModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -199,13 +197,11 @@
                     </div>
                     <div class="form-group">
                         <label>Division Name <span class="text-danger">*</span></label>
-                        <input type="text" name="DivisionName" id="editDivisionName"
-                               class="form-control" required />
+                        <input type="text" name="DivisionName" id="editDivisionName" class="form-control" required />
                     </div>
                     <div class="form-group">
                         <label>Division Code</label>
-                        <input type="text" name="DivisionCode" id="editDivisionCode"
-                               class="form-control" />
+                        <input type="text" name="DivisionCode" id="editDivisionCode" class="form-control" />
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -219,7 +215,7 @@
     </div>
 </div>
 
-@* ── Bulk Add Form (hidden) ───────────────────────────────────── *@
+@* ── Bulk Add Form (hidden) ── *@
 <form id="bulkDivisionForm" asp-action="DivisionBulkCreate" method="post" style="display:none;">
     @Html.AntiForgeryToken()
     <input type="hidden" name="officeId" id="bulkOfficeId" />
@@ -227,6 +223,11 @@
 </form>
 
 @section Scripts {
+    <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script src="~/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+    <script src="~/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+
     <script>
         function addDivisionRow() {
             $('#divisionRowsContainer').append(
@@ -262,41 +263,39 @@
                 columnDefs: [{ orderable: false, targets: 5 }]
             });
 
-            // ── Select2 ──
+            // ── Select2 for filter and edit dropdowns only ──
             $('.select2bs4').select2({ theme: 'bootstrap4' });
 
             // ── Filter Region ──
-            $('#filterRegion').select2({ theme: 'bootstrap4' })
-                .on('select2:select select2:unselect', function () {
-                    const regionId   = $(this).val();
-                    const regionName = regionId ? $(this).find('option:selected').text().trim() : '';
-                    $('#divisionsTable').DataTable().column(4)
-                        .search(regionName ? '^' + $.fn.dataTable.util.escapeRegex(regionName) + '$' : '', true, false)
-                        .draw();
+            $('#filterRegion').on('change', function () {
+                const regionId   = $(this).val();
+                const regionName = $(this).find('option:selected').text().trim();
+                $('#divisionsTable').DataTable().column(4)
+                    .search(regionId ? '^' + $.fn.dataTable.util.escapeRegex(regionName) + '$' : '', true, false)
+                    .draw();
 
-                    // Load offices for filter
-                    const $fo = $('#filterOffice');
-                    $fo.empty().append('<option value="">All Offices</option>');
-                    $('#divisionsTable').DataTable().column(3).search('').draw();
+                const $fo = $('#filterOffice');
+                $fo.empty().append('<option value="">All Offices</option>');
+                $('#divisionsTable').DataTable().column(3).search('').draw();
 
-                    if (!regionId) { $fo.prop('disabled', true).trigger('change.select2'); return; }
+                if (!regionId) { $fo.prop('disabled', true); return; }
 
-                    $.get('/Admin/GetOfficesByRegion', { regionId: regionId }, function (data) {
-                        data.forEach(function (o) {
-                            $fo.append('<option value="' + o.officeId + '">' + o.officeName + '</option>');
-                        });
-                        $fo.prop('disabled', false).trigger('change.select2');
+                $.get('/Admin/GetOfficesByRegion', { regionId: regionId }, function (data) {
+                    data.forEach(function (o) {
+                        $fo.append('<option value="' + o.officeId + '">' + o.officeName + '</option>');
                     });
+                    $fo.prop('disabled', false);
                 });
+            });
 
             // ── Filter Office ──
-            $('#filterOffice').select2({ theme: 'bootstrap4' })
-                .on('select2:select select2:unselect', function () {
-                    const name = $(this).val() ? $(this).find('option:selected').text().trim() : '';
-                    $('#divisionsTable').DataTable().column(3)
-                        .search(name ? '^' + $.fn.dataTable.util.escapeRegex(name) + '$' : '', true, false)
-                        .draw();
-                });
+            $('#filterOffice').on('change', function () {
+                const name = $(this).find('option:selected').text().trim();
+                const val  = $(this).val();
+                $('#divisionsTable').DataTable().column(3)
+                    .search(val ? '^' + $.fn.dataTable.util.escapeRegex(name) + '$' : '', true, false)
+                    .draw();
+            });
 
             // ── Add Modal: Region → load offices ──
             $('#add_region_id').select2({ theme: 'bootstrap4' })
@@ -369,23 +368,21 @@
                 $('#editDivisionName').val($(this).data('name'));
                 $('#editDivisionCode').val($(this).data('code'));
                 $('#editRegionId').val(regionId).trigger('change.select2');
-
                 loadOffices(regionId, '#editOfficeId', function () {
                     $('#editOfficeId').val(officeId).trigger('change.select2');
                 });
-
                 $('#editDivisionModal').modal('show');
             });
 
             // ── Edit Modal: Region change ──
-            $('#editRegionId').select2({ theme: 'bootstrap4' })
-                .on('change', function () {
-                    loadOffices($(this).val(), '#editOfficeId');
-                });
+            $('#editRegionId').on('change', function () {
+                loadOffices($(this).val(), '#editOfficeId');
+            });
 
             // ── Clear add modal on close ──
             $('#addDivisionModal').on('hidden.bs.modal', function () {
-                $('#add_region_id').val('').trigger('change.select2');
+                if ($('#add_region_id').hasClass('select2-hidden-accessible'))
+                    $('#add_region_id').val('').trigger('change.select2');
                 $('#add_office_wrap').hide();
                 $('#add_divisions_wrap').hide();
                 $('#divisionRowsContainer').empty();
