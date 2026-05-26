@@ -119,6 +119,6 @@ namespace LDHub.Models
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
         // One user can be assigned MANY trainings
-        public virtual ICollection<TrainingAssignment> TrainingAssignments { get; set; } = new List<TrainingAssignment>();
+        // public virtual ICollection<TrainingAssignment> TrainingAssignments { get; set; } = new List<TrainingAssignment>();
     }
 }

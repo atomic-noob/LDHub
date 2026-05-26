@@ -1,0 +1,87 @@
+@model IEnumerable<LDHub.Models.Training>
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Trainings";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Training Management</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="#">Home</a></li>
+                    <li class="breadcrumb-item active">Trainings</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">List of Trainings</h3>
+                <div class="card-tools">
+                    <a asp-action="Create" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus"></i> New Training
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Training Code</th>
+                            <th>Training Title</th>
+                            <th>Location</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Training Hrs</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            var status = "Scheduled";
+                            var badgeClass = "badge-success";
+
+                            if (DateTime.Now >= item.StartDate && DateTime.Now <= item.EndDate)
+                            {
+                                status = "Ongoing";
+                                badgeClass = "badge-primary";
+                            }
+                            else if (DateTime.Now > item.EndDate)
+                            {
+                                status = "Ended";
+                                badgeClass = "badge-danger";
+                            }
+
+                            <tr>
+                                <td>@item.TrainingId</td>
+                                <td>@item.TrainingCode</td>
+                                <td>@item.TrainingTitle</td>
+                                <td>@item.Location</td>
+                                <td>@item.StartDate?.ToString("MMM dd, yyyy")</td>
+                                <td>@item.EndDate?.ToString("MMM dd, yyyy")</td>
+                                <td>@item.TrainingHrs</td>
+                                <td><span class="badge @badgeClass">@status</span></td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.TrainingId" class="btn btn-warning btn-sm">Edit</a>
+                                    <a asp-action="Delete" asp-route-id="@item.TrainingId" class="btn btn-danger btn-sm">Delete</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

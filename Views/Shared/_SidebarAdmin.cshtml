@@ -1,146 +1,165 @@
 @* _SidebarAdmin.cshtml — Admin Left Sidebar *@
 
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool isManageUsers = controller == "Admin" && (action == "Employees" || action == "PendingEmployees" || action == "ResourcePersons");
+    bool isLocations = controller == "Admin" && (action == "Regions" || action == "Offices" || action == "Divisions");
+    bool isReports = controller == "Admin" && (action == "ReportUsers" || action == "ReportIdp" || action == "ReportTraining");
+}
+
 <aside class="main-sidebar sidebar-dark-success elevation-4">
 
     <a href="#" class="brand-link">
         <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" class="brand-image img-circle elevation-3"
              style="opacity:.8">
-            <span class="brand-text font-weight-light">L&amp;D Hub</span>
-        </a>
+        <span class="brand-text font-weight-light">L&amp;D Hub</span>
+    </a>
 
-        <div class="sidebar">
+    <div class="sidebar">
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
-          
+                @* Dashboard *@
+                <li class="nav-item">
+                    <a asp-controller="Admin" asp-action="Dashboard"
+                       class="nav-link @(controller == "Admin" && action == "Dashboard" ? "active" : "")">
+                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <p>Dashboard</p>
+                    </a>
+                </li>
 
-            <nav class="mt-2">
-                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                @* Manage Users *@
+                <li class="nav-item has-treeview @(isManageUsers ? "menu-open" : "")">
+                    <a href="#" class="nav-link @(isManageUsers ? "active" : "")">
+                        <i class="nav-icon fas fa-users"></i>
+                        <p>Manage Users <i class="right fas fa-angle-left"></i></p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="Employees"
+                               class="nav-link @(action == "Employees" ? "active" : "")">
+                                <i class="fas fa-user-check nav-icon"></i>
+                                <p>Employees</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="PendingEmployees"
+                               class="nav-link @(action == "PendingEmployees" ? "active" : "")">
+                                <i class="fas fa-user-clock nav-icon"></i>
+                                <p>Pending Employees</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="ResourcePersons"
+                               class="nav-link @(action == "ResourcePersons" ? "active" : "")">
+                                <i class="fas fa-chalkboard-teacher nav-icon"></i>
+                                <p>Subject Matter Expert (Outsource)</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
-                    @* Dashboard *@
-                    <li class="nav-item">
-                        <a asp-controller="Admin" asp-action="Dashboard" class="nav-link">
-                            <i class="nav-icon fas fa-tachometer-alt"></i>
-                            <p>Dashboard</p>
-                        </a>
-                    </li>
+                @* Locations *@
+                <li class="nav-item has-treeview @(isLocations ? "menu-open" : "")">
+                    <a href="#" class="nav-link @(isLocations ? "active" : "")">
+                        <i class="nav-icon fas fa-map-marker-alt"></i>
+                        <p>Locations <i class="right fas fa-angle-left"></i></p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="Regions"
+                               class="nav-link @(action == "Regions" ? "active" : "")">
+                                <i class="fas fa-globe-asia nav-icon"></i>
+                                <p>Manage Regions</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="Offices"
+                               class="nav-link @(action == "Offices" ? "active" : "")">
+                                <i class="fas fa-building nav-icon"></i>
+                                <p>Manage Offices</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="Divisions"
+                               class="nav-link @(action == "Divisions" ? "active" : "")">
+                                <i class="fas fa-sitemap nav-icon"></i>
+                                <p>Manage Divisions</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
-                    @* Manage Users *@
-                    <li class="nav-item has-treeview">
-                        <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-users"></i>
-                            <p>Manage Users <i class="right fas fa-angle-left"></i></p>
-                        </a>
-                        <ul class="nav nav-treeview">
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="Employees" class="nav-link">
-                                    <i class="fas fa-user-check nav-icon"></i>
-                                    <p>Employees</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="PendingEmployees" class="nav-link">
-                                    <i class="fas fa-user-clock nav-icon"></i>
-                                    <p>Pending Employees</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="ResourcePersons" class="nav-link">
-                                    <i class="fas fa-chalkboard-teacher nav-icon"></i>
-                                    <p>Subject Matter Expert (Outsource)</p>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                @* Trainings *@
+                <li class="nav-item">
+                    <a asp-controller="Training" asp-action="Index"
+                       class="nav-link @(controller == "Training" ? "active" : "")">
+                        <i class="nav-icon fas fa-book"></i>
+                        <p>Trainings</p>
+                    </a>
+                </li>
 
-                    @* Locations *@
-                    <li class="nav-item has-treeview">
-                        <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-map-marker-alt"></i>
-                            <p>Locations <i class="right fas fa-angle-left"></i></p>
-                        </a>
-                        <ul class="nav nav-treeview">
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="Regions" class="nav-link">
-                                    <i class="fas fa-globe-asia nav-icon"></i>
-                                    <p>Manage Regions</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="Offices" class="nav-link">
-                                    <i class="fas fa-building nav-icon"></i>
-                                    <p>Manage Offices</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="Divisions" class="nav-link">
-                                    <i class="fas fa-sitemap nav-icon"></i>
-                                    <p>Manage Divisions</p>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                @* Free Trainings *@
+                <li class="nav-item">
+                    <a asp-controller="Admin" asp-action="FreeTrainings"
+                       class="nav-link @(action == "FreeTrainings" ? "active" : "")">
+                        <i class="nav-icon fas fa-certificate"></i>
+                        <p>Free Trainings</p>
+                    </a>
+                </li>
 
-                    @* Trainings *@
-                    <li class="nav-item">
-                        <a asp-controller="Admin" asp-action="Trainings" class="nav-link">
-                            <i class="nav-icon fas fa-book"></i>
-                            <p>Trainings</p>
-                        </a>
-                    </li>
+                @* Announcements *@
+                <li class="nav-item">
+                    <a asp-controller="Admin" asp-action="Announcements"
+                       class="nav-link @(action == "Announcements" ? "active" : "")">
+                        <i class="nav-icon fas fa-bullhorn"></i>
+                        <p>Announcements</p>
+                    </a>
+                </li>
 
-                    @* Free Trainings *@
-                    <li class="nav-item">
-                        <a asp-controller="Admin" asp-action="FreeTrainings" class="nav-link">
-                            <i class="nav-icon fas fa-certificate"></i>
-                            <p>Free Trainings</p>
-                        </a>
-                    </li>
+                @* Reports *@
+                <li class="nav-item has-treeview @(isReports ? "menu-open" : "")">
+                    <a href="#" class="nav-link @(isReports ? "active" : "")">
+                        <i class="nav-icon fas fa-chart-bar"></i>
+                        <p>Reports <i class="right fas fa-angle-left"></i></p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="ReportUsers"
+                               class="nav-link @(action == "ReportUsers" ? "active" : "")">
+                                <i class="fas fa-users nav-icon"></i>
+                                <p>List of Users</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="ReportIdp"
+                               class="nav-link @(action == "ReportIdp" ? "active" : "")">
+                                <i class="fas fa-file-contract nav-icon"></i>
+                                <p>IDP Report</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-controller="Admin" asp-action="ReportTraining"
+                               class="nav-link @(action == "ReportTraining" ? "active" : "")">
+                                <i class="fas fa-file-contract nav-icon"></i>
+                                <p>Training Report</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
-                    @* Announcements *@
-                    <li class="nav-item">
-                        <a asp-controller="Admin" asp-action="Announcements" class="nav-link">
-                            <i class="nav-icon fas fa-bullhorn"></i>
-                            <p>Announcements</p>
-                        </a>
-                    </li>
+                @* FAQs *@
+                <li class="nav-item">
+                    <a asp-controller="Admin" asp-action="Faqs"
+                       class="nav-link @(action == "Faqs" ? "active" : "")">
+                        <i class="nav-icon fas fa-question-circle"></i>
+                        <p>FAQs</p>
+                    </a>
+                </li>
 
-                    @* Reports *@
-                    <li class="nav-item has-treeview">
-                        <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-chart-bar"></i>
-                            <p>Reports <i class="right fas fa-angle-left"></i></p>
-                        </a>
-                        <ul class="nav nav-treeview">
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="ReportUsers" class="nav-link">
-                                    <i class="fas fa-users nav-icon"></i>
-                                    <p>List of Users</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="ReportIdp" class="nav-link">
-                                    <i class="fas fa-file-contract nav-icon"></i>
-                                    <p>IDP Report</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a asp-controller="Admin" asp-action="ReportTraining" class="nav-link">
-                                    <i class="fas fa-file-contract nav-icon"></i>
-                                    <p>Training Report</p>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-
-                    @* FAQs *@
-                    <li class="nav-item">
-                        <a asp-controller="Admin" asp-action="Faqs" class="nav-link">
-                            <i class="nav-icon fas fa-question-circle"></i>
-                            <p>FAQs</p>
-                        </a>
-                    </li>
-
-                </ul>
-            </nav>
-
-        </div>
-    </aside>
+            </ul>
+        </nav>
+    </div>
+</aside>

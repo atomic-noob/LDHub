@@ -13,6 +13,8 @@ namespace LDHub.Data
         public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<PendingParticipant> PendingParticipants { get; set; }
+        public DbSet<Training> Trainings { get; set; }
+        
 
         // Location tables
         public DbSet<Region> Regions { get; set; }

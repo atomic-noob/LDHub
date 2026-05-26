@@ -234,13 +234,17 @@ namespace LDHub.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("created_at");
 
-                    b.Property<int>("CreatedBy")
+                    b.Property<int?>("CreatedBy")
                         .HasColumnType("int")
                         .HasColumnName("created_by");
 
                     b.Property<string>("Description")
                         .HasColumnType("longtext")
                         .HasColumnName("description");
+
+                    b.Property<string>("DevelopmentAct")
+                        .HasColumnType("longtext")
+                        .HasColumnName("development_act");
 
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime(6)")
@@ -251,21 +255,41 @@ namespace LDHub.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("location");
 
+                    b.Property<string>("MOVs")
+                        .HasColumnType("longtext")
+                        .HasColumnName("MOVs");
+
+                    b.Property<int?>("ProficiencyId")
+                        .HasColumnType("int")
+                        .HasColumnName("proficiency_id");
+
+                    b.Property<int?>("RegionId")
+                        .HasColumnType("int")
+                        .HasColumnName("region_id");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("start_date");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasColumnName("status");
+                    b.Property<string>("SuccessIndicator")
+                        .HasColumnType("longtext")
+                        .HasColumnName("success_indicator");
 
-                    b.Property<string>("Title")
+                    b.Property<string>("TrainingCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("training_code");
+
+                    b.Property<int?>("TrainingHrs")
+                        .HasColumnType("int")
+                        .HasColumnName("training_hrs");
+
+                    b.Property<string>("TrainingTitle")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)")
-                        .HasColumnName("title");
+                        .HasColumnName("training_title");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime(6)")
@@ -273,128 +297,7 @@ namespace LDHub.Migrations
 
                     b.HasKey("TrainingId");
 
-                    b.HasIndex("CreatedBy");
-
                     b.ToTable("trainings");
-                });
-
-            modelBuilder.Entity("LDHub.Models.TrainingAssignment", b =>
-                {
-                    b.Property<int>("AssignmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("assignment_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AssignmentId"));
-
-                    b.Property<DateTime?>("AcceptedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("accepted_at");
-
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("assigned_at");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("completed_at");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasColumnName("status");
-
-                    b.Property<int>("TrainingId")
-                        .HasColumnType("int")
-                        .HasColumnName("training_id");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("AssignmentId");
-
-                    b.HasIndex("TrainingId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("training_assignments");
-                });
-
-            modelBuilder.Entity("LDHub.Models.TrainingModule", b =>
-                {
-                    b.Property<int>("ModuleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("module_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ModuleId"));
-
-                    b.Property<string>("Content")
-                        .HasColumnType("longtext")
-                        .HasColumnName("content");
-
-                    b.Property<string>("FilePath")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)")
-                        .HasColumnName("file_path");
-
-                    b.Property<string>("LectureSource")
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasColumnName("lecture_source");
-
-                    b.Property<string>("LinkUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)")
-                        .HasColumnName("link_url");
-
-                    b.Property<string>("ModuleDescription")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)")
-                        .HasColumnName("module_description");
-
-                    b.Property<string>("ModuleName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .HasColumnName("module_name");
-
-                    b.Property<string>("ModuleType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("module_type");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int")
-                        .HasColumnName("sort_order");
-
-                    b.Property<int>("TrainingId")
-                        .HasColumnType("int")
-                        .HasColumnName("training_id");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("updated_at");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("uploaded_at");
-
-                    b.Property<int>("UploadedBy")
-                        .HasColumnType("int")
-                        .HasColumnName("uploaded_by");
-
-                    b.HasKey("ModuleId");
-
-                    b.HasIndex("TrainingId");
-
-                    b.HasIndex("UploadedBy");
-
-                    b.ToTable("training_modules");
                 });
 
             modelBuilder.Entity("LDHub.Models.User", b =>
@@ -445,6 +348,14 @@ namespace LDHub.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)")
                         .HasColumnName("gender");
+
+                    b.Property<bool>("InTraining")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("in_training");
+
+                    b.Property<bool>("IsExternal")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_external");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -582,55 +493,6 @@ namespace LDHub.Migrations
                     b.Navigation("Region");
                 });
 
-            modelBuilder.Entity("LDHub.Models.Training", b =>
-                {
-                    b.HasOne("LDHub.Models.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("LDHub.Models.TrainingAssignment", b =>
-                {
-                    b.HasOne("LDHub.Models.Training", "Training")
-                        .WithMany("Assignments")
-                        .HasForeignKey("TrainingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("LDHub.Models.User", "User")
-                        .WithMany("TrainingAssignments")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Training");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("LDHub.Models.TrainingModule", b =>
-                {
-                    b.HasOne("LDHub.Models.Training", "Training")
-                        .WithMany("Modules")
-                        .HasForeignKey("TrainingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("LDHub.Models.User", "UploadedByUser")
-                        .WithMany()
-                        .HasForeignKey("UploadedBy")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Training");
-
-                    b.Navigation("UploadedByUser");
-                });
-
             modelBuilder.Entity("LDHub.Models.User", b =>
                 {
                     b.HasOne("LDHub.Models.Division", "Division")
@@ -685,17 +547,8 @@ namespace LDHub.Migrations
                     b.Navigation("Users");
                 });
 
-            modelBuilder.Entity("LDHub.Models.Training", b =>
-                {
-                    b.Navigation("Assignments");
-
-                    b.Navigation("Modules");
-                });
-
             modelBuilder.Entity("LDHub.Models.User", b =>
                 {
-                    b.Navigation("TrainingAssignments");
-
                     b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618

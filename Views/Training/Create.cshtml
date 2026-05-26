@@ -1,0 +1,84 @@
+@model LDHub.Models.Training
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Create Training";
+}
+
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <h2>Create Training</h2>
+                <a asp-action="Index" class="btn btn-secondary mb-3">Back to List</a>
+
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="form-group">
+                        <label asp-for="TrainingTitle">Training Title</label>
+                        <input asp-for="TrainingTitle" class="form-control" required />
+                        <span asp-validation-for="TrainingTitle" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Description">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Location">Venue</label>
+                        <input asp-for="Location" class="form-control" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label asp-for="StartDate">Start Date</label>
+                            <input asp-for="StartDate" class="form-control" type="date" />
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label asp-for="EndDate">End Date</label>
+                            <input asp-for="EndDate" class="form-control" type="date" />
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label asp-for="TrainingHrs">Training Hours</label>
+                            <input asp-for="TrainingHrs" class="form-control" type="number" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="DevelopmentAct">Development Activity</label>
+                        <textarea asp-for="DevelopmentAct" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="MOVs">Means of Verification (MOVs)</label>
+                        <textarea asp-for="MOVs" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="SuccessIndicator">Success Indicator</label>
+                        <textarea asp-for="SuccessIndicator" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="RegionId">Region</label>
+                        <select asp-for="RegionId" class="form-control" 
+                                asp-items="@(new SelectList(ViewBag.Regions, "RegionId", "RegionName"))">
+                            <option value="">-- Select Region --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+    <label asp-for="ProficiencyId">Proficiency Level</label>
+    <select asp-for="ProficiencyId" class="form-control"
+            asp-items="@(ViewBag.Proficiencies as List<SelectListItem>)">
+        <option value="">-- Select Proficiency --</option>
+    </select>
+</div>
+
+                    <button type="submit" class="btn btn-success">Save Training</button>
+                </form>
+            </div>  
+        </div>
+    </div>
+</section>
