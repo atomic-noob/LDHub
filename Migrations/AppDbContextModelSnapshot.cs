@@ -300,6 +300,53 @@ namespace LDHub.Migrations
                     b.ToTable("trainings");
                 });
 
+            modelBuilder.Entity("LDHub.Models.TrainingInstructor", b =>
+                {
+                    b.Property<int>("TrainingId")
+                        .HasColumnType("int")
+                        .HasColumnName("training_id");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime>("AssignedDate")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("assigned_date");
+
+                    b.HasKey("TrainingId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("training_instructors");
+                });
+
+            modelBuilder.Entity("LDHub.Models.TrainingParticipant", b =>
+                {
+                    b.Property<int>("TrainingId")
+                        .HasColumnType("int")
+                        .HasColumnName("training_id");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("CompletionStatus")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("completion_status");
+
+                    b.Property<DateTime>("EnrollmentDate")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("enrollment_date");
+
+                    b.HasKey("TrainingId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("training_participants");
+                });
+
             modelBuilder.Entity("LDHub.Models.User", b =>
                 {
                     b.Property<int>("UserId")
@@ -491,6 +538,44 @@ namespace LDHub.Migrations
                     b.Navigation("Office");
 
                     b.Navigation("Region");
+                });
+
+            modelBuilder.Entity("LDHub.Models.TrainingInstructor", b =>
+                {
+                    b.HasOne("LDHub.Models.Training", "Training")
+                        .WithMany()
+                        .HasForeignKey("TrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LDHub.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Training");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LDHub.Models.TrainingParticipant", b =>
+                {
+                    b.HasOne("LDHub.Models.Training", "Training")
+                        .WithMany()
+                        .HasForeignKey("TrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LDHub.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Training");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("LDHub.Models.User", b =>

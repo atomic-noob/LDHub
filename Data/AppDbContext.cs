@@ -14,6 +14,8 @@ namespace LDHub.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<PendingParticipant> PendingParticipants { get; set; }
         public DbSet<Training> Trainings { get; set; }
+        public DbSet<TrainingParticipant> TrainingParticipants { get; set; }
+        public DbSet<TrainingInstructor> TrainingInstructors { get; set; }
         
 
         // Location tables
@@ -77,6 +79,38 @@ namespace LDHub.Data
                 .WithMany(o => o.Divisions)
                 .HasForeignKey(d => d.OfficeId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            // Training → Participants
+modelBuilder.Entity<TrainingParticipant>()
+    .HasKey(tp => new { tp.TrainingId, tp.UserId });
+
+modelBuilder.Entity<TrainingParticipant>()
+    .HasOne(tp => tp.Training)
+    .WithMany(t => t.TrainingParticipants)
+    .HasForeignKey(tp => tp.TrainingId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+modelBuilder.Entity<TrainingParticipant>()
+    .HasOne(tp => tp.User)
+    .WithMany()
+    .HasForeignKey(tp => tp.UserId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+// Training → Instructors
+modelBuilder.Entity<TrainingInstructor>()
+    .HasKey(ti => new { ti.TrainingId, ti.UserId });
+
+modelBuilder.Entity<TrainingInstructor>()
+    .HasOne(ti => ti.Training)
+    .WithMany(t => t.TrainingInstructors)
+    .HasForeignKey(ti => ti.TrainingId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+modelBuilder.Entity<TrainingInstructor>()
+    .HasOne(ti => ti.User)
+    .WithMany()
+    .HasForeignKey(ti => ti.UserId)
+    .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

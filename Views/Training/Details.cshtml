@@ -1,0 +1,241 @@
+@model LDHub.Models.Training
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Training Details";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Training Details</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a asp-action="Index">Trainings</a></li>
+                    <li class="breadcrumb-item active">Details</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="icon fas fa-check"></i> @TempData["Success"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="icon fas fa-ban"></i> @TempData["Error"]
+            </div>
+        }
+
+        @* ── Training Info ── *@
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-graduation-cap mr-2"></i> @Model.TrainingTitle
+                </h3>
+                <div class="card-tools">
+                    <a asp-action="Edit" asp-route-id="@Model.TrainingId"
+                       class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit mr-1"></i> Edit
+                    </a>
+                    <a asp-action="Index" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left mr-1"></i> Back
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="40%">Training Code</th>
+                                <td>@Model.TrainingCode</td>
+                            </tr>
+                            <tr>
+                                <th>Location</th>
+                                <td>@(Model.Location ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <th>Start Date</th>
+                                <td>@Model.StartDate?.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                            <tr>
+                                <th>End Date</th>
+                                <td>@Model.EndDate?.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                            <tr>
+                                <th>Training Hours</th>
+                                <td>@Model.TrainingHrs</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>
+                                    @{
+                                        var status = "Scheduled";
+                                        var badge  = "badge-success";
+                                        if (DateTime.Now >= Model.StartDate && DateTime.Now <= Model.EndDate)
+                                        { status = "Ongoing"; badge = "badge-primary"; }
+                                        else if (DateTime.Now > Model.EndDate)
+                                        { status = "Ended"; badge = "badge-danger"; }
+                                    }
+                                    <span class="badge @badge">@status</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="40%">Description</th>
+                                <td>@(Model.Description ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <th>Development Act</th>
+                                <td>@(Model.DevelopmentAct ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <th>MOVs</th>
+                                <td>@(Model.MOVs ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <th>Success Indicator</th>
+                                <td>@(Model.SuccessIndicator ?? "—")</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Participants ── *@
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-users mr-2"></i> Participants
+                    <span class="badge badge-info ml-2">@Model.TrainingParticipants.Count</span>
+                </h3>
+                <div class="card-tools">
+                    <a asp-action="AssignParticipant" asp-route-id="@Model.TrainingId"
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus mr-1"></i> Assign Participants
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <table id="participantsTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Position</th>
+                            <th>Enrollment Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tp in Model.TrainingParticipants)
+                        {
+                            <tr>
+                                <td>@tp.UserId</td>
+                                <td>@tp.User?.FirstName @tp.User?.LastName</td>
+                                <td>@(tp.User?.Position ?? "—")</td>
+                                <td>@tp.EnrollmentDate.ToString("MMM dd, yyyy")</td>
+                                <td><span class="badge badge-info">@tp.CompletionStatus</span></td>
+                                <td>
+                                    <form asp-action="RemoveParticipant" method="post" style="display:inline"
+                                          onsubmit="return confirm('Remove this participant?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="trainingId" value="@Model.TrainingId" />
+                                        <input type="hidden" name="userId" value="@tp.UserId" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-times"></i> Remove
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* ── Resource Persons ── *@
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chalkboard-teacher mr-2"></i> Resource Persons
+                    <span class="badge badge-info ml-2">@Model.TrainingInstructors.Count</span>
+                </h3>
+                <div class="card-tools">
+                    <a asp-action="AssignResourcePerson" asp-route-id="@Model.TrainingId"
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-plus mr-1"></i> Assign Resource Person
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <table id="instructorsTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Position</th>
+                            <th>Assigned Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ti in Model.TrainingInstructors)
+                        {
+                            <tr>
+                                <td>@ti.UserId</td>
+                                <td>@ti.User?.FirstName @ti.User?.LastName</td>
+                                <td>@(ti.User?.Position ?? "—")</td>
+                                <td>@ti.AssignedDate.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <form asp-action="RemoveResourcePerson" method="post" style="display:inline"
+                                          onsubmit="return confirm('Remove this resource person?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="trainingId" value="@Model.TrainingId" />
+                                        <input type="hidden" name="userId" value="@ti.UserId" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-times"></i> Remove
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script>
+        $(function () {
+            $('#participantsTable').DataTable({ responsive: true, autoWidth: false });
+            $('#instructorsTable').DataTable({ responsive: true, autoWidth: false });
+        });
+    </script>
+}

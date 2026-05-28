@@ -5,26 +5,42 @@
     ViewData["Title"] = "Create Training";
 }
 
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1>Create Training</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a asp-action="Index">Trainings</a></li>
+                    <li class="breadcrumb-item active">Create</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</section>
 
 <section class="content">
     <div class="container-fluid">
         <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-book-open mr-2"></i>Training Information</h3>
+            </div>
             <div class="card-body">
-                <h2>Create Training</h2>
-                <a asp-action="Index" class="btn btn-secondary mb-3">Back to List</a>
+                <p><span class="text-danger">*</span> Required</p>
 
                 <form asp-action="Create" method="post">
                     @Html.AntiForgeryToken()
 
                     <div class="form-group">
-                        <label asp-for="TrainingTitle">Training Title</label>
+                        <label asp-for="TrainingTitle">Training Title <span class="text-danger">*</span></label>
                         <input asp-for="TrainingTitle" class="form-control" required />
                         <span asp-validation-for="TrainingTitle" class="text-danger"></span>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="Description">Description</label>
-                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        <label asp-for="Description">Description <span class="text-danger">*</span></label>
+                        <textarea asp-for="Description" class="form-control" rows="3" required></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
                     </div>
 
                     <div class="form-group">
@@ -34,16 +50,19 @@
 
                     <div class="row">
                         <div class="col-md-4 form-group">
-                            <label asp-for="StartDate">Start Date</label>
-                            <input asp-for="StartDate" class="form-control" type="date" />
+                            <label asp-for="StartDate">Start Date <span class="text-danger">*</span></label>
+                            <input asp-for="StartDate" class="form-control" type="date" required />
+                            <span asp-validation-for="StartDate" class="text-danger"></span>
                         </div>
                         <div class="col-md-4 form-group">
-                            <label asp-for="EndDate">End Date</label>
-                            <input asp-for="EndDate" class="form-control" type="date" />
+                            <label asp-for="EndDate">End Date <span class="text-danger">*</span></label>
+                            <input asp-for="EndDate" class="form-control" type="date" required />
+                            <span asp-validation-for="EndDate" class="text-danger"></span>
                         </div>
                         <div class="col-md-4 form-group">
-                            <label asp-for="TrainingHrs">Training Hours</label>
-                            <input asp-for="TrainingHrs" class="form-control" type="number" />
+                            <label asp-for="TrainingHrs">Training Hours <span class="text-danger">*</span></label>
+                            <input asp-for="TrainingHrs" class="form-control" type="number" min="1" required />
+                            <span asp-validation-for="TrainingHrs" class="text-danger"></span>
                         </div>
                     </div>
 
@@ -61,24 +80,36 @@
                         <label asp-for="SuccessIndicator">Success Indicator</label>
                         <textarea asp-for="SuccessIndicator" class="form-control" rows="2"></textarea>
                     </div>
+
                     <div class="form-group">
-                        <label asp-for="RegionId">Region</label>
-                        <select asp-for="RegionId" class="form-control" 
-                                asp-items="@(new SelectList(ViewBag.Regions, "RegionId", "RegionName"))">
+                        <label asp-for="RegionId">Region <span class="text-danger">*</span></label>
+                        <select asp-for="RegionId" class="form-control"
+                                asp-items="@(new SelectList(ViewBag.Regions, "RegionId", "RegionName"))" required>
                             <option value="">-- Select Region --</option>
                         </select>
+                        <span asp-validation-for="RegionId" class="text-danger"></span>
                     </div>
-                    <div class="form-group">
-    <label asp-for="ProficiencyId">Proficiency Level</label>
-    <select asp-for="ProficiencyId" class="form-control"
-            asp-items="@(ViewBag.Proficiencies as List<SelectListItem>)">
-        <option value="">-- Select Proficiency --</option>
-    </select>
-</div>
 
-                    <button type="submit" class="btn btn-success">Save Training</button>
+                    <div class="form-group">
+                        <label asp-for="ProficiencyId">Proficiency Level <span class="text-danger">*</span></label>
+                        <select asp-for="ProficiencyId" class="form-control"
+                                asp-items="@(ViewBag.Proficiencies as IEnumerable<SelectListItem>)" required>
+                            <option value="">-- Select Proficiency --</option>
+                        </select>
+                        <span asp-validation-for="ProficiencyId" class="text-danger"></span>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-right">
+                            <a asp-action="Index" class="btn btn-secondary">Back</a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save mr-1"></i> Save Training
+                            </button>
+                        </div>
+                    </div>
+
                 </form>
-            </div>  
+            </div>
         </div>
     </div>
 </section>

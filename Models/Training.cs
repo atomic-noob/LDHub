@@ -11,7 +11,7 @@ namespace LDHub.Models
         [Column("training_id")]
         public int TrainingId { get; set; }
 
-        [Required]
+       
         [Column("training_code")]
         [MaxLength(100)]
         public string TrainingCode { get; set; } = string.Empty;
@@ -60,5 +60,14 @@ namespace LDHub.Models
 
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    }
+
+     // Navigation
+        [InverseProperty("Training")]
+        public virtual ICollection<TrainingParticipant> TrainingParticipants { get; set; } 
+            = new List<TrainingParticipant>();
+
+        [InverseProperty("Training")]
+        public virtual ICollection<TrainingInstructor> TrainingInstructors { get; set; } 
+            = new List<TrainingInstructor>();
+            }
 }
