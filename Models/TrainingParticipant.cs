@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace LDHub.Models;
 
 [Table("training_participants")]
+[PrimaryKey("TrainingId", "UserId")]
 public class TrainingParticipant
 {
     [Column("training_id")]
@@ -19,8 +21,8 @@ public class TrainingParticipant
     public string CompletionStatus { get; set; } = "Enrolled";
 
     [ForeignKey("TrainingId")]
-public Training? Training { get; set; }
+    public Training? Training { get; set; }
 
-[ForeignKey("UserId")]
-public User? User { get; set; }
+    [ForeignKey("UserId")]
+    public User? User { get; set; }
 }

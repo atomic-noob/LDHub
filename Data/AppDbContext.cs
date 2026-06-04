@@ -81,36 +81,36 @@ namespace LDHub.Data
                 .OnDelete(DeleteBehavior.Cascade);
             
             // Training → Participants
-modelBuilder.Entity<TrainingParticipant>()
-    .HasKey(tp => new { tp.TrainingId, tp.UserId });
+            modelBuilder.Entity<TrainingParticipant>()
+                .HasKey(tp => new { tp.TrainingId, tp.UserId });
 
-modelBuilder.Entity<TrainingParticipant>()
-    .HasOne(tp => tp.Training)
-    .WithMany(t => t.TrainingParticipants)
-    .HasForeignKey(tp => tp.TrainingId)
-    .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<TrainingParticipant>()
+                .HasOne(tp => tp.Training)
+                .WithMany(t => t.TrainingParticipants)
+                .HasForeignKey(tp => tp.TrainingId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-modelBuilder.Entity<TrainingParticipant>()
-    .HasOne(tp => tp.User)
-    .WithMany()
-    .HasForeignKey(tp => tp.UserId)
-    .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<TrainingParticipant>()
+                .HasOne(tp => tp.User)
+                .WithMany()
+                .HasForeignKey(tp => tp.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-// Training → Instructors
-modelBuilder.Entity<TrainingInstructor>()
-    .HasKey(ti => new { ti.TrainingId, ti.UserId });
+            // Training → Instructors
+            modelBuilder.Entity<TrainingInstructor>()
+                .HasKey(ti => new { ti.TrainingId, ti.UserId });
 
-modelBuilder.Entity<TrainingInstructor>()
-    .HasOne(ti => ti.Training)
-    .WithMany(t => t.TrainingInstructors)
-    .HasForeignKey(ti => ti.TrainingId)
-    .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<TrainingInstructor>()
+                .HasOne(ti => ti.Training)
+                .WithMany(t => t.TrainingInstructors)
+                .HasForeignKey(ti => ti.TrainingId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-modelBuilder.Entity<TrainingInstructor>()
-    .HasOne(ti => ti.User)
-    .WithMany()
-    .HasForeignKey(ti => ti.UserId)
-    .OnDelete(DeleteBehavior.Cascade);
-        }
+            modelBuilder.Entity<TrainingInstructor>()
+                .HasOne(ti => ti.User)
+                .WithMany()
+                .HasForeignKey(ti => ti.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+                    }
     }
 }

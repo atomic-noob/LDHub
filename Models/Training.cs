@@ -63,11 +63,9 @@ namespace LDHub.Models
 
      // Navigation
         [InverseProperty("Training")]
-        public virtual ICollection<TrainingParticipant> TrainingParticipants { get; set; } 
-            = new List<TrainingParticipant>();
+        public virtual ICollection<TrainingParticipant> TrainingParticipants { get; set; } = new List<TrainingParticipant>();
 
         [InverseProperty("Training")]
-        public virtual ICollection<TrainingInstructor> TrainingInstructors { get; set; } 
-            = new List<TrainingInstructor>();
+       public virtual ICollection<TrainingInstructor> TrainingInstructors { get; set; } = new List<TrainingInstructor>();
             }
 }

@@ -1,0 +1,155 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Assign Participants";
+    var training = ViewBag.Training as LDHub.Models.Training;
+    var availableUsers = ViewBag.AvailableUsers as List<LDHub.Models.User>;
+    var assignedParticipants = ViewBag.AssignedParticipants as List<LDHub.Models.TrainingParticipant>;
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1>Assign Participants</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a asp-action="Index">Trainings</a></li>
+                    <li class="breadcrumb-item active">Assign Participants</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-book mr-2"></i>@training.TrainingTitle
+                    <span class="badge badge-info ml-2">@training.TrainingCode</span>
+                </h3>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Available Participants -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-users mr-2"></i>Available Employees</h3>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="AssignParticipant" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="trainingId" value="@training.TrainingId" />
+
+                            <table class="table table-bordered table-hover table-sm">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th width="40px">
+                                            <input type="checkbox" id="selectAll" />
+                                        </th>
+                                        <th>Name</th>
+                                        <th>Office</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (availableUsers != null && availableUsers.Count > 0)
+                                    {
+                                        @foreach (var user in availableUsers)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" name="userIds" value="@user.UserId" class="participant-check" />
+                                                </td>
+                                                <td>@user.FirstName @user.LastName</td>
+                                                <td>@(user.OfficeId?.ToString() ?? "N/A")</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">No available employees</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-user-plus mr-1"></i> Assign Selected
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assigned Participants -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-user-check mr-2"></i>Assigned Participants
+                            <span class="badge badge-success ml-2">@assignedParticipants?.Count</span>
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered table-hover table-sm">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (assignedParticipants != null && assignedParticipants.Count > 0)
+                                {
+                                    int i = 1;
+                                    @foreach (var p in assignedParticipants)
+                                    {
+                                        <tr>
+                                            <td>@i</td>
+                                            <td>@p.User?.FirstName @p.User?.LastName</td>
+                                            <td><span class="badge badge-info">@p.CompletionStatus</span></td>
+                                        </tr>
+                                        i++;
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">No participants assigned yet</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left mr-1"></i> Back to Trainings
+        </a>
+
+    </div>
+</section>
+
+@section Scripts {
+<script>
+    $('#selectAll').on('change', function() {
+        $('.participant-check').prop('checked', $(this).prop('checked'));
+    });
+</script>
+}
