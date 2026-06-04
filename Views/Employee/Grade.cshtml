@@ -1,17 +1,22 @@
+@model IEnumerable<LDHub.Models.TrainingParticipant>
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Grade Dashboard";
+    ViewData["Title"] = "My Grades";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
 }
 
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
             <div class="col-sm-6">
-                <h1 class="m-0">Grade Dashboard</h1>
+                <h1 class="m-0">My Grades</h1>
             </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item active">Grade Dashboard</li>
+                    <li class="breadcrumb-item active">Grades</li>
                 </ol>
             </div>
         </div>
@@ -20,18 +25,59 @@
 
 <section class="content">
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5>Welcome, @ViewBag.UserName! 👋</h5>
-                        <p class="text-muted">
-                            This is your Grade Dashboard. 
-                            Your trainings and progress will appear here.
-                        </p>
-                    </div>
-                </div>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-graduation-cap mr-2"></i> Training Grades
+                </h3>
+            </div>
+            <div class="card-body">
+                <table id="gradesTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Training Title</th>
+                            <th>Training Code</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Training Hours</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tp in Model)
+                        {
+                            var status     = "Scheduled";
+                            var badgeClass = "badge-success";
+                            if (DateTime.Now >= tp.Training?.StartDate &&
+                                DateTime.Now <= tp.Training?.EndDate)
+                            { status = "Ongoing"; badgeClass = "badge-primary"; }
+                            else if (DateTime.Now > tp.Training?.EndDate)
+                            { status = "Ended"; badgeClass = "badge-danger"; }
+
+                            <tr>
+                                <td>@tp.TrainingId</td>
+                                <td>@tp.Training?.TrainingTitle</td>
+                                <td>@tp.Training?.TrainingCode</td>
+                                <td>@tp.Training?.StartDate?.ToString("MMM dd, yyyy")</td>
+                                <td>@tp.Training?.EndDate?.ToString("MMM dd, yyyy")</td>
+                                <td>@tp.Training?.TrainingHrs hrs</td>
+                                <td><span class="badge @badgeClass">@status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </section>
+
+@section Scripts {
+    <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script>
+        $(function () {
+            $('#gradesTable').DataTable({ responsive: true, autoWidth: false });
+        });
+    </script>
+}

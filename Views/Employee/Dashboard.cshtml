@@ -1,6 +1,11 @@
+@model IEnumerable<LDHub.Models.TrainingParticipant>
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Employee Dashboard";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
 }
 
 <div class="content-header">
@@ -20,18 +25,93 @@
 
 <section class="content">
     <div class="container-fluid">
+
+        @* ── Stats Cards ── *@
         <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5>Welcome, @ViewBag.UserName! 👋</h5>
-                        <p class="text-muted">
-                            This is your Employee Dashboard. 
-                            Your trainings and progress will appear here.
-                        </p>
+            <div class="col-lg-4 col-6">
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3>@ViewBag.TotalEnrolled</h3>
+                        <p>Total Enrolled</p>
                     </div>
+                    <div class="icon"><i class="fas fa-book-open"></i></div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-6">
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3>@ViewBag.TotalCompleted</h3>
+                        <p>Completed</p>
+                    </div>
+                    <div class="icon"><i class="fas fa-check-circle"></i></div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-6">
+                <div class="small-box bg-warning">
+                    <div class="inner">
+                        <h3>@ViewBag.TotalOngoing</h3>
+                        <p>Ongoing</p>
+                    </div>
+                    <div class="icon"><i class="fas fa-spinner"></i></div>
                 </div>
             </div>
         </div>
+
+        @* ── My Trainings ── *@
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-list mr-2"></i> My Trainings
+                </h3>
+            </div>
+            <div class="card-body">
+                <table id="trainingsTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Training Title</th>
+                            <th>Location</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Status</th>
+                            <th>Enrollment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tp in Model)
+                        {
+                            var status     = "Scheduled";
+                            var badgeClass = "badge-success";
+                            if (DateTime.Now >= tp.Training?.StartDate && 
+                                DateTime.Now <= tp.Training?.EndDate)
+                            { status = "Ongoing"; badgeClass = "badge-primary"; }
+                            else if (DateTime.Now > tp.Training?.EndDate)
+                            { status = "Ended"; badgeClass = "badge-danger"; }
+
+                            <tr>
+                                <td>@tp.TrainingId</td>
+                                <td>@tp.Training?.TrainingTitle</td>
+                                <td>@(tp.Training?.Location ?? "—")</td>
+                                <td>@tp.Training?.StartDate?.ToString("MMM dd, yyyy")</td>
+                                <td>@tp.Training?.EndDate?.ToString("MMM dd, yyyy")</td>
+                                <td><span class="badge @badgeClass">@status</span></td>
+                                <td><span class="badge badge-info">@tp.CompletionStatus</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </section>
+
+@section Scripts {
+    <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script>
+        $(function () {
+            $('#trainingsTable').DataTable({ responsive: true, autoWidth: false });
+        });
+    </script>
+}

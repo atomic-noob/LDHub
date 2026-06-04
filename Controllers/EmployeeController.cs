@@ -7,9 +7,6 @@ namespace LDHub.Controllers;
 
 public class EmployeeController : Controller
 {
-    // ── Database connection ───────────────────────────────────────
-    // AppDbContext is injected here automatically by ASP.NET Core
-    // This is how we talk to the database — like $conn in PHP
     private readonly AppDbContext _db;
 
     public EmployeeController(AppDbContext db)
@@ -18,53 +15,118 @@ public class EmployeeController : Controller
     }
 
     // ── Auth check helper ─────────────────────────────────────────
-    // Checks if the current session has Employee role
-    // Used to protect pages from unauthorized access
-    // Equivalent to checking $_SESSION['role'] == 'Employee' in PHP
     private bool IsEmployee() =>
         HttpContext.Session.GetString("UserRole") == "Employee";
 
+    // ── Get current logged in user ID from session ─────────────────
+    private int GetUserId() =>
+        int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
+
     // ── ViewBag helper ────────────────────────────────────────────
-    // Sets common data needed by the layout and sidebar
-    // ViewBag is like passing variables to the view
-    // Equivalent to $data['userName'] = $_SESSION['name'] in PHP
     private void SetViewBag()
     {
         ViewBag.ActiveRole = "Employee";
-        ViewBag.UserName  = HttpContext.Session.GetString("UserName");
-        ViewBag.UserPhoto = HttpContext.Session.GetString("UserPhoto");
+        ViewBag.UserName   = HttpContext.Session.GetString("UserName");
+        ViewBag.UserPhoto  = HttpContext.Session.GetString("UserPhoto");
     }
 
     // ── GET: /Employee/Dashboard ──────────────────────────────────
-    // Main landing page after employee logs in
-    // Shows overview of trainings, progress, announcements
-    // If not logged in as Employee → redirect to login page
-    public IActionResult Dashboard()
+    // Shows overview — enrolled trainings, completed, ongoing
+    public async Task<IActionResult> Dashboard()
     {
         if (!IsEmployee()) return RedirectToAction("Login", "Home");
         SetViewBag();
-        return View("~/Views/Employee/Dashboard.cshtml");
+
+        var userId = GetUserId();
+
+        // Get all trainings the employee is enrolled in
+        var enrollments = await _db.TrainingParticipants
+            .Include(tp => tp.Training)
+            .Where(tp => tp.UserId == userId)
+            .ToListAsync();
+
+        // Count by status
+        ViewBag.TotalEnrolled  = enrollments.Count;
+        ViewBag.TotalCompleted = enrollments
+            .Count(tp => tp.CompletionStatus == "Completed");
+        ViewBag.TotalOngoing   = enrollments
+            .Count(tp => tp.Training != null
+                      && DateTime.Now >= tp.Training.StartDate
+                      && DateTime.Now <= tp.Training.EndDate);
+
+        return View("~/Views/Employee/Dashboard.cshtml", enrollments);
     }
 
     // ── GET: /Employee/Profile ────────────────────────────────────
-    // Shows the employee's personal information
-    // Name, email, position, region, office, division, photo
-    // If not logged in as Employee → redirect to login page
-    public IActionResult Profile()
+    // Shows employee personal info from database
+    public async Task<IActionResult> Profile()
     {
         if (!IsEmployee()) return RedirectToAction("Login", "Home");
         SetViewBag();
-        return View("~/Views/Employee/Profile.cshtml");
+
+        var userId = GetUserId();
+
+        // Load user with region, office, division
+        var user = await _db.Users
+            .Include(u => u.Region)
+            .Include(u => u.Office)
+            .Include(u => u.Division)
+            .Include(u => u.UserRoles)
+            .FirstOrDefaultAsync(u => u.UserId == userId);
+
+        if (user == null) return RedirectToAction("Login", "Home");
+
+        return View("~/Views/Employee/Profile.cshtml", user);
+    }
+
+    // ── POST: /Employee/UpdateProfile ─────────────────────────────
+    // Update employee profile info
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateProfile(User model)
+    {
+        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+
+        var userId = GetUserId();
+        var user = await _db.Users.FindAsync(userId);
+
+        if (user == null) return RedirectToAction("Login", "Home");
+
+        // Only update allowed fields
+        user.FirstName     = model.FirstName;
+        user.MiddleName    = model.MiddleName;
+        user.LastName      = model.LastName;
+        user.ContactNumber = model.ContactNumber;
+        user.Gender        = model.Gender;
+        user.Age           = model.Age;
+        user.UpdatedAt     = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        // Update session name
+        HttpContext.Session.SetString("UserName",
+            $"{user.FirstName} {user.LastName}");
+
+        TempData["Success"] = "Profile updated successfully!";
+        return RedirectToAction("Profile");
     }
 
     // ── GET: /Employee/Grade ──────────────────────────────────────
-    // Shows the employee's training grades and scores
-    // Lists all trainings they completed with their results
-    // If not logged in as Employee → redirect to login page
-    public IActionResult Grade()
+    // Shows employee training grades and scores
+    public async Task<IActionResult> Grade()
     {
         if (!IsEmployee()) return RedirectToAction("Login", "Home");
         SetViewBag();
-        return View("~/Views/Employee/Grade.cshtml");
+
+        var userId = GetUserId();
+
+        // Get all trainings with completion status
+        var enrollments = await _db.TrainingParticipants
+            .Include(tp => tp.Training)
+            .Where(tp => tp.UserId == userId)
+            .OrderByDescending(tp => tp.EnrollmentDate)
+            .ToListAsync();
+
+        return View("~/Views/Employee/Grade.cshtml", enrollments);
     }
 }

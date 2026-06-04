@@ -1,17 +1,18 @@
+@model LDHub.Models.User
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Employee Profile";
+    ViewData["Title"] = "My Profile";
 }
 
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
             <div class="col-sm-6">
-                <h1 class="m-0">Profile</h1>
+                <h1 class="m-0">My Profile</h1>
             </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item active">Dashboard</li>
+                    <li class="breadcrumb-item active">Profile</li>
                 </ol>
             </div>
         </div>
@@ -20,18 +21,165 @@
 
 <section class="content">
     <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="icon fas fa-check"></i> @TempData["Success"]
+            </div>
+        }
+
         <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5>Welcome, @ViewBag.UserName! 👋</h5>
-                        <p class="text-muted">
-                            This is your Employee Dashboard. 
-                            Your trainings and progress will appear here.
-                        </p>
+
+            @* ── Profile Card ── *@
+            <div class="col-md-4">
+                <div class="card card-primary card-outline">
+                    <div class="card-body box-profile">
+                        <div class="text-center">
+                            @if (!string.IsNullOrEmpty(Model.Photo))
+                            {
+                                <img src="~/uploads/photos/@Model.Photo"
+                                     class="profile-user-img img-fluid img-circle"
+                                     alt="Profile Photo" />
+                            }
+                            else
+                            {
+                                <img src="~/dist/img/user2-160x160.jpg"
+                                     class="profile-user-img img-fluid img-circle"
+                                     alt="Default Photo" />
+                            }
+                        </div>
+                        <h3 class="profile-username text-center mt-3">
+                            @Model.FirstName @Model.LastName
+                        </h3>
+                        <p class="text-muted text-center">@(Model.Position ?? "—")</p>
+
+                        <ul class="list-group list-group-unbordered mb-3">
+                            <li class="list-group-item">
+                                <b>Region</b>
+                                <span class="float-right">@(Model.Region?.RegionName ?? "—")</span>
+                            </li>
+                            <li class="list-group-item">
+                                <b>Office</b>
+                                <span class="float-right">@(Model.Office?.OfficeName ?? "—")</span>
+                            </li>
+                            <li class="list-group-item">
+                                <b>Division</b>
+                                <span class="float-right">@(Model.Division?.DivisionName ?? "—")</span>
+                            </li>
+                            <li class="list-group-item">
+                                <b>Status</b>
+                                <span class="float-right">
+                                    <span class="badge badge-success">@Model.Status</span>
+                                </span>
+                            </li>
+                        </ul>
+
+                        @* Roles *@
+                        <div class="text-center">
+                            @foreach (var role in Model.UserRoles)
+                            {
+                                <span class="badge badge-primary mr-1">@role.Role</span>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
+
+            @* ── Edit Profile Form ── *@
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-edit mr-2"></i> Edit Profile
+                        </h3>
+                    </div>
+                    <form asp-action="UpdateProfile" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>First Name <span class="text-danger">*</span></label>
+                                        <input type="text" name="FirstName"
+                                               value="@Model.FirstName"
+                                               class="form-control" required />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Middle Name</label>
+                                        <input type="text" name="MiddleName"
+                                               value="@Model.MiddleName"
+                                               class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Last Name <span class="text-danger">*</span></label>
+                                        <input type="text" name="LastName"
+                                               value="@Model.LastName"
+                                               class="form-control" required />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Contact Number</label>
+                                        <input type="text" name="ContactNumber"
+                                               value="@Model.ContactNumber"
+                                               class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Gender</label>
+                                        <select name="Gender" class="form-control">
+                                            <option value="Male" selected="@(Model.Gender == "Male")">Male</option>
+                                            <option value="Female" selected="@(Model.Gender == "Female")">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Age</label>
+                                        <input type="number" name="Age"
+                                               value="@Model.Age"
+                                               class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* Read-only fields *@
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Email</label>
+                                        <input type="text" value="@Model.Email"
+                                               class="form-control" readonly />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Position</label>
+                                        <input type="text" value="@Model.Position"
+                                               class="form-control" readonly />
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save mr-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
         </div>
     </div>
 </section>
