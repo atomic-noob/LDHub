@@ -95,12 +95,107 @@ public class AdminController : Controller
         return View("~/Views/Admin/Employees.cshtml");
     }
 
-    public IActionResult PendingEmployees()
+    public async Task<IActionResult> PendingEmployees()
+        {
+            if (!IsAdmin()) return RedirectToAction("Index");
+            SetViewBag();
+
+            var pending = await _db.PendingParticipants
+                .Include(p => p.Region)
+                .Include(p => p.Office)
+                .Include(p => p.Division)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+            return View("~/Views/Admin/PendingEmployees.cshtml", pending);
+        }
+
+    // POST: /Admin/ApproveEmployee
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> ApproveEmployee(int id)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var pending = await _db.PendingParticipants
+        .FirstOrDefaultAsync(p => p.ParticipantId == id);
+
+    if (pending == null)
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
-        SetViewBag();
-        return View("~/Views/Admin/PendingEmployees.cshtml");
+        TempData["Error"] = "Pending employee not found!";
+        return RedirectToAction("PendingEmployees");
     }
+
+    // Check if email already exists in users
+    var exists = await _db.Users.AnyAsync(u => u.Email == pending.Email);
+    if (exists)
+    {
+        TempData["Error"] = "Email already exists in users!";
+        return RedirectToAction("PendingEmployees");
+    }
+
+    // Copy to users table
+    var user = new User
+    {
+        FirstName     = pending.FirstName,
+        MiddleName    = pending.MiddleName,
+        LastName      = pending.LastName,
+        Email         = pending.Email,
+        Password      = pending.Password,
+        ContactNumber = pending.ContactNumber,
+        Gender        = pending.Gender,
+        Age           = pending.Age,
+        Position      = pending.Position,
+        Designation   = pending.Designation,
+        SalaryGrade   = pending.SalaryGrade,
+        RegionId      = pending.RegionId,
+        OfficeId      = pending.OfficeId,
+        DivisionId    = pending.DivisionId,
+        Status        = "Active",
+        CreatedAt     = DateTime.UtcNow
+    };
+
+    _db.Users.Add(user);
+    await _db.SaveChangesAsync();
+
+    // Assign Employee role
+    _db.UserRoles.Add(new UserRole
+    {
+        UserId     = user.UserId,
+        Role       = "Employee",
+        AssignedAt = DateTime.UtcNow
+    });
+
+    // Remove from pending
+    _db.PendingParticipants.Remove(pending);
+    await _db.SaveChangesAsync();
+
+    TempData["Success"] = $"{pending.FirstName} {pending.LastName} has been approved!";
+    return RedirectToAction("PendingEmployees");
+}
+
+// POST: /Admin/RejectEmployee
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> RejectEmployee(int id)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var pending = await _db.PendingParticipants
+        .FirstOrDefaultAsync(p => p.ParticipantId == id);
+
+    if (pending == null)
+    {
+        TempData["Error"] = "Pending employee not found!";
+        return RedirectToAction("PendingEmployees");
+    }
+
+    _db.PendingParticipants.Remove(pending);
+    await _db.SaveChangesAsync();
+
+    TempData["Success"] = $"{pending.FirstName} {pending.LastName} has been rejected.";
+    return RedirectToAction("PendingEmployees");
+}
 
     public IActionResult ResourcePersons()
     {
@@ -490,4 +585,14 @@ public async Task<IActionResult> GetOfficesByRegion(int regionId)
         SetViewBag();
         return View("~/Views/Admin/Faqs.cshtml");
     }
+    [HttpGet]
+public async Task<IActionResult> GetDivisionsByOffice(int officeId)
+{
+    var divisions = await _db.Divisions
+        .Where(d => d.OfficeId == officeId)
+        .OrderBy(d => d.DivisionName)
+        .Select(d => new { d.DivisionId, d.DivisionName })
+        .ToListAsync();
+    return Json(divisions);
+}
 }

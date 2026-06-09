@@ -1,8 +1,106 @@
+@model IEnumerable<LDHub.Models.PendingParticipant>
+
 @{
-    ViewData["Title"] = "Pending Employees Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Pending Employees";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>This is Pending Employee page welcome</p>
-</div>
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1>Pending Employees</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="#">Home</a></li>
+                    <li class="breadcrumb-item active">Pending Employees</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-user-clock mr-2"></i>Pending Employee Approvals
+                    <span class="badge badge-warning ml-2">@Model.Count()</span>
+                </h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Position</th>
+                            <th>Region</th>
+                            <th>Office</th>
+                            <th>Division</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Any())
+                        {
+                            int i = 1;
+                            @foreach (var p in Model)
+                            {
+                                <tr>
+                                    <td>@i</td>
+                                    <td>@p.FirstName @p.MiddleName @p.LastName</td>
+                                    <td>@p.Email</td>
+                                    <td>@p.Position</td>
+                                    <td>@(p.Region?.RegionName ?? "N/A")</td>
+                                    <td>@(p.Office?.OfficeName ?? "N/A")</td>
+                                    <td>@(p.Division?.DivisionName ?? "N/A")</td>
+                                    <td>@p.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        <form asp-action="ApproveEmployee" method="post" style="display:inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@p.ParticipantId" />
+                                            <button type="submit" class="btn btn-success btn-sm"
+                                                    onclick="return confirm('Approve @p.FirstName @p.LastName?')">
+                                                <i class="fas fa-check mr-1"></i> Approve
+                                            </button>
+                                        </form>
+                                        <form asp-action="RejectEmployee" method="post" style="display:inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@p.ParticipantId" />
+                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Reject @p.FirstName @p.LastName?')">
+                                                <i class="fas fa-times mr-1"></i> Reject
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                i++;
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">
+                                    No pending employees at the moment.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

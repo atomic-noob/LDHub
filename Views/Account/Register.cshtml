@@ -1,0 +1,199 @@
+@model LDHub.Models.ViewModels.RegisterViewModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Register";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — DENR L&D Hub</title>
+    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/dist/css/adminlte.min.css" />
+    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css" />
+</head>
+<body class="hold-transition">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header text-center">
+                    <img src="~/dist/img/denrlogo.jpg" alt="DENR" height="60" class="mb-2" />
+                    <h4>DENR L&D Hub — Employee Registration</h4>
+                    <p class="text-muted mb-0">Fill in your details to register. Your account will be reviewed by the Admin.</p>
+                </div>
+                <div class="card-body">
+
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success">@TempData["Success"]</div>
+                    }
+
+                    <form asp-action="Register" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <h5 class="mb-3">Personal Information</h5>
+                        <div class="row">
+                            <div class="col-md-4 form-group">
+                                <label>First Name <span class="text-danger">*</span></label>
+                                <input asp-for="FirstName" class="form-control" required />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label>Middle Name</label>
+                                <input asp-for="MiddleName" class="form-control" />
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label>Last Name <span class="text-danger">*</span></label>
+                                <input asp-for="LastName" class="form-control" required />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 form-group">
+                                <label>Gender <span class="text-danger">*</span></label>
+                                <select asp-for="Gender" class="form-control" required>
+                                    <option value="">-- Select --</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                                <span asp-validation-for="Gender" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label>Age <span class="text-danger">*</span></label>
+                                <input asp-for="Age" class="form-control" type="number" min="18" required />
+                                <span asp-validation-for="Age" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label>Contact Number</label>
+                                <input asp-for="ContactNumber" class="form-control" />
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-2">Work Information</h5>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label>Position <span class="text-danger">*</span></label>
+                                <input asp-for="Position" class="form-control" required />
+                                <span asp-validation-for="Position" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label>Designation</label>
+                                <input asp-for="Designation" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 form-group">
+                                <label>Salary Grade</label>
+                                <input asp-for="SalaryGrade" class="form-control" type="number" />
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label>Region</label>
+                                <select asp-for="RegionId" class="form-control"
+                                        asp-items="@(new SelectList(ViewBag.Regions, "RegionId", "RegionName"))">
+                                    <option value="">-- Select Region --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label>Office</label>
+                                <select asp-for="OfficeId" class="form-control" id="officeDropdown">
+                                    <option value="">-- Select Region First --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 form-group">
+                                <label>Division</label>
+                                <select asp-for="DivisionId" class="form-control" id="divisionDropdown">
+                                    <option value="">-- Select Office First --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-2">Account Credentials</h5>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label>Email <span class="text-danger">*</span></label>
+                                <input asp-for="Email" class="form-control" type="email" required />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label>Password <span class="text-danger">*</span></label>
+                                <input asp-for="Password" class="form-control" type="password" required />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label>Confirm Password <span class="text-danger">*</span></label>
+                                <input asp-for="ConfirmPassword" class="form-control" type="password" required />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-12 text-right">
+                                <a asp-controller="Home" asp-action="Login" class="btn btn-secondary">
+                                    Back to Login
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-user-plus mr-1"></i> Register
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/plugins/jquery/jquery.min.js"></script>
+<script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Cascading dropdowns — Region → Office → Division
+    $('#RegionId').on('change', function() {
+        var regionId = $(this).val();
+        $('#officeDropdown').html('<option value="">Loading...</option>');
+        $('#divisionDropdown').html('<option value="">-- Select Office First --</option>');
+
+        if (!regionId) {
+            $('#officeDropdown').html('<option value="">-- Select Region First --</option>');
+            return;
+        }
+
+        $.get('/Admin/GetOfficesByRegion', { regionId: regionId }, function(data) {
+            var options = '<option value="">-- Select Office --</option>';
+            $.each(data, function(i, office) {
+                options += '<option value="' + office.officeId + '">' + office.officeName + '</option>';
+            });
+            $('#officeDropdown').html(options);
+        });
+    });
+
+    $('#officeDropdown').on('change', function() {
+        var officeId = $(this).val();
+        $('#divisionDropdown').html('<option value="">Loading...</option>');
+
+        if (!officeId) {
+            $('#divisionDropdown').html('<option value="">-- Select Office First --</option>');
+            return;
+        }
+
+        $.get('/Admin/GetDivisionsByOffice', { officeId: officeId }, function(data) {
+            var options = '<option value="">-- Select Division --</option>';
+            $.each(data, function(i, division) {
+                options += '<option value="' + division.divisionId + '">' + division.divisionName + '</option>';
+            });
+            $('#divisionDropdown').html(options);
+        });
+    });
+</script>
+</body>
+</html>
