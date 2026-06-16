@@ -1,8 +1,298 @@
+@model IEnumerable<LDHub.Models.User>
+
 @{
-    ViewData["Title"] = "Home Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Employees";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>This is Employee page welcome</p>
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1>Employee Management</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="#">Home</a></li>
+                    <li class="breadcrumb-item active">Employees</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-users mr-2"></i>List of Employees
+                    <span class="badge badge-success ml-2">@Model.Count()</span>
+                </h3>
+            </div>
+            <div class="card-body">
+                <table id="employeesTable" class="table table-bordered table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Position</th>
+                            <th>Region</th>
+                            <th>Office</th>
+                            <th>Roles</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{int i = 1;}
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>@i</td>
+                                <td>@user.FirstName @user.LastName</td>
+                                <td>@user.Email</td>
+                                <td>@user.Position</td>
+                                <td>@(user.Region?.RegionName ?? "N/A")</td>
+                                <td>@(user.Office?.OfficeName ?? "N/A")</td>
+                                <td>
+                                    @foreach (var role in user.UserRoles)
+                                    {
+                                        <span class="badge badge-info">@role.Role</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (user.Status == "Active")
+                                    {
+                                        <span class="badge badge-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-secondary btn-sm dropdown-toggle"
+                                                data-toggle="dropdown">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-right">
+                                            <a class="dropdown-item edit-btn" href="#"
+                                               data-toggle="modal" data-target="#editModal"
+                                               data-id="@user.UserId"
+                                               data-firstname="@user.FirstName"
+                                               data-middlename="@user.MiddleName"
+                                               data-lastname="@user.LastName"
+                                               data-contact="@user.ContactNumber"
+                                               data-position="@user.Position"
+                                               data-designation="@user.Designation"
+                                               data-salarygrade="@user.SalaryGrade">
+                                                <i class="fas fa-edit mr-2"></i> Edit
+                                            </a>
+                                          <a class="dropdown-item assign-role-btn" href="#"
+                                                    data-toggle="modal" data-target="#roleModal"
+                                                    data-id="@user.UserId"
+                                                    data-name="@user.FirstName @user.LastName"
+                                                    data-roles="@string.Join(",", user.UserRoles.Select(r => r.Role))">
+                                                <i class="fas fa-user-tag mr-2"></i> Manage Roles
+                                            </a>
+                                            <div class="dropdown-divider"></div>
+                                            <form asp-action="ToggleEmployeeStatus" method="post" style="display:inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@user.UserId" />
+                                                <button type="submit" class="dropdown-item @(user.Status == "Active" ? "text-danger" : "text-success")">
+                                                    <i class="fas @(user.Status == "Active" ? "fa-ban" : "fa-check") mr-2"></i>
+                                                    @(user.Status == "Active" ? "Deactivate" : "Activate")
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            i++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit mr-2"></i>Edit Employee</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <form asp-action="EmployeeEdit" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="UserId" id="editUserId" />
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label>First Name</label>
+                            <input type="text" name="FirstName" id="editFirstName" class="form-control" required />
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Middle Name</label>
+                            <input type="text" name="MiddleName" id="editMiddleName" class="form-control" />
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Last Name</label>
+                            <input type="text" name="LastName" id="editLastName" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label>Position</label>
+                            <input type="text" name="Position" id="editPosition" class="form-control" />
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>Designation</label>
+                            <input type="text" name="Designation" id="editDesignation" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label>Contact Number</label>
+                            <input type="text" name="ContactNumber" id="editContact" class="form-control" />
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Salary Grade</label>
+                            <input type="number" name="SalaryGrade" id="editSalaryGrade" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<!-- Assign Role Modal -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-tag mr-2"></i>Manage Roles</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Managing roles for: <strong id="roleUserName"></strong></p>
+
+                <!-- Current Roles -->
+                <div class="mb-3">
+                    <label><strong>Current Roles:</strong></label>
+                    <div id="currentRoles"></div>
+                </div>
+
+                <hr />
+
+                <!-- Assign New Role -->
+                <form asp-action="AssignRole" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="userId" id="roleUserId" />
+                    <div class="form-group">
+                        <label>Assign New Role</label>
+                        <select name="role" class="form-control">
+                            <option value="">-- Select Role --</option>
+                            <option value="Employee">Employee</option>
+                            <option value="CourseManager">Course Manager</option>
+                            <option value="ResourcePerson">Resource Person</option>
+                            <option value="Raam">RAAM</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">
+                        <i class="fas fa-plus mr-1"></i> Assign Role
+                    </button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Role Form (hidden, triggered by JS) -->
+<form id="removeRoleForm" asp-action="RemoveRole" method="post" style="display:none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="userId" id="removeUserId" />
+    <input type="hidden" name="role" id="removeRole" />
+</form>
+
+@section Scripts {
+<script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#employeesTable').DataTable({
+            responsive: true,
+            order: [[1, 'asc']]
+        });
+
+        // Edit modal
+        $('.edit-btn').on('click', function() {
+            $('#editUserId').val($(this).data('id'));
+            $('#editFirstName').val($(this).data('firstname'));
+            $('#editMiddleName').val($(this).data('middlename'));
+            $('#editLastName').val($(this).data('lastname'));
+            $('#editContact').val($(this).data('contact'));
+            $('#editPosition').val($(this).data('position'));
+            $('#editDesignation').val($(this).data('designation'));
+            $('#editSalaryGrade').val($(this).data('salarygrade'));
+        });
+
+            // Role modal
+        $('.assign-role-btn').on('click', function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var roles = $(this).data('roles').split(',');
+
+            $('#roleUserId').val(id);
+            $('#roleUserName').text(name);
+
+            // Render current roles with remove buttons
+            var html = '';
+            $.each(roles, function(i, role) {
+                if (role.trim() === '') return;
+                html += '<span class="badge badge-info mr-1 p-2">' + role.trim() +
+                        ' <a href="#" class="text-white remove-role-btn" data-userid="' + id +
+                        '" data-role="' + role.trim() + '"><i class="fas fa-times"></i></a></span>';
+            });
+            if (html === '') html = '<span class="text-muted">No roles assigned</span>';
+            $('#currentRoles').html(html);
+        });
+
+        // Remove role
+        $(document).on('click', '.remove-role-btn', function(e) {
+            e.preventDefault();
+            if (!confirm('Remove this role?')) return;
+            $('#removeUserId').val($(this).data('userid'));
+            $('#removeRole').val($(this).data('role'));
+            $('#removeRoleForm').submit();
+        });
+            });
+
+    
+</script>
+}

@@ -59,25 +59,31 @@ public class EmployeeController : Controller
 
     // ── GET: /Employee/Profile ────────────────────────────────────
     // Shows employee personal info from database
-    public async Task<IActionResult> Profile()
-    {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
-        SetViewBag();
+            public async Task<IActionResult> Profile()
+        {
+            if (!IsEmployee()) return RedirectToAction("Login", "Home");
+            SetViewBag();
 
-        var userId = GetUserId();
+            var userId = GetUserId();
 
-        // Load user with region, office, division
-        var user = await _db.Users
-            .Include(u => u.Region)
-            .Include(u => u.Office)
-            .Include(u => u.Division)
-            .Include(u => u.UserRoles)
-            .FirstOrDefaultAsync(u => u.UserId == userId);
+            var user = await _db.Users
+                .Include(u => u.Region)
+                .Include(u => u.Office)
+                .Include(u => u.Division)
+                .Include(u => u.UserRoles)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
 
-        if (user == null) return RedirectToAction("Login", "Home");
+            if (user == null) return RedirectToAction("Login", "Home");
 
-        return View("~/Views/Employee/Profile.cshtml", user);
-    }
+            // Pass trainings separately via ViewBag
+            ViewBag.Trainings = await _db.TrainingParticipants
+                .Include(tp => tp.Training)
+                .Where(tp => tp.UserId == userId)
+                .OrderByDescending(tp => tp.EnrollmentDate)
+                .ToListAsync();
+
+            return View("~/Views/Employee/Profile.cshtml", user);
+        }
 
     // ── POST: /Employee/UpdateProfile ─────────────────────────────
     // Update employee profile info

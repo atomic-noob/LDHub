@@ -543,7 +543,7 @@ namespace LDHub.Migrations
             modelBuilder.Entity("LDHub.Models.TrainingInstructor", b =>
                 {
                     b.HasOne("LDHub.Models.Training", "Training")
-                        .WithMany()
+                        .WithMany("TrainingInstructors")
                         .HasForeignKey("TrainingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -562,7 +562,7 @@ namespace LDHub.Migrations
             modelBuilder.Entity("LDHub.Models.TrainingParticipant", b =>
                 {
                     b.HasOne("LDHub.Models.Training", "Training")
-                        .WithMany()
+                        .WithMany("TrainingParticipants")
                         .HasForeignKey("TrainingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -630,6 +630,13 @@ namespace LDHub.Migrations
                     b.Navigation("Offices");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("LDHub.Models.Training", b =>
+                {
+                    b.Navigation("TrainingInstructors");
+
+                    b.Navigation("TrainingParticipants");
                 });
 
             modelBuilder.Entity("LDHub.Models.User", b =>

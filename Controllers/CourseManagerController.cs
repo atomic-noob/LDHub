@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using LDHub.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace LDHub.Controllers;
 
@@ -38,19 +39,26 @@ public class CourseManagerController : Controller
     }
 
     // ── GET: /CourseManager/Trainings ─────────────────────────────
-    public IActionResult Trainings()
-    {
-        if (!IsCourseManager()) return RedirectToAction("Login", "Home");
-        SetViewBag();
-        return View("~/Views/CourseManager/Trainings.cshtml");
-    }
+            public async Task<IActionResult> Trainings()
+        {
+            if (!IsCourseManager()) return RedirectToAction("Login", "Home");
+            SetViewBag();
+
+            var trainings = await _db.Trainings
+                .Include(t => t.TrainingParticipants)
+                .Include(t => t.TrainingInstructors)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            return View("~/Views/CourseManager/Trainings.cshtml", trainings);
+        }
 
     // ── GET: /CourseManager/Modules ───────────────────────────────
     public IActionResult Modules()
     {
         if (!IsCourseManager()) return RedirectToAction("Login", "Home");
         SetViewBag();
-        return View("~/Views/CourseManager/Modules.cshtml");
+        return View("~/Views/Module/index.cshtml");
     }
 
     // ── GET: /CourseManager/TestMaker ─────────────────────────────

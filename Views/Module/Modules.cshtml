@@ -1,0 +1,653 @@
+@model List<LDHub.Models.TrainingModule>
+@{
+    var training = ViewBag.Training as LDHub.Models.Training;
+    var userName = ViewBag.UserName as string;
+    var role     = ViewBag.ActiveRole as string;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modules – @training?.TrainingTitle</title>
+    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="~/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/plugins/sweetalert2/sweetalert2.min.css">
+    <style>
+        .module-type-badge { font-size: .72rem; font-weight: 700; border-radius: 4px; padding: 3px 8px; }
+        .type-lecture  { background:#cce5ff; color:#004085; }
+        .type-quiz     { background:#fff3cd; color:#856404; }
+        .type-activity { background:#d4edda; color:#155724; }
+        .type-text     { background:#f8d7da; color:#721c24; }
+        .question-block { border:1px solid #dee2e6; border-radius:8px; padding:14px; margin-bottom:12px; background:#fafbfc; }
+        .choice-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+        .topic-block { border:1px solid #dee2e6; border-radius:8px; padding:14px; margin-bottom:10px; background:#fafbfc; }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini">
+<div class="wrapper">
+
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+                    <i class="fas fa-bars"></i>
+                </a>
+            </li>
+        </ul>
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                    <span>@userName</span>
+                    <span class="badge badge-info ml-1">@role</span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a class="dropdown-item text-danger" href="/Home/Logout">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </a>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="main-sidebar sidebar-dark-success elevation-4">
+        <a href="#" class="brand-link">
+            <span class="brand-text font-weight-bold">LDHub</span>
+        </a>
+        <div class="sidebar">
+            <nav class="mt-2">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview">
+                    <li class="nav-item">
+                        <a href="/Module/Index" class="nav-link">
+                            <i class="nav-icon fas fa-book"></i>
+                            <p>Trainings</p>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="content-wrapper">
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-8">
+                        <h1>
+                            <i class="fas fa-cubes mr-2"></i>Modules
+                            <small class="text-muted" style="font-size:.7em;">
+                                @training?.TrainingCode – @training?.TrainingTitle
+                            </small>
+                        </h1>
+                    </div>
+                    <div class="col-sm-4 text-right">
+                        <a href="/Module/Index" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left mr-1"></i> Back to Trainings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container-fluid">
+
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show">
+                        <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                        <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    </div>
+                }
+
+                <div class="card card-outline card-success">
+                    <div class="card-header d-flex align-items-center">
+                        <h3 class="card-title mr-auto">
+                            <i class="fas fa-list mr-1"></i> Module List
+                        </h3>
+                        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addModuleModal">
+                            <i class="fas fa-plus mr-1"></i> Add Module
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (!Model.Any())
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-cubes fa-3x mb-3 d-block" style="opacity:.3"></i>
+                                <p>No modules yet. Click <strong>Add Module</strong> to get started.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <table class="table table-bordered table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px">#</th>
+                                        <th>Module Name</th>
+                                        <th>Description</th>
+                                        <th>Type</th>
+                                        <th style="width:180px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var m in Model)
+                                    {
+                                        var typeClass = m.ModuleType switch {
+                                            "Lecture"  => "type-lecture",
+                                            "Quiz"     => "type-quiz",
+                                            "Activity" => "type-activity",
+                                            "Text"     => "type-text",
+                                            _          => "badge-secondary"
+                                        };
+                                        <tr>
+                                            <td>@m.SortOrder</td>
+                                            <td><strong>@m.ModuleName</strong></td>
+                                            <td>@m.ModuleDescription</td>
+                                            <td>
+                                                <span class="module-type-badge @typeClass">
+                                                    @m.ModuleType
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <!-- Edit -->
+                                                <button class="btn btn-sm btn-info edit-module-btn"
+                                                    data-id="@m.ModuleId"
+                                                    data-name="@m.ModuleName"
+                                                    data-desc="@m.ModuleDescription"
+                                                    data-type="@m.ModuleType"
+                                                    data-sort="@m.SortOrder"
+                                                    data-link="@m.LinkUrl"
+                                                    data-training="@m.TrainingId">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+
+                                                @* Quiz editor *@
+                                                @if (m.ModuleType == "Quiz")
+                                                {
+                                                    <button class="btn btn-sm btn-warning open-quiz-btn"
+                                                        data-module-id="@m.ModuleId"
+                                                        data-training-id="@m.TrainingId"
+                                                        title="Edit Quiz">
+                                                        <i class="fas fa-question-circle"></i>
+                                                    </button>
+                                                }
+
+                                                @* Text editor *@
+                                                @if (m.ModuleType == "Text")
+                                                {
+                                                    <button class="btn btn-sm btn-secondary open-text-btn"
+                                                        data-module-id="@m.ModuleId"
+                                                        data-training-id="@m.TrainingId"
+                                                        title="Edit Text Content">
+                                                        <i class="fas fa-align-left"></i>
+                                                    </button>
+                                                }
+
+                                                <!-- Delete -->
+                                                <form method="post" action="/Module/Delete"
+                                                      class="d-inline delete-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="moduleId"   value="@m.ModuleId">
+                                                    <input type="hidden" name="trainingId" value="@m.TrainingId">
+                                                    <button type="submit" class="btn btn-sm btn-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+
+    <footer class="main-footer">
+        <strong>LDHub</strong> &copy; @DateTime.Now.Year
+    </footer>
+</div>
+
+<!-- ══ ADD MODULE MODAL ═══════════════════════════════════════════ -->
+<div class="modal fade" id="addModuleModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="/Module/Create" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="TrainingId" value="@training?.TrainingId">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-plus mr-1"></i> Add Module</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8 form-group">
+                            <label>Module Name <span class="text-danger">*</span></label>
+                            <input type="text" name="ModuleName" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Sort Order</label>
+                            <input type="number" name="SortOrder" class="form-control" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="ModuleDescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Module Type <span class="text-danger">*</span></label>
+                        <select name="ModuleType" id="add_module_type" class="form-control" required>
+                            <option value="">-- Select Type --</option>
+                            <option value="Lecture">Lecture</option>
+                            <option value="Activity">Activity</option>
+                            <option value="Quiz">Quiz</option>
+                            <option value="Text">Text</option>
+                        </select>
+                    </div>
+
+                    <!-- Lecture options -->
+                    <div id="add_lecture_opts" style="display:none;">
+                        <div class="form-group">
+                            <label>Lecture Source</label>
+                            <select name="LectureSource" id="add_lecture_source" class="form-control">
+                                <option value="file">Upload File</option>
+                                <option value="link">External Link</option>
+                            </select>
+                        </div>
+                        <div id="add_file_wrap" class="form-group">
+                            <label>Upload File (PDF, PPTX, etc.)</label>
+                            <input type="file" name="file" class="form-control-file">
+                        </div>
+                        <div id="add_link_wrap" class="form-group" style="display:none;">
+                            <label>Link URL</label>
+                            <input type="url" name="LinkUrl" class="form-control" placeholder="https://...">
+                        </div>
+                    </div>
+
+                    <!-- Activity link -->
+                    <div id="add_activity_opts" style="display:none;">
+                        <div class="form-group">
+                            <label>Activity Link (Google Form, etc.)</label>
+                            <input type="url" name="LinkUrl" class="form-control" placeholder="https://...">
+                        </div>
+                    </div>
+
+                    <!-- Quiz / Text: info message -->
+                    <div id="add_quiz_info" style="display:none;">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Quiz questions can be added after saving the module.
+                        </div>
+                    </div>
+                    <div id="add_text_info" style="display:none;">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Text content and topics can be added after saving the module.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save mr-1"></i> Save Module
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ EDIT MODULE MODAL ══════════════════════════════════════════ -->
+<div class="modal fade" id="editModuleModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="/Module/Edit" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ModuleId"    id="edit_module_id">
+                <input type="hidden" name="TrainingId"  id="edit_training_id">
+                <input type="hidden" name="ModuleType"  id="edit_module_type_hidden">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="fas fa-edit mr-1"></i> Edit Module</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8 form-group">
+                            <label>Module Name <span class="text-danger">*</span></label>
+                            <input type="text" name="ModuleName" id="edit_module_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Sort Order</label>
+                            <input type="number" name="SortOrder" id="edit_sort_order" class="form-control" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="ModuleDescription" id="edit_module_desc" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Module Type</label>
+                        <input type="text" id="edit_module_type_display" class="form-control" readonly
+                               style="background:#f4f6f9;cursor:not-allowed;">
+                    </div>
+                    <!-- Link field for Lecture/Activity -->
+                    <div id="edit_link_wrap" class="form-group" style="display:none;">
+                        <label>Link URL</label>
+                        <input type="url" name="LinkUrl" id="edit_link_url" class="form-control">
+                    </div>
+                    <!-- File upload -->
+                    <div id="edit_file_wrap" class="form-group" style="display:none;">
+                        <label>Replace File (optional)</label>
+                        <input type="file" name="file" class="form-control-file">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save mr-1"></i> Update Module
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ QUIZ EDITOR MODAL ══════════════════════════════════════════ -->
+<div class="modal fade" id="quizModal">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" action="/Module/SaveQuiz" id="quizForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="quizId"     id="quiz_id">
+                <input type="hidden" name="trainingId" id="quiz_training_id">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="fas fa-question-circle mr-1"></i> Quiz Editor</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="questionsContainer"></div>
+                    <button type="button" class="btn btn-outline-warning btn-sm mt-2" id="addQuestionBtn">
+                        <i class="fas fa-plus mr-1"></i> Add Question
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save mr-1"></i> Save Quiz
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ TEXT CONTENT EDITOR MODAL ═════════════════════════════════ -->
+<div class="modal fade" id="textModal">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" action="/Module/SaveText" id="textForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="moduleId"   id="text_module_id">
+                <input type="hidden" name="trainingId" id="text_training_id">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title"><i class="fas fa-align-left mr-1"></i> Text Content Editor</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Introduction</label>
+                        <textarea name="introduction" id="text_introduction" class="form-control" rows="4"
+                            placeholder="Write an introduction..."></textarea>
+                    </div>
+                    <hr>
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="font-weight-bold mb-0">Topics</label>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="addTopicBtn">
+                            <i class="fas fa-plus mr-1"></i> Add Topic
+                        </button>
+                    </div>
+                    <div id="topicsContainer"></div>
+                    <hr>
+                    <div class="form-group">
+                        <label class="font-weight-bold">References</label>
+                        <textarea name="referencesText" id="text_references" class="form-control" rows="3"
+                            placeholder="List references..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="fas fa-save mr-1"></i> Save Text Content
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="~/plugins/jquery/jquery.min.js"></script>
+<script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="~/dist/js/adminlte.min.js"></script>
+<script src="~/plugins/sweetalert2/sweetalert2.all.min.js"></script>
+
+<script>
+$(function () {
+
+    // ── Add Modal: type change ──────────────────────────────────
+    $('#add_module_type').on('change', function () {
+        const t = $(this).val();
+        $('#add_lecture_opts, #add_activity_opts, #add_quiz_info, #add_text_info').hide();
+        if (t === 'Lecture')  $('#add_lecture_opts').show();
+        if (t === 'Activity') $('#add_activity_opts').show();
+        if (t === 'Quiz')     $('#add_quiz_info').show();
+        if (t === 'Text')     $('#add_text_info').show();
+    });
+
+    $('#add_lecture_source').on('change', function () {
+        if ($(this).val() === 'file') {
+            $('#add_file_wrap').show(); $('#add_link_wrap').hide();
+        } else {
+            $('#add_file_wrap').hide(); $('#add_link_wrap').show();
+        }
+    });
+
+    // ── Edit Module button ──────────────────────────────────────
+    $(document).on('click', '.edit-module-btn', function () {
+        const t = $(this).data('type');
+        $('#edit_module_id').val($(this).data('id'));
+        $('#edit_training_id').val($(this).data('training'));
+        $('#edit_module_name').val($(this).data('name'));
+        $('#edit_module_desc').val($(this).data('desc'));
+        $('#edit_sort_order').val($(this).data('sort'));
+        $('#edit_link_url').val($(this).data('link'));
+        $('#edit_module_type_hidden').val(t);
+        $('#edit_module_type_display').val(t);
+
+        $('#edit_link_wrap, #edit_file_wrap').hide();
+        if (t === 'Lecture')  { $('#edit_file_wrap').show(); $('#edit_link_wrap').show(); }
+        if (t === 'Activity') { $('#edit_link_wrap').show(); }
+
+        $('#editModuleModal').modal('show');
+    });
+
+    // ── Delete confirm ──────────────────────────────────────────
+    $(document).on('submit', '.delete-form', function (e) {
+        e.preventDefault();
+        const form = this;
+        Swal.fire({
+            title: 'Delete this module?',
+            text: 'This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Yes, delete it'
+        }).then(r => { if (r.isConfirmed) form.submit(); });
+    });
+
+    // ── Quiz Editor ─────────────────────────────────────────────
+    let questionCount = 0;
+
+    function addQuestion(qText, choices, correctIdx) {
+        questionCount++;
+        const qIdx = questionCount - 1;
+        const $block = $(`
+            <div class="question-block" id="q_block_${qIdx}">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <strong>Question ${questionCount}</strong>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-question-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="form-group">
+                    <input type="text" name="questionTexts" class="form-control"
+                           placeholder="Enter question..." value="${qText || ''}">
+                </div>
+                <div class="choices-container"></div>
+                <button type="button" class="btn btn-sm btn-outline-secondary add-choice-btn mt-1">
+                    <i class="fas fa-plus mr-1"></i> Add Choice
+                </button>
+            </div>
+        `);
+
+        const $choices = $block.find('.choices-container');
+        const choiceList = choices && choices.length ? choices : ['', '', '', ''];
+        choiceList.forEach(function (c, j) {
+            addChoice($choices, qIdx, j, c.choiceText || c, j === (correctIdx ?? -1));
+        });
+
+        $block.find('.remove-question-btn').on('click', function () {
+            $block.remove();
+            renumberQuestions();
+        });
+
+        $block.find('.add-choice-btn').on('click', function () {
+            addChoice($choices, qIdx, $choices.children().length, '', false);
+        });
+
+        $('#questionsContainer').append($block);
+    }
+
+    function addChoice($container, qIdx, cIdx, text, isCorrect) {
+        const $row = $(`
+            <div class="choice-row">
+                <input type="radio" name="correctChoices[${qIdx}]" value="${cIdx}"
+                       ${isCorrect ? 'checked' : ''} title="Mark as correct">
+                <input type="text" name="choices[${qIdx}][]" class="form-control form-control-sm"
+                       placeholder="Choice ${cIdx + 1}" value="${text}">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-choice-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `);
+        $row.find('.remove-choice-btn').on('click', function () { $row.remove(); });
+        $container.append($row);
+    }
+
+    function renumberQuestions() {
+        $('#questionsContainer .question-block').each(function (i) {
+            $(this).find('strong:first').text('Question ' + (i + 1));
+        });
+        questionCount = $('#questionsContainer .question-block').length;
+    }
+
+    $('#addQuestionBtn').on('click', function () { addQuestion('', [], -1); });
+
+    $(document).on('click', '.open-quiz-btn', function () {
+        const moduleId    = $(this).data('module-id');
+        const trainingId  = $(this).data('training-id');
+        $('#quiz_training_id').val(trainingId);
+        $('#questionsContainer').empty();
+        questionCount = 0;
+
+        $.get('/Module/GetQuiz/' + moduleId, function (data) {
+            if (data) {
+                $('#quiz_id').val(data.quizId);
+                (data.questions || []).forEach(function (q, qi) {
+                    addQuestion(q.questionText, q.choices, 
+                        q.choices.findIndex(c => c.isCorrect));
+                });
+            }
+            $('#quizModal').modal('show');
+        });
+    });
+
+    // ── Text Editor ─────────────────────────────────────────────
+    function addTopic(title, body) {
+        const idx = $('#topicsContainer .topic-block').length;
+        const $block = $(`
+            <div class="topic-block">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <strong>Topic ${idx + 1}</strong>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-topic-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label>Topic Title <span class="text-danger">*</span></label>
+                    <input type="text" name="topicTitles" class="form-control"
+                           placeholder="Topic title..." value="${title || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Topic Body</label>
+                    <textarea name="topicBodies" class="form-control" rows="4"
+                              placeholder="Write topic content...">${body || ''}</textarea>
+                </div>
+            </div>
+        `);
+        $block.find('.remove-topic-btn').on('click', function () {
+            $block.remove();
+            renumberTopics();
+        });
+        $('#topicsContainer').append($block);
+    }
+
+    function renumberTopics() {
+        $('#topicsContainer .topic-block').each(function (i) {
+            $(this).find('strong:first').text('Topic ' + (i + 1));
+        });
+    }
+
+    $('#addTopicBtn').on('click', function () { addTopic('', ''); });
+
+    $(document).on('click', '.open-text-btn', function () {
+        const moduleId   = $(this).data('module-id');
+        const trainingId = $(this).data('training-id');
+        $('#text_module_id').val(moduleId);
+        $('#text_training_id').val(trainingId);
+        $('#topicsContainer').empty();
+        $('#text_introduction').val('');
+        $('#text_references').val('');
+
+        $.get('/Module/GetTextContent/' + moduleId, function (data) {
+            if (data) {
+                $('#text_introduction').val(data.introduction || '');
+                $('#text_references').val(data.referencesText || '');
+                (data.topics || []).forEach(function (t) {
+                    addTopic(t.topicTitle, t.topicBody);
+                });
+            }
+            if ($('#topicsContainer .topic-block').length === 0) addTopic('', '');
+            $('#textModal').modal('show');
+        });
+    });
+
+    // ── Backdrop cleanup ────────────────────────────────────────
+    $(document).on('hidden.bs.modal', '.modal', function () {
+        if ($('.modal:visible').length === 0) {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open').css('padding-right', '');
+        }
+    });
+
+});
+</script>
+</body>
+</html>

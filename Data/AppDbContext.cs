@@ -22,6 +22,12 @@ namespace LDHub.Data
         public DbSet<Region> Regions { get; set; }
         public DbSet<Office> Offices { get; set; }
         public DbSet<Division> Divisions { get; set; }
+        public DbSet<TrainingModule> TrainingModules { get; set; }
+public DbSet<Quiz> Quizzes { get; set; }
+public DbSet<QuizQuestion> QuizQuestions { get; set; }
+public DbSet<QuizChoice> QuizChoices { get; set; }
+public DbSet<ModuleTextContent> ModuleTextContents { get; set; }
+public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
 
         // ── Relationships & Constraints ───────────────────────────
         protected override void OnModelCreating(ModelBuilder modelBuilder)

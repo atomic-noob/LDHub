@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
-using LDHub.Data;
+using LDHub.Data;using BCrypt.Net;
 
 namespace LDHub.Controllers;
 
@@ -51,11 +51,11 @@ public class AdminController : Controller
         }
 
         // Verify password
-        if (!BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
-        {
-            ViewBag.Error = "Invalid email or password.";
-            return View("~/Views/Admin/Index.cshtml", model);
-        }
+       if (!BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
+{
+    ViewBag.Error = "Invalid email or password.";
+    return View("~/Views/Admin/Index.cshtml", model);
+}
 
         // Set session
         HttpContext.Session.SetString("UserRole", "Admin");
@@ -88,12 +88,134 @@ public class AdminController : Controller
 }
 
     // ── Manage Users ──────────────────────────────────────────────
-    public IActionResult Employees()
+public async Task<IActionResult> Employees()
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+    SetViewBag();
+
+    var employees = await _db.Users
+        .Include(u => u.UserRoles)
+        .Include(u => u.Region)
+        .Include(u => u.Office)
+        .Include(u => u.Division)
+        .OrderBy(u => u.LastName)
+        .ToListAsync();
+
+    return View("~/Views/Admin/Employees.cshtml", employees);
+}
+// POST: /Admin/EmployeeEdit
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> EmployeeEdit(User model)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var user = await _db.Users.FindAsync(model.UserId);
+    if (user == null)
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
-        SetViewBag();
-        return View("~/Views/Admin/Employees.cshtml");
+        TempData["Error"] = "Employee not found!";
+        return RedirectToAction("Employees");
     }
+
+    user.FirstName     = model.FirstName;
+    user.MiddleName    = model.MiddleName;
+    user.LastName      = model.LastName;
+    user.ContactNumber = model.ContactNumber;
+    user.Position      = model.Position;
+    user.Designation   = model.Designation;
+    user.SalaryGrade   = model.SalaryGrade;
+    user.RegionId      = model.RegionId;
+    user.OfficeId      = model.OfficeId;
+    user.DivisionId    = model.DivisionId;
+    user.UpdatedAt     = DateTime.UtcNow;
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Employee updated successfully!";
+    return RedirectToAction("Employees");
+}
+
+// POST: /Admin/ToggleEmployeeStatus
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> ToggleEmployeeStatus(int id)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var user = await _db.Users.FindAsync(id);
+    if (user == null)
+    {
+        TempData["Error"] = "Employee not found!";
+        return RedirectToAction("Employees");
+    }
+
+    user.Status    = user.Status == "Active" ? "Inactive" : "Active";
+    user.UpdatedAt = DateTime.UtcNow;
+    await _db.SaveChangesAsync();
+
+    TempData["Success"] = $"{user.FirstName} {user.LastName} is now {user.Status}!";
+    return RedirectToAction("Employees");
+}
+
+// POST: /Admin/AssignRole
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> AssignRole(int userId, string role)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    // Check if role already assigned
+    var exists = await _db.UserRoles
+        .AnyAsync(r => r.UserId == userId && r.Role == role);
+
+    if (exists)
+    {
+        TempData["Error"] = "Role already assigned!";
+        return RedirectToAction("Employees");
+    }
+
+    _db.UserRoles.Add(new UserRole
+    {
+        UserId     = userId,
+        Role       = role,
+        AssignedAt = DateTime.UtcNow
+    });
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = $"Role '{role}' assigned successfully!";
+    return RedirectToAction("Employees");
+}
+
+// POST: /Admin/RemoveRole
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> RemoveRole(int userId, string role)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var userRole = await _db.UserRoles
+        .FirstOrDefaultAsync(r => r.UserId == userId && r.Role == role);
+
+    if (userRole == null)
+    {
+        TempData["Error"] = "Role not found!";
+        return RedirectToAction("Employees");
+    }
+
+    // Prevent removing last role
+    var roleCount = await _db.UserRoles
+        .CountAsync(r => r.UserId == userId);
+
+    if (roleCount <= 1)
+    {
+        TempData["Error"] = "Cannot remove the last role!";
+        return RedirectToAction("Employees");
+    }
+
+    _db.UserRoles.Remove(userRole);
+    await _db.SaveChangesAsync();
+    TempData["Success"] = $"Role '{role}' removed successfully!";
+    return RedirectToAction("Employees");
+}
 
     public async Task<IActionResult> PendingEmployees()
         {
