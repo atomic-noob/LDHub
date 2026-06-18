@@ -41,34 +41,37 @@ public class ModuleController : Controller
     // Shows list of trainings
     // CourseManager → sees ALL trainings
     // ResourcePerson → sees only assigned trainings
-    public async Task<IActionResult> Index()
+  public async Task<IActionResult> Index()
+{
+    if (!HasAccess()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+
+    var userId = GetUserId();
+    List<Training> trainings;
+
+    if (IsCourseManager())
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
-        SetViewBag();
-
-        var userId = GetUserId();
-        List<Training> trainings;
-
-        if (IsCourseManager())
-        {
-            // Course Manager sees all trainings
-            trainings = await _db.Trainings
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
-        }
-        else
-        {
-            // Resource Person sees only assigned trainings
-            trainings = await _db.TrainingInstructors
-                .Include(ti => ti.Training)
-                .Where(ti => ti.UserId == userId)
-                .Select(ti => ti.Training!)
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
-        }
-
-        return View("~/Views/Module/Index.cshtml", trainings);
+        trainings = await _db.Trainings
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
     }
+    else
+    {
+        trainings = await _db.TrainingInstructors
+            .Include(ti => ti.Training)
+            .Where(ti => ti.UserId == userId)
+            .Select(ti => ti.Training!)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+    }
+
+    // DEBUG — remove after fixing
+    System.Console.WriteLine($"Role: {HttpContext.Session.GetString("UserRole")}");
+    System.Console.WriteLine($"UserId: {userId}");
+    System.Console.WriteLine($"Trainings count: {trainings.Count}");
+
+    return View("~/Views/Module/Index.cshtml", trainings);
+}
 
     // ── GET: /Module/Modules/5 ────────────────────────────────────
     // Shows list of modules for a specific training
@@ -95,7 +98,7 @@ public class ModuleController : Controller
             .ToListAsync();
 
         ViewBag.Training = training;
-        return View("~/Views/Module/Modules.cshtml", modules);
+        return View("~/Views/CourseManager/Modules.cshtml", modules);
     }
 
     // ── POST: /Module/Create ──────────────────────────────────────
@@ -158,7 +161,11 @@ public class ModuleController : Controller
         }
 
         TempData["Success"] = "Module added successfully!";
-        return RedirectToAction("Modules", new { id = model.TrainingId });
+        return RedirectToAction(
+            "Modules",
+            "CourseManager",
+            new { trainingId = model.TrainingId }
+        );
     }
 
     // ── POST: /Module/Edit ────────────────────────────────────────
@@ -195,7 +202,11 @@ public class ModuleController : Controller
 
         await _db.SaveChangesAsync();
         TempData["Success"] = "Module updated!";
-        return RedirectToAction("Modules", new { id = existing.TrainingId });
+                return RedirectToAction(
+            "Modules",
+            "CourseManager",
+            new { trainingId = existing.TrainingId }
+        );
     }
 
     // ── POST: /Module/Delete ──────────────────────────────────────
@@ -213,7 +224,7 @@ public class ModuleController : Controller
             TempData["Success"] = "Module deleted!";
         }
 
-        return RedirectToAction("Modules", new { id = trainingId });
+        return RedirectToAction("Modules", "CourseManager", new { trainingId = trainingId });
     }
 
     // ── POST: /Module/SaveQuiz ────────────────────────────────────
@@ -269,7 +280,7 @@ public class ModuleController : Controller
         }
 
         TempData["Success"] = "Quiz saved!";
-        return RedirectToAction("Modules", new { id = trainingId });
+        return RedirectToAction("Modules", "CourseManager", new { trainingId = trainingId });
     }
 
     // ── POST: /Module/SaveText ────────────────────────────────────
@@ -316,7 +327,7 @@ public class ModuleController : Controller
 
         await _db.SaveChangesAsync();
         TempData["Success"] = "Text content saved!";
-        return RedirectToAction("Modules", new { id = trainingId });
+        return RedirectToAction("Modules", "CourseManager", new { trainingId = trainingId });
     }
 
     // ── AJAX: GET: /Module/GetQuiz/5 ─────────────────────────────

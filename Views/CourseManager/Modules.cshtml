@@ -1,0 +1,432 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Modules";
+    var trainingId = ViewBag.TrainingId as int?;
+}
+
+@if (trainingId == null)
+{
+    <!-- Training List -->
+    var trainings = ViewBag.Trainings as List<LDHub.Models.Training>;
+
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6"><h1>Modules</h1></div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item active">Modules</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-list mr-1"></i> Select a Training</h3>
+                </div>
+                <div class="card-body">
+                    @if (trainings == null || !trainings.Any())
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block" style="opacity:.3"></i>
+                            <p>No trainings found.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            @foreach (var t in trainings)
+                            {
+                                var now = DateTime.UtcNow;
+                                var status = t.StartDate.HasValue && t.EndDate.HasValue
+                                    ? (now < t.StartDate ? "Scheduled"
+                                     : now > t.EndDate ? "Ended"
+                                     : "Ongoing")
+                                    : "N/A";
+                                var badgeClass = status switch
+                                {
+                                    "Ongoing"   => "badge-primary",
+                                    "Scheduled" => "badge-success",
+                                    "Ended"     => "badge-danger",
+                                    _           => "badge-secondary"
+                                };
+                                <div class="col-md-6 col-lg-4 mb-4">
+                                    <a asp-controller="CourseManager" asp-action="Modules"
+                                       asp-route-trainingId="@t.TrainingId"
+                                       class="card h-100 text-decoration-none text-dark shadow-sm">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <h5 class="card-title mb-1">@t.TrainingTitle</h5>
+                                                    <p class="text-muted mb-0">@t.TrainingCode</p>
+                                                </div>
+                                                <span class="badge @badgeClass">@status</span>
+                                            </div>
+                                            <p class="mb-1"><strong>Location:</strong> @(t.Location ?? "—")</p>
+                                            <p class="mb-1"><strong>Dates:</strong> @(t.StartDate?.ToString("MMM dd, yyyy") ?? "—") – @(t.EndDate?.ToString("MMM dd, yyyy") ?? "—")</p>
+                                            <p class="mb-3"><strong>Hours:</strong> @(t.TrainingHrs.HasValue ? $"{t.TrainingHrs}h" : "—")</p>
+                                            <div class="text-right pt-2 border-top">
+                                                <span class="btn btn-sm btn-success">
+                                                    <i class="fas fa-cubes mr-1"></i> Manage Modules
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+}
+else
+{
+    <!-- Module Detail Page -->
+    var training = ViewBag.Training as LDHub.Models.Training;
+    var groupedModules = ViewBag.GroupedModules as Dictionary<string, List<LDHub.Models.TrainingModule>>;
+
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1><i class="fas fa-cubes mr-2"></i>@training?.TrainingTitle</h1>
+                    <small class="text-muted">@training?.TrainingCode</small>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item">
+                            <a asp-controller="CourseManager" asp-action="Modules">Modules</a>
+                        </li>
+                        <li class="breadcrumb-item active">@training?.TrainingTitle</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">@TempData["Success"]</div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">@TempData["Error"]</div>
+            }
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-list-alt mr-1"></i> Training Modules</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-success btn-sm"
+                                data-toggle="modal" data-target="#addModuleModal">
+                            <i class="fas fa-plus mr-1"></i> Add Module
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (groupedModules == null || !groupedModules.Any())
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block" style="opacity:.3"></i>
+                            <p>No modules added yet. Click <strong>Add Module</strong> to start.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Tabs -->
+                        <ul class="nav nav-tabs" id="moduleTabs">
+                            @{ int tabIndex = 0; }
+                            @foreach (var group in groupedModules)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link @(tabIndex == 0 ? "active" : "")"
+                                       data-toggle="tab" href="#tab-@tabIndex">
+                                        <i class="fas fa-folder-open mr-1"></i> @group.Key
+                                    </a>
+                                </li>
+                                tabIndex++;
+                            }
+                        </ul>
+
+                        <div class="tab-content mt-3">
+                            @{ int contentIndex = 0; }
+                            @foreach (var group in groupedModules)
+                            {
+                                <div class="tab-pane fade @(contentIndex == 0 ? "show active" : "")"
+                                     id="tab-@contentIndex">
+                                    <div class="row">
+                                        @foreach (var module in group.Value)
+                                        {
+                                            var typeBadge = module.ModuleType switch
+                                            {
+                                                "Lecture"  => "badge-primary",
+                                                "Activity" => "badge-success",
+                                                "Quiz"     => "badge-warning",
+                                                "Text"     => "badge-secondary",
+                                                _          => "badge-secondary"
+                                            };
+                                            <div class="col-md-4 mb-3">
+                                                <div class="callout callout-info">
+                                                    <h5>
+                                                        @module.ModuleDescription
+                                                        <span class="badge @typeBadge ml-1">@module.ModuleType</span>
+                                                    </h5>
+                                                    <ul class="list-unstyled mb-2">
+                                                        @if (!string.IsNullOrEmpty(module.FilePath))
+                                                        {
+                                                            <li><i class="fas fa-file mr-1"></i>
+                                                                <a href="@module.FilePath" target="_blank">@System.IO.Path.GetFileName(module.FilePath)</a>
+                                                            </li>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(module.LinkUrl))
+                                                        {
+                                                            <li><i class="fas fa-link mr-1"></i>
+                                                                <a href="@module.LinkUrl" target="_blank">View Link</a>
+                                                            </li>
+                                                        }
+                                                    </ul>
+                                                    <p class="text-muted text-sm">
+                                                        <i class="far fa-clock mr-1"></i>
+                                                        Updated: @module.UpdatedAt.ToString("MMM dd, yyyy")
+                                                    </p>
+                                                    <div>
+                                                        <button class="btn btn-sm btn-info edit-module-btn"
+                                                                data-toggle="modal" data-target="#editModuleModal"
+                                                                data-id="@module.ModuleId"
+                                                                data-name="@module.ModuleName"
+                                                                data-description="@module.ModuleDescription"
+                                                                data-type="@module.ModuleType"
+                                                                data-linkurl="@module.LinkUrl"
+                                                                data-lecturesource="@module.LectureSource">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </button>
+                                                        <form asp-controller="CourseManager" asp-action="Delete"
+                                                              method="post" style="display:inline">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="moduleId" value="@module.ModuleId" />
+                                                            <input type="hidden" name="trainingId" value="@trainingId" />
+                                                            <button type="submit" class="btn btn-sm btn-danger ml-1"
+                                                                    onclick="return confirm('Delete this module?')">
+                                                                <i class="fas fa-trash"></i> Delete
+                                                            </button>
+                                                        </form>
+                                                        @if (module.ModuleType == "Quiz")
+                                                        {
+                                                            <a asp-controller="CourseManager" asp-action="QuizBuilder"
+                                                               asp-route-moduleId="@module.ModuleId"
+                                                               class="btn btn-sm btn-warning ml-1">
+                                                                <i class="fas fa-cog"></i>
+                                                                @(module.Quiz != null ? "Edit Quiz" : "Build Quiz")
+                                                            </a>
+                                                        }
+                                                        @if (module.ModuleType == "Text")
+                                                        {
+                                                            <a asp-controller="CourseManager" asp-action="TextEditor"
+                                                               asp-route-moduleId="@module.ModuleId"
+                                                               class="btn btn-sm btn-secondary ml-1">
+                                                                <i class="fas fa-align-left"></i>
+                                                                @(module.TextContent != null ? "Edit Text" : "Manage Text")
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                contentIndex++;
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Add Module Modal -->
+    <div class="modal fade" id="addModuleModal" tabindex="-1" data-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle mr-1"></i> Add Module</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <form asp-controller="CourseManager" asp-action="CreateModule" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="trainingId" value="@trainingId" />
+                    <div class="modal-body">
+
+                        <div class="form-group">
+                            <label>Module Name <span class="text-danger">*</span></label>
+                            <select class="form-control" name="moduleName" id="add_module_name" required>
+                                <option value="">-- Select Module --</option>
+                                @for (int i = 1; i <= 30; i++)
+                                {
+                                    <option value="Module @i">Module @i</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Module Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="moduleDescription" rows="3" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Module Type <span class="text-danger">*</span></label>
+                            <select class="form-control" name="moduleType" id="add_module_type" required>
+                                <option value="">-- Select Type --</option>
+                                <option value="Lecture">Lecture</option>
+                                <option value="Activity">Activity</option>
+                                <option value="Quiz">Quiz</option>
+                                <option value="Text">Text</option>
+                            </select>
+                        </div>
+
+                        <!-- Lecture source -->
+                        <div class="form-group" id="add_lecture_source_group" style="display:none;">
+                            <label>Lecture Source</label>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" class="custom-control-input" id="src_file"
+                                       name="lectureSource" value="file" checked>
+                                <label class="custom-control-label" for="src_file">Upload File</label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" class="custom-control-input" id="src_link"
+                                       name="lectureSource" value="link">
+                                <label class="custom-control-label" for="src_link">External Link</label>
+                            </div>
+                        </div>
+
+                        <!-- File upload -->
+                        <div class="form-group" id="add_file_group" style="display:none;">
+                            <label>Upload File</label>
+                            <input type="file" class="form-control-file" name="file" id="add_file" />
+                        </div>
+
+                        <!-- Link URL -->
+                        <div class="form-group" id="add_link_group" style="display:none;">
+                            <label>Link URL</label>
+                            <input type="url" class="form-control" name="linkUrl" placeholder="https://..." />
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Add Module</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Module Modal -->
+    <div class="modal fade" id="editModuleModal" tabindex="-1" data-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit mr-1"></i> Edit Module</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <form asp-controller="CourseManager" asp-action="Edit" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="moduleId" id="edit_module_id" />
+                    <input type="hidden" name="trainingId" value="@trainingId" />
+                    <div class="modal-body">
+
+                        <div class="form-group">
+                            <label>Module Name</label>
+                            <input type="text" class="form-control" id="edit_module_name" disabled />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Module Type</label>
+                            <input type="text" class="form-control" id="edit_module_type_display" disabled />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Module Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="moduleDescription"
+                                      id="edit_module_description" rows="3" required></textarea>
+                        </div>
+
+                        <!-- File upload -->
+                        <div class="form-group" id="edit_file_group" style="display:none;">
+                            <label>Upload New File (Optional)</label>
+                            <input type="file" class="form-control-file" name="file" />
+                            <small class="text-muted">Leave blank to keep current file.</small>
+                        </div>
+
+                        <!-- Link URL -->
+                        <div class="form-group" id="edit_link_group" style="display:none;">
+                            <label>Link URL</label>
+                            <input type="url" class="form-control" name="linkUrl"
+                                   id="edit_link_url" placeholder="https://..." />
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+$(document).ready(function() {
+
+    // Add module — toggle inputs based on type
+    function toggleAddInputs() {
+        var type = $('#add_module_type').val();
+        var src  = $('input[name="lectureSource"]:checked').val();
+
+        $('#add_lecture_source_group, #add_file_group, #add_link_group').hide();
+
+        if (type === 'Lecture') {
+            $('#add_lecture_source_group').show();
+            if (src === 'file') $('#add_file_group').show();
+            else if (src === 'link') $('#add_link_group').show();
+        } else if (type === 'Activity') {
+            $('#add_link_group').show();
+        }
+    }
+
+    $('#add_module_type').on('change', toggleAddInputs);
+    $('input[name="lectureSource"]').on('change', toggleAddInputs);
+
+    // Edit module modal
+    $('.edit-module-btn').on('click', function() {
+        var type = $(this).data('type');
+        var src  = $(this).data('lecturesource');
+
+        $('#edit_module_id').val($(this).data('id'));
+        $('#edit_module_name').val($(this).data('name'));
+        $('#edit_module_type_display').val(type);
+        $('#edit_module_description').val($(this).data('description'));
+        $('#edit_link_url').val($(this).data('linkurl'));
+
+        $('#edit_file_group, #edit_link_group').hide();
+
+        if (type === 'Lecture') {
+            if (src === 'file') $('#edit_file_group').show();
+            else if (src === 'link') $('#edit_link_group').show();
+        } else if (type === 'Activity') {
+            $('#edit_link_group').show();
+        }
+    });
+});
+</script>
+}

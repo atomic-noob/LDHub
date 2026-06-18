@@ -4,8 +4,18 @@ using LDHub.Repositories.Interfaces;
 using LDHub.Services;
 using LDHub.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Ensure a persistent folder for DataProtection keys in development so
+// session cookies can be unprotected across restarts.
+var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys");
+Directory.CreateDirectory(keysFolder);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysFolder))
+    .SetApplicationName("LDHub");
 
 // ── 1. DATABASE CONNECTION ────────────────────────────────────────
 // Connects to MySQL using the connection string from appsettings.json
@@ -48,7 +58,10 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(60);  // Session expires after 60 mins idle
     options.Cookie.HttpOnly = true;     // Prevents JS from accessing session cookie
     options.Cookie.IsEssential = true;  // Required even when user declines cookies
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  // HTTPS only
+    // In development allow non-HTTPS requests to keep session working when using HTTP.
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.None
+        : CookieSecurePolicy.Always;
 });
 
 // ── 4. MVC ────────────────────────────────────────────────────────

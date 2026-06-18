@@ -5,6 +5,13 @@
     ViewData["Title"] = "Trainings";
 }
 
+<div class="container-fluid mt-2">
+    <div class="alert alert-info">
+        <strong>Debug:</strong> Trainings: @(Model is null ? 0 : Model.Count()) | Role:
+        @Context.Session.GetString("UserRole")
+    </div>
+</div>
+
 <section class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
@@ -73,27 +80,30 @@
                                 <td>@item.EndDate?.ToString("MMM dd, yyyy")</td>
                                 <td>@item.TrainingHrs</td>
                                 <td><span class="badge @badgeClass">@status</span></td>
-                              <td>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown">
-                                        <i class="fas fa-cog"></i>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-right">
-                                    <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.TrainingId">
-                                        <i class="fas fa-edit mr-2"></i> Edit
-                                    </a>
-                                    <a class="dropdown-item" asp-action="Details" asp-route-id="@item.TrainingId">
-                                        <i class="fas fa-list mr-2"></i> View Details
-                                    </a>
-                                    <a class="dropdown-item" asp-action="AssignParticipant" asp-route-id="@item.TrainingId">
-                                        <i class="fas fa-user-plus mr-2"></i> Assign Participant
-                                    </a>
-                                    <a class="dropdown-item" asp-action="AssignResourcePerson" asp-route-id="@item.TrainingId">
-                                        <i class="fas fa-chalkboard-teacher mr-2"></i> Assign Resource Person
-                                    </a>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-secondary btn-sm dropdown-toggle"
+                                                data-toggle="dropdown">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-right">
+                                            <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.TrainingId">
+                                                <i class="fas fa-edit mr-2"></i> Edit
+                                            </a>
+                                            <a class="dropdown-item" asp-action="Details" asp-route-id="@item.TrainingId">
+                                                <i class="fas fa-list mr-2"></i> View Details
+                                            </a>
+                                            <a class="dropdown-item" asp-action="AssignParticipant"
+                                               asp-route-id="@item.TrainingId">
+                                                <i class="fas fa-user-plus mr-2"></i> Assign Participant
+                                            </a>
+                                            <a class="dropdown-item" asp-action="AssignResourcePerson"
+                                               asp-route-id="@item.TrainingId">
+                                                <i class="fas fa-chalkboard-teacher mr-2"></i> Assign Resource Person
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
+                                </td>
                             </tr>
                         }
                     </tbody>

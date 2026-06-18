@@ -47,8 +47,21 @@ namespace LDHub.Controllers
         // GET: Training
         public async Task<IActionResult> Index()
         {
-            if (!CanAccessTraining()) return RedirectToAction("Index", "Admin");
+            var role = HttpContext.Session.GetString("UserRole");
+            if (!CanAccessTraining())
+            {
+                Console.WriteLine($"[DEBUG] Access denied for role: {role}");
+                return RedirectToAction("Index", "Admin");
+            }
+
             var trainings = await _context.Trainings.ToListAsync();
+            Console.WriteLine($"[DEBUG] Role: {role}");
+            Console.WriteLine($"[DEBUG] Trainings fetched: {trainings?.Count ?? 0}");
+            if (trainings != null && trainings.Any())
+            {
+                Console.WriteLine($"[DEBUG] First training: {trainings.First().TrainingTitle}");
+            }
+
             return View(trainings);
         }
 

@@ -1,0 +1,299 @@
+@model LDHub.Models.TrainingModule
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Quiz Builder";
+    var quiz = Model.Quiz;
+    var questions = quiz?.Questions?.ToList() ?? new List<LDHub.Models.QuizQuestion>();
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-question-circle mr-2"></i>Quiz Builder</h1>
+                <small class="text-muted">
+                    @Model.Training?.TrainingTitle — @Model.ModuleName : <strong>@Model.ModuleDescription</strong>
+                </small>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="CourseManager" asp-action="Modules"
+                           asp-route-trainingId="@Model.TrainingId">Modules</a>
+                    </li>
+                    <li class="breadcrumb-item active">Quiz Builder</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        <!-- Quiz Settings -->
+        @if (quiz == null)
+        {
+            <div class="card card-outline card-warning">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-plus-circle fa-3x text-warning mb-3 d-block"></i>
+                    <h4>No Quiz Yet</h4>
+                    <p class="text-muted">Create a quiz for this module to get started.</p>
+                    <button class="btn btn-warning" data-toggle="modal" data-target="#quizSettingsModal">
+                        <i class="fas fa-plus mr-1"></i> Create Quiz
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Quiz Info Card -->
+            <div class="card card-outline card-warning mb-4">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-cog mr-1"></i> Quiz Settings</h3>
+                    <div class="card-tools">
+                        <button class="btn btn-sm btn-outline-warning"
+                                data-toggle="modal" data-target="#quizSettingsModal">
+                            <i class="fas fa-edit mr-1"></i> Edit Settings
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Quiz Title</dt>
+                        <dd class="col-sm-9">@quiz.QuizTitle</dd>
+                        <dt class="col-sm-3">Passing Score</dt>
+                        <dd class="col-sm-9">@quiz.PassingScore%</dd>
+                        <dt class="col-sm-3">Questions</dt>
+                        <dd class="col-sm-9">@questions.Count</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Questions -->
+            <div class="card card-outline card-info">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-list mr-1"></i> Questions
+                        <span class="badge badge-info ml-2">@questions.Count</span>
+                    </h3>
+                    <div class="card-tools">
+                        <button class="btn btn-sm btn-info"
+                                data-toggle="modal" data-target="#addQuestionModal">
+                            <i class="fas fa-plus mr-1"></i> Add Question
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (!questions.Any())
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2 d-block" style="opacity:.3"></i>
+                            <p>No questions yet. Click <strong>Add Question</strong> to begin.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @for (int i = 0; i < questions.Count; i++)
+                        {
+                            var q = questions[i];
+                            <div class="card mb-3" style="border-left: 4px solid #17a2b8;">
+                                <div class="card-body pb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <div class="flex-grow-1">
+                                            <small class="text-muted font-weight-bold">Q@(i + 1)</small>
+                                            <p class="font-weight-bold mb-2">@q.QuestionText</p>
+                                            <ul class="list-unstyled mb-0">
+                                                @foreach (var c in q.Choices)
+                                                {
+                                                    <li class="mb-1">
+                                                        @if (c.IsCorrect)
+                                                        {
+                                                            <i class="fas fa-check-circle text-success mr-1"></i>
+                                                            <strong class="text-success">@c.ChoiceText</strong>
+                                                            <span class="badge badge-success ml-1">Correct</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="far fa-circle text-muted mr-1"></i>
+                                                            @c.ChoiceText
+                                                        }
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                        <div class="ml-3">
+                                            <form asp-controller="CourseManager" asp-action="DeleteQuestion"
+                                                  method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="questionId" value="@q.QuestionId" />
+                                                <input type="hidden" name="moduleId" value="@Model.ModuleId" />
+                                                <button type="submit" class="btn btn-sm btn-danger"
+                                                        onclick="return confirm('Delete this question?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+
+        <a asp-controller="CourseManager" asp-action="Modules"
+           asp-route-trainingId="@Model.TrainingId" class="btn btn-secondary">
+            <i class="fas fa-arrow-left mr-1"></i> Back to Modules
+        </a>
+
+    </div>
+</section>
+
+<!-- Quiz Settings Modal -->
+<div class="modal fade" id="quizSettingsModal" tabindex="-1" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog mr-1"></i>
+                    @(quiz == null ? "Create Quiz" : "Edit Quiz Settings")
+                </h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <form asp-controller="CourseManager" asp-action="SaveQuizSettings" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="moduleId" value="@Model.ModuleId" />
+                <input type="hidden" name="quizId" value="@(quiz?.QuizId ?? 0)" />
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Quiz Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="quizTitle"
+                               value="@(quiz?.QuizTitle ?? "")" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Passing Score (%) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" name="passingScore"
+                               value="@(quiz?.PassingScore ?? 70)" min="1" max="100"
+                               style="max-width:150px;" required />
+                        <small class="text-muted">e.g. 70 = 70% passing score</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save mr-1"></i>
+                        @(quiz == null ? "Create Quiz" : "Save Changes")
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Question Modal -->
+<div class="modal fade" id="addQuestionModal" tabindex="-1" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus-circle mr-1"></i> Add Question</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <form asp-controller="CourseManager" asp-action="AddQuestion" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="moduleId" value="@Model.ModuleId" />
+                <input type="hidden" name="quizId" value="@(quiz?.QuizId ?? 0)" />
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Question Text <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="questionText" rows="3" required></textarea>
+                    </div>
+                    <label>Answer Choices <span class="text-danger">*</span></label>
+                    <small class="text-muted d-block mb-2">Select the radio button next to the correct answer.</small>
+                    <div id="choicesContainer">
+                        @for (int i = 0; i < 4; i++)
+                        {
+                            <div class="choice-row d-flex align-items-center mb-2">
+                                <input type="radio" name="correctChoice" value="@i"
+                                       class="mr-2" @(i == 0 ? "checked" : "") required />
+                                <input type="text" class="form-control" name="choices"
+                                       placeholder="Choice @(i + 1)" required />
+                                <button type="button" class="btn btn-sm btn-outline-danger ml-2 remove-choice">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addChoiceBtn">
+                        <i class="fas fa-plus mr-1"></i> Add Choice
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save mr-1"></i> Save Question
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function() {
+    var choiceCount = 4;
+
+    $('#addChoiceBtn').on('click', function() {
+        choiceCount++;
+        var row = $('<div class="choice-row d-flex align-items-center mb-2"></div>');
+        row.append('<input type="radio" name="correctChoice" value="' + (choiceCount-1) + '" class="mr-2" required />');
+        row.append('<input type="text" class="form-control" name="choices" placeholder="Choice ' + choiceCount + '" required />');
+        row.append('<button type="button" class="btn btn-sm btn-outline-danger ml-2 remove-choice"><i class="fas fa-times"></i></button>');
+        $('#choicesContainer').append(row);
+        reindexChoices();
+    });
+
+    $(document).on('click', '.remove-choice', function() {
+        if ($('.choice-row').length <= 2) {
+            alert('Minimum 2 choices required!');
+            return;
+        }
+        $(this).closest('.choice-row').remove();
+        reindexChoices();
+    });
+
+    function reindexChoices() {
+        $('.choice-row').each(function(i) {
+            $(this).find('input[type="radio"]').val(i);
+            $(this).find('input[type="text"]').attr('placeholder', 'Choice ' + (i+1));
+        });
+    }
+
+    $('#addQuestionModal').on('show.bs.modal', function() {
+        $(this).find('form')[0].reset();
+        $('#choicesContainer').html('');
+        choiceCount = 0;
+        for (var i = 0; i < 4; i++) {
+            choiceCount++;
+            var row = $('<div class="choice-row d-flex align-items-center mb-2"></div>');
+            row.append('<input type="radio" name="correctChoice" value="' + i + '" class="mr-2" ' + (i===0?'checked':'') + ' required />');
+            row.append('<input type="text" class="form-control" name="choices" placeholder="Choice ' + (i+1) + '" required />');
+            row.append('<button type="button" class="btn btn-sm btn-outline-danger ml-2 remove-choice"><i class="fas fa-times"></i></button>');
+            $('#choicesContainer').append(row);
+        }
+    });
+});
+</script>
+}
