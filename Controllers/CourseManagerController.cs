@@ -434,12 +434,192 @@ public class CourseManagerController : Controller
     }
 
     // ── GET: /CourseManager/TestMaker ─────────────────────────────
-    public IActionResult TestMaker()
+   // ── GET: /CourseManager/TestMaker ─────────────────────────────
+
+public async Task<IActionResult> TestMaker(int? trainingId)
+{
+    if (!IsCourseManager()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+ 
+    // All trainings for the filter dropdown — include dates
+    var trainings = await _db.Trainings
+        .OrderBy(t => t.StartDate)
+        .ToListAsync();
+ 
+    ViewBag.Trainings = trainings;
+ 
+    if (trainingId.HasValue && trainingId > 0)
     {
-        if (!IsCourseManager()) return RedirectToAction("Login", "Home");
-        SetViewBag();
-        return View("~/Views/CourseManager/TestMaker.cshtml");
+        var training = await _db.Trainings.FindAsync(trainingId);
+        var questions = await _db.Questions
+            .Where(q => q.TrainingId == trainingId)
+            .OrderBy(q => q.Id)
+            .ToListAsync();
+ 
+        ViewBag.SelectedTraining = training;
+        ViewBag.Questions        = questions;
+        ViewBag.TrainingId       = trainingId;
+ 
+        // ── Build grades ──────────────────────────────────────────────────────
+        var totalPoints = questions.Sum(q => q.Points);
+ 
+        // Get all participants assigned to this training
+        var participants = await _db.TrainingParticipants
+            .Include(tp => tp.User)
+            .Where(tp => tp.TrainingId == trainingId)
+            .ToListAsync();
+ 
+        // Get all attempts for this training
+        var attempts = await _db.ParticipantTestAttempts
+            .Where(a => a.TrainingId == trainingId)
+            .ToListAsync();
+ 
+        var gradeRows = participants.Select(tp =>
+        {
+            var userAttempts = attempts.Where(a => a.UserId == tp.UserId).ToList();
+ 
+            var preTest  = userAttempts
+                .Where(a => a.TestType == "PreTest")
+                .OrderByDescending(a => a.TakenAt)
+                .FirstOrDefault();
+ 
+            var postTests = userAttempts
+                .Where(a => a.TestType == "PostTest")
+                .OrderByDescending(a => a.Score)
+                .ToList();
+ 
+            var bestPost = postTests.FirstOrDefault();
+ 
+            return new GradeRow
+            {
+                UserId           = tp.UserId,
+                EmployeeName     = tp.User.FirstName + " " + tp.User.LastName,
+                PreTestScore     = preTest?.Score,
+                PostTestScore    = bestPost?.Score,
+                TotalPoints      = totalPoints,
+                PostTestAttempts = postTests.Count,
+                PostTestPassed   = bestPost?.IsPassed ?? false
+            };
+        }).ToList();
+ 
+        ViewBag.Grades = gradeRows;
     }
+ 
+    return View("~/Views/CourseManager/TestMaker.cshtml");
+}
+ 
+ 
+// ── POST: /CourseManager/ResetAttempts ───────────────────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> ResetAttempts(int userId, int trainingId)
+{
+    if (!IsCourseManager()) return RedirectToAction("Login", "Home");
+ 
+    var attempts = await _db.ParticipantTestAttempts
+        .Where(a => a.UserId     == userId
+                 && a.TrainingId == trainingId
+                 && a.TestType   == "PostTest")
+        .ToListAsync();
+ 
+    _db.ParticipantTestAttempts.RemoveRange(attempts);
+    await _db.SaveChangesAsync();
+ 
+    TempData["Success"] = "Post-test attempts reset successfully.";
+    return RedirectToAction("TestMaker", new { trainingId });
+}
+
+// ── POST: /CourseManager/SaveQuestion ─────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> SaveQuestion(
+    int? questionId, int trainingId, string questionType,
+    string questionText, string? choiceA, string? choiceB,
+    string? choiceC, string? choiceD, string? correctAnswer,
+    string? correctAnswerTf, string? correctAnswerText, decimal points)
+{
+    if (!IsCourseManager()) return RedirectToAction("Login", "Home");
+
+    string? finalAnswer = questionType switch
+    {
+        "true_false"      => correctAnswerTf,
+        "multiple_choice" => correctAnswer,
+        _                 => correctAnswerText
+    };
+
+    if (questionId.HasValue && questionId > 0)
+    {
+        var q = await _db.Questions.FindAsync(questionId);
+        if (q != null)
+        {
+            q.QuestionType  = questionType;
+            q.QuestionText  = questionText;
+            q.ChoiceA       = choiceA;
+            q.ChoiceB       = choiceB;
+            q.ChoiceC       = choiceC;
+            q.ChoiceD       = choiceD;
+            q.CorrectAnswer = finalAnswer;
+            q.Points        = points;
+        }
+    }
+    else
+    {
+        _db.Questions.Add(new Question
+        {
+            TrainingId    = trainingId,
+            QuestionType  = questionType,
+            QuestionText  = questionText,
+            ChoiceA       = choiceA,
+            ChoiceB       = choiceB,
+            ChoiceC       = choiceC,
+            ChoiceD       = choiceD,
+            CorrectAnswer = finalAnswer,
+            Points        = points
+        });
+    }
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = questionId > 0 ? "Question updated!" : "Question added!";
+    return RedirectToAction("TestMaker", new { trainingId });
+}
+
+// ── POST: /CourseManager/DeleteQuestion2 ──────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> DeleteQuestion2(int questionId, int trainingId)
+{
+    if (!IsCourseManager()) return RedirectToAction("Login", "Home");
+
+    var q = await _db.Questions.FindAsync(questionId);
+    if (q != null)
+    {
+        _db.Questions.Remove(q);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Question deleted!";
+    }
+
+    return RedirectToAction("TestMaker", new { trainingId });
+}
+
+// ── POST: /CourseManager/SaveTestSettings ─────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> SaveTestSettings(
+    int trainingId, int minimumScore, int posttestTimer)
+{
+    if (!IsCourseManager()) return RedirectToAction("Login", "Home");
+
+    var training = await _db.Trainings.FindAsync(trainingId);
+    if (training != null)
+    {
+        training.MinimumScore  = minimumScore;
+        training.PosttestTimer = posttestTimer;
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Test settings saved!";
+    }
+
+    return RedirectToAction("TestMaker", new { trainingId });
+}
 
     // ── GET: /CourseManager/TestResult ────────────────────────────
     public IActionResult TestResult()

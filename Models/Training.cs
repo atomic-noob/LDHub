@@ -60,6 +60,13 @@ namespace LDHub.Models
 
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        [Column("minimum_score")]
+public int MinimumScore { get; set; } = 0;
+
+[Column("posttest_timer")]
+public int PosttestTimer { get; set; } = 30;
+
+public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
 
      // Navigation
         [InverseProperty("Training")]

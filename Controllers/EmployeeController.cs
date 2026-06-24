@@ -19,8 +19,11 @@ public class EmployeeController : Controller
         HttpContext.Session.GetString("UserRole") == "Employee";
 
     // ── Get current logged in user ID from session ─────────────────
-    private int GetUserId() =>
-        int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
+    private int GetUserId()
+{
+    var str = HttpContext.Session.GetString("UserId");
+    return int.TryParse(str, out int id) ? id : 0;
+}
 
     // ── ViewBag helper ────────────────────────────────────────────
     private void SetViewBag()
@@ -31,62 +34,328 @@ public class EmployeeController : Controller
     }
 
     // ── GET: /Employee/Dashboard ──────────────────────────────────
-    // Shows overview — enrolled trainings, completed, ongoing
     public async Task<IActionResult> Dashboard()
     {
         if (!IsEmployee()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var userId = GetUserId();
+        var now    = DateTime.Now;
+        // TEMP DEBUG
+Console.WriteLine($"SESSION UserId: {HttpContext.Session.GetInt32("UserId")}");
+Console.WriteLine($"GetUserId() returns: {userId}");
 
-        // Get all trainings the employee is enrolled in
+        // Get all enrollments
         var enrollments = await _db.TrainingParticipants
             .Include(tp => tp.Training)
             .Where(tp => tp.UserId == userId)
             .ToListAsync();
 
-        // Count by status
-        ViewBag.TotalEnrolled  = enrollments.Count;
-        ViewBag.TotalCompleted = enrollments
-            .Count(tp => tp.CompletionStatus == "Completed");
-        ViewBag.TotalOngoing   = enrollments
-            .Count(tp => tp.Training != null
-                      && DateTime.Now >= tp.Training.StartDate
-                      && DateTime.Now <= tp.Training.EndDate);
+        // ── Auto-complete trainings past their end date ──
+        bool anyUpdated = false;
+        foreach (var tp in enrollments)
+        {// Only auto-complete if EndDate is set AND has passed
+if (tp.Training?.EndDate != null
+    && now > tp.Training.EndDate
+    && tp.CompletionStatus != "Completed")
+            {
+                tp.CompletionStatus = "Completed";
+                anyUpdated = true;
+            }
+        }
+        if (anyUpdated) await _db.SaveChangesAsync();
+
+        // ── Get current active enrollment ──
+        var currentEnrollment = enrollments
+            .Where(tp => tp.CompletionStatus != "Completed"
+                    && (tp.Training?.EndDate == null || tp.Training.EndDate >= now))
+            .OrderByDescending(tp => tp.Training?.StartDate)
+            .FirstOrDefault();
+
+        // ── Get modules for current training ──
+        var modules = new List<TrainingModule>();
+        if (currentEnrollment != null)
+        {
+            modules = await _db.TrainingModules
+                .Where(m => m.TrainingId == currentEnrollment.TrainingId)
+                .OrderBy(m => m.SortOrder)
+                .ToListAsync();
+        }
+
+        // ── Check if pre-test has been taken ──
+        bool preTestTaken = false;
+        if (currentEnrollment != null)
+        {
+            preTestTaken = await _db.ParticipantTestAttempts
+                .AnyAsync(a => a.UserId     == userId
+                            && a.TrainingId == currentEnrollment.TrainingId
+                            && a.TestType   == "PreTest");
+        }
+
+        // ── Check if all modules are done and post-test is available ──
+        // (post-test unlocks only after pre-test taken — module completion
+        //  is tracked client-side for now via checkboxes)
+        bool postTestTaken = false;
+        int  postTestAttempts = 0;
+        bool postTestPassed   = false;
+        if (currentEnrollment != null)
+        {
+            var postAttempts = await _db.ParticipantTestAttempts
+                .Where(a => a.UserId     == userId
+                         && a.TrainingId == currentEnrollment.TrainingId
+                         && a.TestType   == "PostTest")
+                .ToListAsync();
+
+            postTestTaken    = postAttempts.Any();
+            postTestAttempts = postAttempts.Count;
+            postTestPassed   = postAttempts.Any(a => a.IsPassed);
+        }
+
+        ViewBag.TotalEnrolled   = enrollments.Count;
+        ViewBag.TotalCompleted  = enrollments.Count(tp => tp.CompletionStatus == "Completed");
+        ViewBag.TotalOngoing    = enrollments.Count(tp =>
+            tp.Training != null &&
+            now >= tp.Training.StartDate &&
+            now <= tp.Training.EndDate);
+        ViewBag.Enrollment      = currentEnrollment;
+        ViewBag.Modules         = modules;
+        ViewBag.CompletedCount  = enrollments.Count(tp => tp.CompletionStatus == "Completed");
+        ViewBag.PreTestTaken    = preTestTaken;
+        ViewBag.PostTestTaken   = postTestTaken;
+        ViewBag.PostTestAttempts = postTestAttempts;
+        ViewBag.PostTestPassed  = postTestPassed;
 
         return View("~/Views/Employee/Dashboard.cshtml", enrollments);
     }
 
-    // ── GET: /Employee/Profile ────────────────────────────────────
-    // Shows employee personal info from database
-            public async Task<IActionResult> Profile()
+    // ── GET: /Employee/PreTest ────────────────────────────────────
+    public async Task<IActionResult> PreTest(int trainingId)
+    {
+        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+        var userId = GetUserId();
+
+        // Block if already taken
+        var alreadyTaken = await _db.ParticipantTestAttempts
+            .AnyAsync(a => a.UserId     == userId
+                        && a.TrainingId == trainingId
+                        && a.TestType   == "PreTest");
+
+        if (alreadyTaken)
         {
-            if (!IsEmployee()) return RedirectToAction("Login", "Home");
-            SetViewBag();
-
-            var userId = GetUserId();
-
-            var user = await _db.Users
-                .Include(u => u.Region)
-                .Include(u => u.Office)
-                .Include(u => u.Division)
-                .Include(u => u.UserRoles)
-                .FirstOrDefaultAsync(u => u.UserId == userId);
-
-            if (user == null) return RedirectToAction("Login", "Home");
-
-            // Pass trainings separately via ViewBag
-            ViewBag.Trainings = await _db.TrainingParticipants
-                .Include(tp => tp.Training)
-                .Where(tp => tp.UserId == userId)
-                .OrderByDescending(tp => tp.EnrollmentDate)
-                .ToListAsync();
-
-            return View("~/Views/Employee/Profile.cshtml", user);
+            TempData["Error"] = "You have already taken the pre-test for this training.";
+            return RedirectToAction("Dashboard");
         }
 
+        // Load training + questions
+        var training = await _db.Trainings.FindAsync(trainingId);
+        if (training == null) return NotFound();
+
+        var questions = await _db.Questions
+            .Where(q => q.TrainingId == trainingId)
+            .OrderBy(q => q.Id)
+            .ToListAsync();
+
+        ViewBag.Training  = training;
+        ViewBag.Questions = questions;
+        ViewBag.TestType  = "PreTest";
+
+        return View("~/Views/Employee/TakeTest.cshtml");
+    }
+
+    // ── GET: /Employee/PostTest ───────────────────────────────────
+    public async Task<IActionResult> PostTest(int trainingId)
+    {
+        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+        var userId = GetUserId();
+
+        // Check attempt count — max 3
+        var attempts = await _db.ParticipantTestAttempts
+            .Where(a => a.UserId     == userId
+                     && a.TrainingId == trainingId
+                     && a.TestType   == "PostTest")
+            .ToListAsync();
+
+        if (attempts.Count >= 3)
+        {
+            TempData["Error"] = "You have used all 3 post-test attempts.";
+            return RedirectToAction("Dashboard");
+        }
+
+        // Must have taken pre-test first
+        var preTestTaken = await _db.ParticipantTestAttempts
+            .AnyAsync(a => a.UserId     == userId
+                        && a.TrainingId == trainingId
+                        && a.TestType   == "PreTest");
+
+        if (!preTestTaken)
+        {
+            TempData["Error"] = "Please complete the pre-test first.";
+            return RedirectToAction("Dashboard");
+        }
+
+        var training = await _db.Trainings.FindAsync(trainingId);
+        if (training == null) return NotFound();
+
+        var questions = await _db.Questions
+            .Where(q => q.TrainingId == trainingId)
+            .OrderBy(q => q.Id)
+            .ToListAsync();
+
+        ViewBag.Training      = training;
+        ViewBag.Questions     = questions;
+        ViewBag.TestType      = "PostTest";
+        ViewBag.AttemptNumber = attempts.Count + 1;
+        ViewBag.Timer         = training.PosttestTimer; // minutes
+
+        return View("~/Views/Employee/TakeTest.cshtml");
+    }
+
+    // ── POST: /Employee/SubmitTest ────────────────────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SubmitTest(int trainingId, string testType,
+        int attemptNumber, IFormCollection form)
+    {
+        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+
+        var userId   = GetUserId();
+        var training = await _db.Trainings.FindAsync(trainingId);
+        if (training == null) return NotFound();
+
+        var questions = await _db.Questions
+            .Where(q => q.TrainingId == trainingId)
+            .ToListAsync();
+
+        decimal score       = 0;
+        decimal totalPoints = questions.Sum(q => q.Points);
+
+        foreach (var q in questions)
+        {
+            var answer = form[$"answer_{q.Id}"].ToString().Trim();
+            if (string.IsNullOrEmpty(answer)) continue;
+
+            bool correct = q.QuestionType switch
+            {
+                "true_false"      => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
+                "multiple_choice" => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
+                "identification"  => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
+                _                 => false
+            };
+
+            if (correct) score += q.Points;
+        }
+
+        bool isPassed = testType == "PostTest"
+            ? score >= training.MinimumScore
+            : false; // pre-test never gates
+
+        var attempt = new ParticipantTestAttempt
+        {
+            TrainingId    = trainingId,
+            UserId        = userId,
+            TestType      = testType,
+            Score         = score,
+            TotalPoints   = totalPoints,
+            IsPassed      = isPassed,
+            AttemptNumber = attemptNumber,
+            TakenAt       = DateTime.UtcNow
+        };
+
+        _db.ParticipantTestAttempts.Add(attempt);
+
+        // If post-test passed → mark training as Completed
+        if (testType == "PostTest" && isPassed)
+        {
+            var enrollment = await _db.TrainingParticipants
+                .FirstOrDefaultAsync(tp => tp.TrainingId == trainingId
+                                        && tp.UserId     == userId);
+            if (enrollment != null)
+                enrollment.CompletionStatus = "Completed";
+        }
+
+        // If post-test and first attempt → mark as In Progress
+        if (testType == "PostTest" && attemptNumber == 1)
+        {
+            var enrollment = await _db.TrainingParticipants
+                .FirstOrDefaultAsync(tp => tp.TrainingId == trainingId
+                                        && tp.UserId     == userId);
+            if (enrollment != null && enrollment.CompletionStatus == "Enrolled")
+                enrollment.CompletionStatus = "In Progress";
+        }
+
+        await _db.SaveChangesAsync();
+
+        // Redirect to results page
+        return RedirectToAction("TestResult", new
+        {
+            trainingId,
+            testType,
+            score         = (int)score,
+            totalPoints   = (int)totalPoints,
+            isPassed      = isPassed ? 1 : 0,
+            attemptNumber
+        });
+    }
+
+    // ── GET: /Employee/TestResult ─────────────────────────────────
+    public async Task<IActionResult> TestResult(int trainingId, string testType,
+        decimal score, decimal totalPoints, int isPassed, int attemptNumber)
+    {
+        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+        var training = await _db.Trainings.FindAsync(trainingId);
+        var userId   = GetUserId();
+
+        // Remaining post-test attempts
+        var usedAttempts = await _db.ParticipantTestAttempts
+            .CountAsync(a => a.UserId     == userId
+                          && a.TrainingId == trainingId
+                          && a.TestType   == "PostTest");
+
+        ViewBag.Training        = training;
+        ViewBag.TestType        = testType;
+        ViewBag.Score           = score;
+        ViewBag.TotalPoints     = totalPoints;
+        ViewBag.IsPassed        = isPassed == 1;
+        ViewBag.AttemptNumber   = attemptNumber;
+        ViewBag.AttemptsUsed    = usedAttempts;
+        ViewBag.AttemptsLeft    = 3 - usedAttempts;
+
+        return View("~/Views/Employee/TestResult.cshtml");
+    }
+
+    // ── GET: /Employee/Profile ────────────────────────────────────
+    public async Task<IActionResult> Profile()
+    {
+        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+        var userId = GetUserId();
+
+        var user = await _db.Users
+            .Include(u => u.Region)
+            .Include(u => u.Office)
+            .Include(u => u.Division)
+            .Include(u => u.UserRoles)
+            .FirstOrDefaultAsync(u => u.UserId == userId);
+
+        if (user == null) return RedirectToAction("Login", "Home");
+
+        ViewBag.Trainings = await _db.TrainingParticipants
+            .Include(tp => tp.Training)
+            .Where(tp => tp.UserId == userId)
+            .OrderByDescending(tp => tp.EnrollmentDate)
+            .ToListAsync();
+
+        return View("~/Views/Employee/Profile.cshtml", user);
+    }
+
     // ── POST: /Employee/UpdateProfile ─────────────────────────────
-    // Update employee profile info
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateProfile(User model)
@@ -94,11 +363,10 @@ public class EmployeeController : Controller
         if (!IsEmployee()) return RedirectToAction("Login", "Home");
 
         var userId = GetUserId();
-        var user = await _db.Users.FindAsync(userId);
+        var user   = await _db.Users.FindAsync(userId);
 
         if (user == null) return RedirectToAction("Login", "Home");
 
-        // Only update allowed fields
         user.FirstName     = model.FirstName;
         user.MiddleName    = model.MiddleName;
         user.LastName      = model.LastName;
@@ -109,7 +377,6 @@ public class EmployeeController : Controller
 
         await _db.SaveChangesAsync();
 
-        // Update session name
         HttpContext.Session.SetString("UserName",
             $"{user.FirstName} {user.LastName}");
 
@@ -118,7 +385,6 @@ public class EmployeeController : Controller
     }
 
     // ── GET: /Employee/Grade ──────────────────────────────────────
-    // Shows employee training grades and scores
     public async Task<IActionResult> Grade()
     {
         if (!IsEmployee()) return RedirectToAction("Login", "Home");
@@ -126,7 +392,6 @@ public class EmployeeController : Controller
 
         var userId = GetUserId();
 
-        // Get all trainings with completion status
         var enrollments = await _db.TrainingParticipants
             .Include(tp => tp.Training)
             .Where(tp => tp.UserId == userId)
