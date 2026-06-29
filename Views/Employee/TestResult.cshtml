@@ -1,0 +1,305 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var training      = ViewBag.Training     as LDHub.Models.Training;
+    var testType      = ViewBag.TestType     as string  ?? "PreTest";
+    var score         = ViewBag.Score        as decimal? ?? 0;
+    var totalPoints   = ViewBag.TotalPoints  as decimal? ?? 0;
+    var isPassed      = ViewBag.IsPassed     as bool?   ?? false;
+    var attemptNumber = ViewBag.AttemptNumber as int?   ?? 1;
+    var attemptsUsed  = ViewBag.AttemptsUsed as int?    ?? 0;
+    var attemptsLeft  = ViewBag.AttemptsLeft as int?    ?? 0;
+    var isPostTest    = testType == "PostTest";
+
+    var percentage    = totalPoints > 0 ? Math.Round(score / totalPoints * 100) : 0;
+
+    ViewData["Title"] = "Test Result";
+}
+
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg, #ffffff 0%, #f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg, #9BEC00, #4BB543, #117554); color: white; }
+        .result-circle {
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,.15);
+        }
+        .result-circle.passed {
+            background: linear-gradient(135deg, #9BEC00, #4BB543);
+            color: white;
+        }
+        .result-circle.failed {
+            background: linear-gradient(135deg, #ff6b6b, #dc3545);
+            color: white;
+        }
+        .result-circle.pretest {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+        }
+        .result-circle .score-number {
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+        .result-circle .score-label {
+            font-size: 0.75rem;
+            opacity: .85;
+        }
+        .attempt-dot {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 3px;
+        }
+        .attempt-dot.used-pass  { background: #4BB543; }
+        .attempt-dot.used-fail  { background: #dc3545; }
+        .attempt-dot.remaining  { background: #dee2e6; border: 2px solid #adb5bd; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">
+                    <i class="fas fa-poll mr-2 text-success"></i> Test Result
+                </h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Dashboard", "Employee")">Dashboard</a>
+                    </li>
+                    <li class="breadcrumb-item active">Result</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+
+                @* Main Result Card *@
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header text-center success-gradient py-3">
+                        <h4 class="mb-0 font-weight-bold">
+                            @training?.TrainingTitle
+                        </h4>
+                        <small>@(isPostTest ? $"Post-Test — Attempt {attemptNumber} of 3" : "Pre-Test Result")</small>
+                    </div>
+                    <div class="card-body text-center py-4">
+
+                        @* Score Circle *@
+                        <div class="result-circle @(isPostTest ? (isPassed ? "passed" : "failed") : "pretest")">
+                            <div class="score-number">@percentage%</div>
+                            <div class="score-label">@score / @totalPoints pts</div>
+                        </div>
+
+                        @* Result Message *@
+                        @if (!isPostTest)
+                        {
+                            <h4 class="text-primary font-weight-bold mb-1">
+                                <i class="fas fa-clipboard-check mr-2"></i>Pre-Test Submitted!
+                            </h4>
+                            <p class="text-muted mb-3">
+                                Your pre-test score has been recorded. This is for diagnostic purposes only
+                                and does not affect your certificate eligibility.
+                            </p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-arrow-right mr-2"></i>
+                                You can now access the <strong>training modules</strong>. 
+                                Complete all modules then take the <strong>Post-Test</strong> to earn your certificate.
+                            </div>
+                        }
+                        else if (isPassed)
+                        {
+                            <h4 class="text-success font-weight-bold mb-1">
+                                <i class="fas fa-trophy mr-2"></i>Congratulations! You Passed!
+                            </h4>
+                            <p class="text-muted mb-3">
+                                You met the minimum passing score of <strong>@training?.MinimumScore pts</strong>.
+                                Your certificate is now available.
+                            </p>
+                            <div class="alert alert-success">
+                                <i class="fas fa-certificate mr-2"></i>
+                                You have successfully completed <strong>@training?.TrainingTitle</strong>!
+                            </div>
+                        }
+                        else if (attemptsLeft > 0)
+                        {
+                            <h4 class="text-danger font-weight-bold mb-1">
+                                <i class="fas fa-times-circle mr-2"></i>Not Passed
+                            </h4>
+                            <p class="text-muted mb-3">
+                                You need <strong>@training?.MinimumScore pts</strong> to pass.
+                                You scored <strong>@score pts</strong>.
+                                You have <strong>@attemptsLeft attempt@(attemptsLeft != 1 ? "s" : "")</strong> remaining.
+                            </p>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-redo mr-2"></i>
+                                Review the training modules and try again when you're ready.
+                            </div>
+                        }
+                        else
+                        {
+                            <h4 class="text-danger font-weight-bold mb-1">
+                                <i class="fas fa-lock mr-2"></i>Maximum Attempts Reached
+                            </h4>
+                            <p class="text-muted mb-3">
+                                You have used all 3 attempts without meeting the minimum score.
+                                Please contact your <strong>CourseManager</strong> to reset your attempts.
+                            </p>
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                No more attempts available. Contact your administrator for assistance.
+                            </div>
+                        }
+
+                        @* Score Breakdown *@
+                        <div class="row text-center mt-3 mb-3">
+                            <div class="col-4">
+                                <div class="border rounded p-2">
+                                    <div class="h4 mb-0 text-success font-weight-bold">@score</div>
+                                    <small class="text-muted">Your Score</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded p-2">
+                                    <div class="h4 mb-0 font-weight-bold">@totalPoints</div>
+                                    <small class="text-muted">Total Points</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded p-2">
+                                    <div class="h4 mb-0 @(isPostTest ? (isPassed ? "text-success" : "text-danger") : "text-primary") font-weight-bold">
+                                        @percentage%
+                                    </div>
+                                    <small class="text-muted">Percentage</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        @* Attempt Dots (post-test only) *@
+                        @if (isPostTest)
+                        {
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-2">Attempts Used</small>
+                                @for (int a = 1; a <= 3; a++)
+                                {
+                                    if (a < attemptsUsed)
+                                    {
+                                        <span class="attempt-dot used-fail" title="Attempt @a — Failed"></span>
+                                    }
+                                    else if (a == attemptsUsed)
+                                    {
+                                        <span class="attempt-dot @(isPassed ? "used-pass" : "used-fail")"
+                                              title="Attempt @a — @(isPassed ? "Passed" : "Failed")"></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="attempt-dot remaining" title="Attempt @a — Not used"></span>
+                                    }
+                                }
+                                <small class="text-muted ml-2">@attemptsUsed / 3 used</small>
+                            </div>
+                        }
+
+                        @* Minimum score bar (post-test only) *@
+                        @if (isPostTest && training?.MinimumScore > 0)
+                        {
+                            var minPct    = totalPoints > 0 ? Math.Round((decimal)training.MinimumScore / totalPoints * 100) : 0;
+                            var scorePct  = totalPoints > 0 ? Math.Round(score / totalPoints * 100) : 0;
+                            <div class="mt-2 mb-3 text-left">
+                                <small class="text-muted">
+                                    Score vs Minimum (@training.MinimumScore pts required)
+                                </small>
+                                <div class="progress mt-1" style="height:20px; border-radius:10px;">
+                                    <div class="progress-bar @(isPassed ? "bg-success" : "bg-danger")"
+                                         role="progressbar"
+                                         style="width:@scorePct%">
+                                        @score pts
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <small>0</small>
+                                    <small class="text-warning">Min: @training.MinimumScore pts (@minPct%)</small>
+                                    <small>@totalPoints pts</small>
+                                </div>
+                            </div>
+                        }
+
+                    </div>
+
+                    @* Action Buttons *@
+                    <div class="card-footer text-center">
+                        @if (!isPostTest)
+                        {
+                            <a href="@Url.Action("Dashboard", "Employee")"
+                               class="btn btn-success btn-lg">
+                                <i class="fas fa-arrow-right mr-2"></i> Go to Training Modules
+                            </a>
+                        }
+                        else if (isPassed)
+                        {
+                            <a href="@Url.Action("Dashboard", "Employee")"
+                               class="btn btn-success btn-lg mr-2">
+                                <i class="fas fa-home mr-2"></i> Back to Dashboard
+                            </a>
+                            @* Certificate button placeholder *@
+                            <a href="#" class="btn btn-warning btn-lg">
+                                <i class="fas fa-certificate mr-2"></i> View Certificate
+                            </a>
+                        }
+                        else if (attemptsLeft > 0)
+                        {
+                            <a href="@Url.Action("Dashboard", "Employee")"
+                               class="btn btn-secondary mr-2">
+                                <i class="fas fa-book mr-2"></i> Review Modules
+                            </a>
+                            <a href="@Url.Action("PostTest", "Employee", new { trainingId = training?.TrainingId })"
+                               class="btn btn-primary btn-lg">
+                                <i class="fas fa-redo mr-2"></i> Retry Post-Test
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="@Url.Action("Dashboard", "Employee")"
+                               class="btn btn-secondary btn-lg">
+                                <i class="fas fa-home mr-2"></i> Back to Dashboard
+                            </a>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script src="~/plugins/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+$(function () {
+    @if (isPassed && isPostTest)
+    {
+        <text>
+    // Celebration on pass
+    Swal.fire({
+        icon: 'success',
+        title: 'Congratulations!',
+        text: 'You passed the post-test and completed the training!',
+        confirmButtonColor: '#4BB543',
+        confirmButtonText: 'View Result'
+    });
+        </text>
+    }
+});
+</script>
+}

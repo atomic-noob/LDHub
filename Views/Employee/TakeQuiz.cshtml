@@ -1,0 +1,284 @@
+@model LDHub.Models.Quiz
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Take Quiz";
+    var module = ViewBag.Module as LDHub.Models.TrainingModule;
+}
+
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg, #ffffff 0%, #f4fff7 100%); }
+
+        .quiz-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+
+        .quiz-header {
+            background: linear-gradient(225deg, #9BEC00, #4BB543, #117554);
+            color: white;
+            border-radius: 10px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.2s;
+        }
+
+        .question-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.07); }
+
+        .question-number {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #4BB543;
+            margin-bottom: 5px;
+        }
+
+        .question-text {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 15px;
+        }
+
+        .choice-option {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .choice-option:hover { border-color: #4BB543; background: #f4fdf6; }
+        .choice-option input[type="radio"] { display: none; }
+        .choice-option.selected { border-color: #4BB543; background: #e8f5e9; }
+
+        .choice-letter {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: #dee2e6;
+            color: #495057;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.9rem;
+            margin-right: 12px; flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .choice-option.selected .choice-letter { background: #4BB543; color: #fff; }
+        .choice-text { font-size: 0.95rem; color: #343a40; }
+
+        .progress-container { margin-bottom: 20px; }
+        .progress-label { font-size: 0.82rem; font-weight: 600; color: #6c757d; margin-bottom: 5px; }
+
+        .quiz-footer {
+            border-top: 1px solid #e9ecef;
+            padding-top: 20px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Take Quiz</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-action="Dashboard">Dashboard</a>
+                    </li>
+                    <li class="breadcrumb-item active">Quiz</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="quiz-container">
+
+            @* Quiz Header *@
+            <div class="quiz-header">
+                <h3 class="mb-1">@Model.QuizTitle</h3>
+                @if (module != null)
+                {
+                    <p class="mb-0 opacity-75" style="opacity:.85;">
+                        <i class="fas fa-book mr-1"></i>@module.ModuleName — @module.ModuleDescription
+                    </p>
+                }
+                <p class="mb-0 mt-1" style="font-size:.85rem; opacity:.85;">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Passing score: <strong>@Model.PassingScore%</strong> &nbsp;·&nbsp;
+                    <strong>@Model.Questions.Count</strong> question@(Model.Questions.Count != 1 ? "s" : "")
+                </p>
+            </div>
+
+            @* Progress *@
+            <div class="progress-container">
+                <div class="progress-label">
+                    Progress: <span id="answeredCount">0</span> / @Model.Questions.Count answered
+                </div>
+                <div class="progress" style="height:8px;">
+                    <div id="quizProgressBar"
+                         class="progress-bar bg-success"
+                         style="width:0%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+
+            @if (!Model.Questions.Any())
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-question-circle fa-3x mb-3" style="opacity:.3;"></i>
+                    <p>No questions available for this quiz yet.</p>
+                    <a asp-action="Dashboard" class="btn btn-success">
+                        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            }
+            else
+            {
+                <form id="quizForm" asp-action="SubmitQuiz" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="moduleId" value="@module?.ModuleId" />
+                    <input type="hidden" name="quizId" value="@Model.QuizId" />
+                    <input type="hidden" name="trainingId" value="@module?.TrainingId" />
+
+                    @{
+                        var letters = new[] { "A", "B", "C", "D", "E" };
+                        var qIndex  = 0;
+                    }
+
+                    @foreach (var question in Model.Questions)
+                    {
+                        <div class="question-card" id="qcard-@question.QuestionId">
+                            <div class="question-number">Question @(qIndex + 1)</div>
+                            <div class="question-text">@question.QuestionText</div>
+
+                            <div class="choices" id="choices-@question.QuestionId">
+                                @{
+                                    var cIndex = 0;
+                                }
+                                @foreach (var choice in question.Choices)
+                                {
+                                    <label class="choice-option"
+                                           for="choice-@choice.ChoiceId">
+                                        <input type="radio"
+                                               id="choice-@choice.ChoiceId"
+                                               name="answer_@question.QuestionId"
+                                               value="@choice.ChoiceId"
+                                               required />
+                                        <div class="choice-letter">@letters[cIndex]</div>
+                                        <div class="choice-text">@choice.ChoiceText</div>
+                                    </label>
+                                    cIndex++;
+                                }
+                            </div>
+                        </div>
+                        qIndex++;
+                    }
+
+                    <div class="quiz-footer">
+                        <a asp-action="Dashboard" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left mr-1"></i> Back
+                        </a>
+                        <button type="submit" class="btn btn-success px-4" id="submitQuizBtn">
+                            <i class="fas fa-paper-plane mr-1"></i> Submit Quiz
+                        </button>
+                    </div>
+
+                </form>
+            }
+
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/plugins/sweetalert2/sweetalert2.all.min.js"></script>
+    <script>
+    $(function () {
+        var total = @Model.Questions.Count;
+
+        // ── Choice selection highlight ──
+        $(document).on('change', 'input[type="radio"]', function () {
+            var name = $(this).attr('name');
+            $('input[name="' + name + '"]').each(function () {
+                $(this).closest('.choice-option').removeClass('selected');
+            });
+            $(this).closest('.choice-option').addClass('selected');
+            updateProgress();
+        });
+
+        // ── Progress bar ──
+        function updateProgress() {
+            var answered = 0;
+            var names    = {};
+            $('input[type="radio"]:checked').each(function () {
+                var n = $(this).attr('name');
+                if (!names[n]) { names[n] = true; answered++; }
+            });
+            var pct = total === 0 ? 0 : Math.round((answered / total) * 100);
+            $('#answeredCount').text(answered);
+            $('#quizProgressBar').css('width', pct + '%');
+        }
+
+        // ── Submit confirmation ──
+        $('#quizForm').on('submit', function (e) {
+            e.preventDefault();
+            var form = this;
+
+            // Check all answered
+            var answered = 0;
+            var names    = {};
+            $('input[type="radio"]:checked').each(function () {
+                var n = $(this).attr('name');
+                if (!names[n]) { names[n] = true; answered++; }
+            });
+
+            if (answered < total) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Incomplete',
+                    text: 'Please answer all ' + total + ' questions before submitting.',
+                    confirmButtonColor: '#4BB543'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Submit Quiz?',
+                text: 'Are you sure you want to submit your answers?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4BB543',
+                cancelButtonColor:  '#6c757d',
+                confirmButtonText:  'Yes, submit!'
+            }).then(function (result) {
+                if (result.isConfirmed) form.submit();
+            });
+        });
+    });
+    </script>
+}

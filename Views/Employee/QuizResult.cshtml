@@ -1,0 +1,133 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Quiz Result";
+    var result       = TempData["QuizResult"]?.ToString() ?? "0/0";
+    var score        = TempData["QuizScore"] as int? ?? 0;
+    var passed       = TempData["QuizPassed"] as bool? ?? false;
+    var quizTitle    = TempData["QuizTitle"]?.ToString() ?? "Quiz";
+    var passingScore = TempData["PassingScore"] as int? ?? 70;
+    var moduleId     = TempData["ModuleId"] as int? ?? 0;
+    var trainingId   = TempData["TrainingId"] as int? ?? 0;
+}
+
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .result-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 18px;
+            padding: 40px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .score-circle {
+            width: 150px; height: 150px;
+            border-radius: 50%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            border: 6px solid;
+            font-weight: 800;
+        }
+        .score-circle.passed { background: #d4edda; border-color: #28a745; color: #155724; }
+        .score-circle.failed { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .score-circle .pct   { font-size: 2.2rem; line-height: 1; }
+        .score-circle .lbl   { font-size: 0.75rem; margin-top: 4px; letter-spacing: 1px; }
+        .verdict { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+        .verdict.pass { color: #28a745; }
+        .verdict.fail { color: #dc3545; }
+        .stats-row { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin: 20px 0; }
+        .stat-box { background: #f8f9fa; border-radius: 10px; padding: 12px 20px; min-width: 110px; border: 1px solid #e9ecef; }
+        .stat-box .val { font-size: 1.4rem; font-weight: 800; color: #343a40; }
+        .stat-box .lbl { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Quiz Result</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Quiz Result</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="result-container">
+
+            <h4 class="text-muted mb-4">@quizTitle</h4>
+
+            @* Score circle *@
+            <div class="score-circle @(passed ? "passed" : "failed")">
+                <div class="pct">@score%</div>
+                <div class="lbl">YOUR SCORE</div>
+            </div>
+
+            @* Verdict *@
+            <div class="verdict @(passed ? "pass" : "fail")">
+                @if (passed)
+                {
+                    <i class="fas fa-trophy mr-2"></i>
+                    <span>You Passed!</span>
+                }
+                else
+                {
+                    <i class="fas fa-times-circle mr-2"></i>
+                    <span>Not Passed</span>
+                }
+            </div>
+
+            @* Stats *@
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="val">@result</div>
+                    <div class="lbl">Correct</div>
+                </div>
+                <div class="stat-box">
+                    <div class="val" style="color:@(passed ? "#28a745" : "#dc3545")">
+                        @passingScore%
+                    </div>
+                    <div class="lbl">Passing Score</div>
+                </div>
+            </div>
+
+            @if (!passed)
+            {
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-redo mr-2"></i>
+                    You did not pass. You may retake the quiz.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-success mt-3">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Great job! This module is now marked as complete.
+                </div>
+            }
+
+            @* Action buttons *@
+            <div class="mt-4 d-flex justify-content-center gap-3" style="gap:12px;">
+                <a asp-action="Dashboard" class="btn btn-success px-4">
+                    <i class="fas fa-home mr-1"></i> Back to Dashboard
+                </a>
+                @if (!passed)
+                {
+                    <a asp-action="TakeQuiz" asp-route-moduleId="@moduleId"
+                       class="btn btn-warning px-4">
+                        <i class="fas fa-redo mr-1"></i> Retake Quiz
+                    </a>
+                }
+            </div>
+
+        </div>
+    </div>
+</section>

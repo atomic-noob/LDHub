@@ -18,6 +18,7 @@ namespace LDHub.Data
         public DbSet<TrainingInstructor> TrainingInstructors { get; set; }
         public DbSet<Question> Questions { get; set; }
         public DbSet<ParticipantTestAttempt> ParticipantTestAttempts { get; set; }
+        public DbSet<ModuleProgress> ModuleProgresses { get; set; }
         
 
         // Location tables

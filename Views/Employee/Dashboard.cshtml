@@ -1,11 +1,17 @@
+
 @model List<LDHub.Models.TrainingParticipant>
 @{
+    var completedModuleIds = ViewBag.CompletedModuleIds as List<int> ?? new List<int>();
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Employee Dashboard";
-    var enrollment = ViewBag.Enrollment as LDHub.Models.TrainingParticipant;
-    var modules    = ViewBag.Modules as List<LDHub.Models.TrainingModule> 
-                     ?? new List<LDHub.Models.TrainingModule>();
+    var enrollment   = ViewBag.Enrollment as LDHub.Models.TrainingParticipant;
+    var modules      = ViewBag.Modules as List<LDHub.Models.TrainingModule>
+                       ?? new List<LDHub.Models.TrainingModule>();
     var preTestTaken = ViewBag.PreTestTaken as bool? ?? false;
+
+    // Check if ALL modules are completed
+    var totalModuleCount     = modules.Count;
+    var allModulesDone       = totalModuleCount > 0 && completedModuleIds.Count >= totalModuleCount;
 }
 
 @section Styles {
@@ -24,6 +30,9 @@
             background: #e9ecef; color: #6c757d;
             border: 1px solid #dee2e6; cursor: not-allowed;
         }
+        .dropdown-btn.completed { background: linear-gradient(225deg, #4BB543, #117554); }
+        .dropdown-btn .check-indicator { font-size: 1rem; margin-right: 8px; display: none; }
+        .dropdown-btn.completed .check-indicator { display: inline; }
         .dropdown-container {
             display: none; background: #fff; padding: 15px;
             border: 1px solid #dee2e6; border-top: none;
@@ -37,8 +46,36 @@
         .small-box p  { font-size: 1rem; margin: 0 0 10px; }
         .small-box .icon { color: rgba(255,255,255,.3); position: absolute; top: -10px; right: 15px; font-size: 70px; }
         .success-gradient { background: linear-gradient(225deg, #9BEC00, #4BB543, #117554); color: white; }
+        .status-icon { font-size: 1.2rem; }
+        .status-icon.done    { color: #4BB543; }
+        .status-icon.pending { color: #dee2e6; }
+        .topic-item {
+            padding: 10px 15px; border: 1px solid #dee2e6; border-radius: 6px;
+            margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .topic-item:hover  { background: #f4fdf6; border-color: #4BB543; }
+        .topic-item.checked { background: #f4fdf6; border-color: #4BB543; }
+        .topic-item .topic-check { color: #dee2e6; font-size: 1.2rem; transition: color 0.2s; }
+        .topic-item.checked .topic-check { color: #4BB543; }
+        /* Congrats banner */
+        .congrats-banner {
+            background: linear-gradient(135deg, #9BEC00, #4BB543, #117554);
+            color: white; border-radius: 10px; padding: 20px 25px;
+            margin-bottom: 20px; box-shadow: 0 4px 15px rgba(75,181,67,.3);
+            text-align: center;
+        }
+        .congrats-banner h4 { font-weight: bold; margin-bottom: 5px; }
+        /* Quiz done state */
+        .quiz-done-badge {
+            display: inline-block;
+            background: #e8f5e9; color: #2e7d32;
+            border: 1px solid #4BB543; border-radius: 20px;
+            padding: 3px 12px; font-size: .82rem; font-weight: bold;
+        }
     </style>
 }
+
 
 <div class="content-header">
     <div class="container-fluid">
@@ -55,9 +92,6 @@
 
 <section class="content">
     <div class="container-fluid">
-
-       
-
         <div class="row">
 
             @* ── LEFT COLUMN ── *@
@@ -67,19 +101,13 @@
                 {
                     <div class="card shadow-sm">
                         <div class="card-header text-center success-gradient">
-                            <h4 class="mb-0">
-                                <i class="fas fa-graduation-cap mr-2"></i> My Training
-                            </h4>
+                            <h4 class="mb-0"><i class="fas fa-graduation-cap mr-2"></i> My Training</h4>
                         </div>
                         <div class="card-body text-center py-5">
                             <i class="fas fa-inbox fa-4x mb-4" style="color:#c8e6c9; opacity:.6;"></i>
                             <h4 class="text-muted mb-2">No Active Training Assigned</h4>
-                            <p class="text-muted mb-1">
-                                You are not currently enrolled in any training program.
-                            </p>
-                            <p class="text-muted small">
-                                Please wait for a course assignment or contact your administrator.
-                            </p>
+                            <p class="text-muted mb-1">You are not currently enrolled in any training program.</p>
+                            <p class="text-muted small">Please wait for a course assignment or contact your administrator.</p>
                             @if (ViewBag.TotalCompleted > 0)
                             {
                                 <hr class="mt-4" />
@@ -93,13 +121,27 @@
                         </div>
                     </div>
                     <style>
-                        #pendingLessons-card,
-                        #pendingQuizzes-card,
-                        #countdown-card { display: none; }
+                        #pendingLessons-card, #pendingQuizzes-card, #countdown-card { display: none; }
                     </style>
                 }
                 else
                 {
+                    @* ── Congratulations Banner ── *@
+                    @if (allModulesDone && preTestTaken)
+                    {
+                        <div class="congrats-banner">
+                            <i class="fas fa-trophy fa-2x mb-2 d-block"></i>
+                            <h4><i class="fas fa-star mr-2"></i>Congratulations!</h4>
+                            <p class="mb-2">
+                                You have completed all modules for
+                                <strong>@enrollment.Training?.TrainingTitle</strong>!
+                            </p>
+                            <p class="mb-0" style="opacity:.9; font-size:.9rem;">
+                                You are now ready to take the <strong>Post-Test</strong> to earn your certificate.
+                            </p>
+                        </div>
+                    }
+
                     <div class="card shadow-sm mb-4">
                         <div class="card-header text-center success-gradient">
                             <h2 class="my-3">@enrollment.Training?.TrainingTitle</h2>
@@ -178,61 +220,148 @@
                             {
                                 var moduleGroups = modules.GroupBy(m => m.ModuleName).ToList();
                                 var groupIndex   = 0;
+
+                                @* Determine first incomplete group index for locking *@
+                                var firstUnlockedGroup = 0;
+                                for (int gi = 0; gi < moduleGroups.Count; gi++)
+                                {
+                                    var grp         = moduleGroups[gi];
+                                    var grpAllDone  = grp.All(m => completedModuleIds.Contains(m.ModuleId));
+                                    if (grpAllDone) firstUnlockedGroup = gi + 1;
+                                    else break;
+                                }
+
                                 foreach (var group in moduleGroups)
                                 {
                                     var moduleHtmlId = $"module-{groupIndex + 1}";
-                                    var isLocked     = !preTestTaken || groupIndex > 0;
-                                    <div class="module-card" data-module-html-id="@moduleHtmlId">
-                                        <button class="dropdown-btn @(isLocked ? "locked" : "")"
+                                    var isLocked     = !preTestTaken || groupIndex > firstUnlockedGroup;
+                                    var itemCount    = group.Count();
+                                    var groupAllDone = group.All(m => completedModuleIds.Contains(m.ModuleId));
+
+                                    <div class="module-card"
+                                         data-module-html-id="@moduleHtmlId"
+                                         data-item-count="@itemCount">
+                                        <button class="dropdown-btn @(isLocked ? "locked" : "") @(groupAllDone ? "completed" : "")"
+                                                id="btn-@moduleHtmlId"
                                                 @(isLocked ? "disabled" : "")>
-                                            <span>@group.Key</span>
-                                            <i class="fa fa-caret-down"></i>
+                                            <span>
+                                                <i class="fas fa-check-circle check-indicator"></i>
+                                                @group.Key
+                                            </span>
+                                            <span class="d-flex align-items-center">
+                                                <small class="mr-2 module-progress-text" style="font-weight:normal; opacity:.85;">
+                                                    @group.Count(m => completedModuleIds.Contains(m.ModuleId)) / @itemCount done
+                                                </small>
+                                                <i class="fa fa-caret-down"></i>
+                                            </span>
                                         </button>
                                         <div class="dropdown-container" id="@moduleHtmlId">
                                             <table class="table table-sm table-borderless align-middle mb-0">
                                                 <thead>
                                                     <tr>
                                                         <th>Task</th>
-                                                        <th class="text-center" style="width:120px;">Status</th>
+                                                        <th class="text-center" style="width:60px;">Done</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     @foreach (var module in group)
                                                     {
-                                                        <tr>
+                                                        var isDone = completedModuleIds.Contains(module.ModuleId);
+                                                        <tr id="row-@module.ModuleId">
                                                             <td>
                                                                 @if (module.ModuleType == "Lecture")
                                                                 {
                                                                     <i class="fas fa-book-open mr-1 text-success"></i>
-                                                                    <span>Lecture: @module.ModuleDescription</span>
+                                                                    <span class="mr-2">@module.ModuleDescription</span>
                                                                     @if (!string.IsNullOrEmpty(module.FilePath))
                                                                     {
                                                                         <a href="@module.FilePath" target="_blank"
-                                                                           class="btn btn-sm btn-outline-success ml-2">
+                                                                           class="btn btn-sm btn-outline-success lecture-link"
+                                                                           data-module-id="@module.ModuleId"
+                                                                           data-module-html-id="@moduleHtmlId"
+                                                                           data-training-id="@enrollment.TrainingId">
                                                                             <i class="fas fa-file-pdf mr-1"></i>View File
                                                                         </a>
                                                                     }
                                                                     @if (!string.IsNullOrEmpty(module.LinkUrl))
                                                                     {
                                                                         <a href="@module.LinkUrl" target="_blank"
-                                                                           class="btn btn-sm btn-outline-primary ml-2">
+                                                                           class="btn btn-sm btn-outline-primary lecture-link"
+                                                                           data-module-id="@module.ModuleId"
+                                                                           data-module-html-id="@moduleHtmlId"
+                                                                           data-training-id="@enrollment.TrainingId">
                                                                             <i class="fas fa-external-link-alt mr-1"></i>Open Link
+                                                                        </a>
+                                                                    }
+                                                                }
+                                                                else if (module.ModuleType == "Activity")
+                                                                {
+                                                                    <i class="fas fa-tasks mr-1 text-success"></i>
+                                                                    <span class="mr-2">@module.ModuleDescription</span>
+                                                                    @if (!string.IsNullOrEmpty(module.LinkUrl))
+                                                                    {
+                                                                        <a href="@module.LinkUrl" target="_blank"
+                                                                           class="btn btn-sm btn-outline-success lecture-link"
+                                                                           data-module-id="@module.ModuleId"
+                                                                           data-module-html-id="@moduleHtmlId"
+                                                                           data-training-id="@enrollment.TrainingId">
+                                                                            <i class="fas fa-external-link-alt mr-1"></i>Open Activity
+                                                                        </a>
+                                                                    }
+                                                                    @if (!string.IsNullOrEmpty(module.FilePath))
+                                                                    {
+                                                                        <a href="@module.FilePath" target="_blank"
+                                                                           class="btn btn-sm btn-outline-primary lecture-link"
+                                                                           data-module-id="@module.ModuleId"
+                                                                           data-module-html-id="@moduleHtmlId"
+                                                                           data-training-id="@enrollment.TrainingId">
+                                                                            <i class="fas fa-file mr-1"></i>View File
                                                                         </a>
                                                                     }
                                                                 }
                                                                 else if (module.ModuleType == "Quiz")
                                                                 {
                                                                     <i class="fas fa-pencil-alt mr-1 text-warning"></i>
-                                                                    <span>Quiz: @module.ModuleDescription</span>
-                                                                    <a href="#" class="btn btn-sm btn-warning ml-2"
-                                                                       style="border-radius:20px;">
-                                                                        <i class="fas fa-pencil-alt mr-1"></i>Take Quiz
-                                                                    </a>
+                                                                    <span class="mr-2">@module.ModuleDescription</span>
+                                                                    @if (isDone)
+                                                                    {
+                                                                        @* Quiz already taken — show score link instead *@
+                                                                        <span class="quiz-done-badge mr-2">
+                                                                            <i class="fas fa-check mr-1"></i>Completed
+                                                                        </span>
+                                                                        <a href="@Url.Action("QuizResult", "Employee", new { moduleId = module.ModuleId })"
+                                                                           class="btn btn-sm btn-outline-success"
+                                                                           style="border-radius:20px;">
+                                                                            <i class="fas fa-poll mr-1"></i>View Score
+                                                                        </a>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <a href="#"
+                                                                           class="btn btn-sm btn-warning quiz-link"
+                                                                           data-module-id="@module.ModuleId"
+                                                                           data-module-html-id="@moduleHtmlId"
+                                                                           data-training-id="@enrollment.TrainingId"
+                                                                           data-quiz-url="@Url.Action("TakeQuiz", "Employee", new { moduleId = module.ModuleId })"
+                                                                           style="border-radius:20px;">
+                                                                            <i class="fas fa-pencil-alt mr-1"></i>Take Quiz
+                                                                        </a>
+                                                                    }
                                                                 }
                                                                 else if (module.ModuleType == "Text")
                                                                 {
                                                                     <i class="fas fa-align-left mr-1 text-info"></i>
-                                                                    <span>Reading: @module.ModuleDescription</span>
+                                                                    <span class="mr-2">@module.ModuleDescription</span>
+                                                                    <button type="button"
+                                                                            class="btn btn-sm @(isDone ? "btn-outline-success" : "btn-info") text-link"
+                                                                            data-module-id="@module.ModuleId"
+                                                                            data-module-html-id="@moduleHtmlId"
+                                                                            data-training-id="@enrollment.TrainingId"
+                                                                            data-toggle="modal"
+                                                                            data-target="#textModal-@module.ModuleId">
+                                                                        <i class="fas fa-book-reader mr-1"></i>
+                                                                        @(isDone ? "Read Again" : "Read")
+                                                                    </button>
                                                                 }
                                                                 else
                                                                 {
@@ -240,12 +369,8 @@
                                                                 }
                                                             </td>
                                                             <td class="text-center">
-                                                                <input type="checkbox"
-                                                                       class="item-checkbox"
-                                                                       data-module-id="@module.ModuleId"
-                                                                       data-module-html-id="@moduleHtmlId"
-                                                                       data-item-type="@module.ModuleType.ToLower()"
-                                                                       style="transform:scale(1.2); accent-color:green;" />
+                                                                <i class="fas fa-check-circle status-icon @(isDone ? "done" : "pending")"
+                                                                   id="check-@module.ModuleId"></i>
                                                             </td>
                                                         </tr>
                                                     }
@@ -256,6 +381,74 @@
                                     groupIndex++;
                                 }
                             }
+                            @* ── Step 3: Post-Test ── *@
+@if (preTestTaken)
+{
+    var postTestTaken    = ViewBag.PostTestTaken    as bool? ?? false;
+    var postTestPassed   = ViewBag.PostTestPassed   as bool? ?? false;
+    var postTestAttempts = ViewBag.PostTestAttempts as int?  ?? 0;
+
+    <hr />
+    <div class="mb-3">
+        <h5 class="font-weight-bold mb-3">
+            <span class="badge badge-pill success-gradient mr-2">Step 3</span>
+            Post-Test
+        </h5>
+
+        @if (postTestPassed)
+        {
+            <div class="alert alert-success py-2">
+                <i class="fas fa-trophy mr-2"></i>
+                Post-Test passed! You have earned your certificate.
+            </div>
+        }
+        else if (postTestAttempts >= 3)
+        {
+            <div class="alert alert-danger py-2">
+                <i class="fas fa-lock mr-2"></i>
+                Maximum attempts reached. Contact your CourseManager to reset.
+            </div>
+        }
+        else if (!allModulesDone)
+        {
+            <div class="alert alert-warning py-2">
+                <i class="fas fa-lock mr-2"></i>
+                Complete <strong>all modules</strong> above to unlock the Post-Test.
+                @if (postTestAttempts > 0)
+                {
+                    <span class="ml-2 badge badge-warning">@postTestAttempts / 3 attempts used</span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="card border-left-success shadow-sm">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <strong><i class="fas fa-file-signature mr-2 text-success"></i>Post-Test</strong>
+                            <p class="mb-0 text-muted small mt-1">
+                                You have completed all modules. Take the post-test to earn your certificate.
+                                @if (postTestAttempts > 0)
+                                {
+                                    <span class="text-warning ml-1">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        @postTestAttempts of 3 attempts used.
+                                    </span>
+                                }
+                            </p>
+                        </div>
+                        <a href="@Url.Action("PostTest", "Employee", new { trainingId = enrollment.TrainingId })"
+                           class="btn btn-success btn-sm ml-3" style="white-space:nowrap;">
+                            <i class="fas fa-file-signature mr-1"></i>
+                            @(postTestAttempts > 0 ? "Retry Post-Test" : "Take Post-Test")
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
                         </div>
                     </div>
                 }
@@ -265,7 +458,6 @@
             @* ── RIGHT COLUMN ── *@
             <div class="col-lg-4">
 
-                @* Trainings Completed stat *@
                 <div class="small-box success-gradient shadow-sm">
                     <div class="inner">
                         <h3>@ViewBag.CompletedCount</h3>
@@ -274,7 +466,6 @@
                     <div class="icon"><i class="fas fa-user-graduate"></i></div>
                 </div>
 
-                @* Pending Lectures *@
                 <div class="card shadow-sm mb-3" id="pendingLessons-card">
                     <div class="card-header success-gradient">
                         <strong><i class="fas fa-book-open mr-2"></i>Pending Lectures</strong>
@@ -283,16 +474,20 @@
                         <ul class="list-group list-group-flush">
                             @if (enrollment == null)
                             {
-                                <li class="list-group-item text-muted text-center">
-                                    <small>No training assigned.</small>
-                                </li>
+                                <li class="list-group-item text-muted text-center"><small>No training assigned.</small></li>
                             }
                             else
                             {
-                                foreach (var m in modules.Where(m => m.ModuleType == "Lecture"))
+                                foreach (var m in modules.Where(m => m.ModuleType == "Lecture" && !completedModuleIds.Contains(m.ModuleId)))
                                 {
                                     <li class="list-group-item py-1 px-2 border-0">
                                         <small><i class="fas fa-book-open mr-1 text-success"></i>@m.ModuleName: @m.ModuleDescription</small>
+                                    </li>
+                                }
+                                if (!modules.Where(m => m.ModuleType == "Lecture" && !completedModuleIds.Contains(m.ModuleId)).Any())
+                                {
+                                    <li class="list-group-item text-muted text-center">
+                                        <small><i class="fas fa-check-circle text-success mr-1"></i>All lectures done!</small>
                                     </li>
                                 }
                             }
@@ -300,7 +495,6 @@
                     </div>
                 </div>
 
-                @* Pending Activities *@
                 <div class="card shadow-sm mb-3" id="pendingQuizzes-card">
                     <div class="card-header success-gradient">
                         <strong><i class="fas fa-tasks mr-2"></i>Pending Activities &amp; Assessments</strong>
@@ -309,13 +503,11 @@
                         <ul class="list-group list-group-flush">
                             @if (enrollment == null)
                             {
-                                <li class="list-group-item text-muted text-center">
-                                    <small>No training assigned.</small>
-                                </li>
+                                <li class="list-group-item text-muted text-center"><small>No training assigned.</small></li>
                             }
                             else
                             {
-                                foreach (var m in modules.Where(m => m.ModuleType == "Quiz" || m.ModuleType == "Text"))
+                                foreach (var m in modules.Where(m => (m.ModuleType == "Quiz" || m.ModuleType == "Text") && !completedModuleIds.Contains(m.ModuleId)))
                                 {
                                     <li class="list-group-item py-1 px-2 border-0">
                                         <small>
@@ -324,12 +516,17 @@
                                         </small>
                                     </li>
                                 }
+                                if (!modules.Where(m => (m.ModuleType == "Quiz" || m.ModuleType == "Text") && !completedModuleIds.Contains(m.ModuleId)).Any())
+                                {
+                                    <li class="list-group-item text-muted text-center">
+                                        <small><i class="fas fa-check-circle text-success mr-1"></i>All assessments done!</small>
+                                    </li>
+                                }
                             }
                         </ul>
                     </div>
                 </div>
 
-                @* Time Remaining *@
                 <div class="card shadow-sm mb-3" id="countdown-card">
                     <div class="card-header success-gradient">
                         <strong><i class="fas fa-clock mr-2"></i>Time Remaining</strong>
@@ -369,60 +566,305 @@
                     </div>
                 </div>
 
-               
-
             </div>
         </div>
     </div>
 </section>
 
+@* ── Text Module Modals ── *@
+@if (enrollment != null)
+{
+    var textModuleGroups = modules
+        .Where(m => m.ModuleType == "Text")
+        .Select((m, idx) => new {
+            Module     = m,
+            GroupIndex = modules.GroupBy(x => x.ModuleName).ToList()
+                               .FindIndex(g => g.Key == m.ModuleName) + 1
+        });
+
+    foreach (var item in textModuleGroups)
+    {
+        var module       = item.Module;
+        var moduleHtmlId = $"module-{item.GroupIndex}";
+        var isDoneModal  = completedModuleIds.Contains(module.ModuleId);
+
+        <div class="modal fade" id="textModal-@module.ModuleId" tabindex="-1" data-backdrop="static">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header success-gradient">
+                        <h5 class="modal-title">
+                            <i class="fas fa-book-reader mr-2"></i>@module.ModuleDescription
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        @if (module.TextContent != null)
+                        {
+                            @if (!string.IsNullOrEmpty(module.TextContent.Introduction))
+                            {
+                                <div class="mb-4">
+                                    <h6 class="font-weight-bold text-success">Introduction</h6>
+                                    <p>@module.TextContent.Introduction</p>
+                                </div>
+                            }
+                            @if (module.TextContent.Topics != null && module.TextContent.Topics.Any())
+                            {
+                                <h6 class="font-weight-bold text-success mb-3">
+                                    Topics
+                                    <small class="text-muted font-weight-normal ml-2">(Click each topic to mark as read)</small>
+                                </h6>
+                                <div id="topics-@module.ModuleId">
+                                    @foreach (var topic in module.TextContent.Topics.OrderBy(t => t.SortOrder))
+                                    {
+                                        <div class="topic-item @(isDoneModal ? "checked" : "")"
+                                             data-topic-id="@topic.TopicId"
+                                             data-module-id="@module.ModuleId"
+                                             onclick="markTopicRead(this, @module.ModuleId)">
+                                            <div>
+                                                <strong>@topic.TopicTitle</strong>
+                                                @if (!string.IsNullOrEmpty(topic.TopicBody))
+                                                {
+                                                    <p class="mb-0 text-muted small mt-1">@topic.TopicBody</p>
+                                                }
+                                            </div>
+                                            <i class="fas fa-check-circle topic-check"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="text-center mt-3">
+                                    <small class="text-muted">
+                                        <span id="topics-done-@module.ModuleId">
+                                            @(isDoneModal ? module.TextContent.Topics.Count : 0)
+                                        </span>
+                                        / @module.TextContent.Topics.Count topics read
+                                    </small>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(module.TextContent.ReferencesText))
+                            {
+                                <hr />
+                                <h6 class="font-weight-bold text-success">References</h6>
+                                <p class="text-muted small">@module.TextContent.ReferencesText</p>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-file-alt fa-2x mb-2" style="opacity:.3;"></i>
+                                <p>No content available for this module yet.</p>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        @if (!isDoneModal)
+                        {
+                            <button type="button"
+                                    class="btn btn-success mark-text-done"
+                                    id="markDone-@module.ModuleId"
+                                    data-module-id="@module.ModuleId"
+                                    data-module-html-id="@moduleHtmlId"
+                                    data-training-id="@enrollment.TrainingId"
+                                    disabled>
+                                <i class="fas fa-check mr-1"></i> Mark as Complete
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="badge badge-success p-2">
+                                <i class="fas fa-check-circle mr-1"></i>Already Completed
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
 @section Scripts {
     <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
     <script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script src="~/plugins/sweetalert2/sweetalert2.all.min.js"></script>
     <script>
-        $(function () {
-            $('#trainingsTable').DataTable({ responsive: true, autoWidth: false, pageLength: 5 });
+    $(function () {
 
-            // Module accordion toggle
-            $(document).on('click', '.dropdown-btn:not(.locked)', function () {
-                $(this).toggleClass('active');
-                $(this).next('.dropdown-container').slideToggle(300);
+        // ── Module accordion toggle ──
+        $(document).on('click', '.dropdown-btn:not(.locked)', function () {
+            $(this).toggleClass('active');
+            $(this).next('.dropdown-container').slideToggle(300);
+        });
+
+        // ── Mark item as done and update module progress ──
+        function markItemDone(moduleId, moduleHtmlId, trainingId) {
+            var icon = $('#check-' + moduleId);
+            if (icon.hasClass('done')) return;
+
+            $.post('/Employee/MarkModuleDone', {
+                moduleId:   moduleId,
+                trainingId: trainingId,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
             });
 
-            // Progress bar
-            function updateProgress() {
-                var total     = $('.item-checkbox').length;
-                var completed = $('.item-checkbox:checked').length;
-                var pct       = total === 0 ? 0 : Math.round((completed / total) * 100);
-                $('#progress-bar').css('width', pct + '%').text(pct + '%').attr('aria-valuenow', pct);
-            }
-            $(document).on('change', '.item-checkbox', function () { updateProgress(); });
-            updateProgress();
+            icon.removeClass('pending').addClass('done');
 
-            // Countdown timer
-            var endDateJs = '@(enrollment?.Training?.EndDate?.ToString("yyyy-MM-ddTHH:mm:ss") ?? "")';
-            if (endDateJs) {
-                var endTime = new Date(endDateJs).getTime();
-                var timer = setInterval(function () {
-                    var now  = new Date().getTime();
-                    var diff = endTime - now;
-                    if (diff <= 0) {
-                        clearInterval(timer);
-                        $('#countdown').text('Ended');
-                        return;
+            var moduleCard = $('[data-module-html-id="' + moduleHtmlId + '"]');
+            var total      = parseInt(moduleCard.data('item-count'));
+            var done       = moduleCard.find('.status-icon.done').length;
+
+            moduleCard.find('.module-progress-text').text(done + ' / ' + total + ' done');
+
+            if (done >= total) {
+                $('#btn-' + moduleHtmlId).addClass('completed');
+
+                var allCards   = $('.module-card');
+                var currentIdx = allCards.index(moduleCard);
+                var nextCard   = allCards.eq(currentIdx + 1);
+                if (nextCard.length) {
+                    nextCard.find('.dropdown-btn')
+                            .removeClass('locked')
+                            .removeAttr('disabled')
+                            .prop('disabled', false);
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Module Complete!',
+                        text: 'The next module is now unlocked.',
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    // Last module done — check if all modules complete
+                    var totalIcons = $('.status-icon').length;
+                    var doneIcons  = $('.status-icon.done').length;
+                    if (doneIcons >= totalIcons) {
+                        setTimeout(function () {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '🎉 Congratulations!',
+                                html: 'You have completed <strong>all modules</strong>!<br>You are now ready to take the <strong>Post-Test</strong>.',
+                                confirmButtonColor: '#4BB543',
+                                confirmButtonText: 'Awesome!'
+                            }).then(function () {
+                                location.reload();
+                            });
+                        }, 300);
                     }
-                    var d = Math.floor(diff / 86400000);
-                    var h = Math.floor((diff % 86400000) / 3600000);
-                    var m = Math.floor((diff % 3600000) / 60000);
-                    var s = Math.floor((diff % 60000) / 1000);
-                    $('#countdown').text(
-                        (d > 0 ? d + 'd ' : '') +
-                        String(h).padStart(2,'0') + 'h ' +
-                        String(m).padStart(2,'0') + 'm ' +
-                        String(s).padStart(2,'0') + 's'
-                    );
-                }, 1000);
+                }
+            }
+
+            updateProgress();
+        }
+
+        // ── Lecture/Activity: auto-check when link clicked ──
+        $(document).on('click', '.lecture-link', function () {
+            var moduleId     = $(this).data('module-id');
+            var moduleHtmlId = $(this).data('module-html-id');
+            var trainingId   = $(this).data('training-id');
+            setTimeout(function () {
+                markItemDone(moduleId, moduleHtmlId, trainingId);
+            }, 500);
+        });
+
+        // ── Quiz: save progress then navigate ──
+        $(document).on('click', '.quiz-link', function (e) {
+            e.preventDefault();
+            var moduleId     = $(this).data('module-id');
+            var moduleHtmlId = $(this).data('module-html-id');
+            var trainingId   = $(this).data('training-id');
+            var quizUrl      = $(this).data('quiz-url');
+
+            $.post('/Employee/MarkModuleDone', {
+                moduleId:   moduleId,
+                trainingId: trainingId,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+            }).always(function () {
+                markItemDone(moduleId, moduleHtmlId, trainingId);
+                window.location.href = quizUrl;
+            });
+        });
+
+        // ── Text modal: mark topic as read ──
+        window.markTopicRead = function(el, moduleId) {
+            var item  = $(el);
+            item.addClass('checked');
+            var total = $('#topics-' + moduleId + ' .topic-item').length;
+            var done  = $('#topics-' + moduleId + ' .topic-item.checked').length;
+            $('#topics-done-' + moduleId).text(done);
+            if (done >= total) {
+                $('#markDone-' + moduleId).prop('disabled', false);
+            }
+        };
+
+        // ── Text modal: Mark as Complete button ──
+        $(document).on('click', '.mark-text-done', function () {
+            var moduleId     = $(this).data('module-id');
+            var moduleHtmlId = $(this).data('module-html-id');
+            var trainingId   = $(this).data('training-id');
+            markItemDone(moduleId, moduleHtmlId, trainingId);
+            $('#textModal-' + moduleId).modal('hide');
+        });
+
+        // ── Overall progress bar ──
+        function updateProgress() {
+            var total     = $('.status-icon').length;
+            var completed = $('.status-icon.done').length;
+            var pct       = total === 0 ? 0 : Math.round((completed / total) * 100);
+            $('#progress-bar').css('width', pct + '%').text(pct + '%').attr('aria-valuenow', pct);
+        }
+
+        updateProgress();
+
+        // ── Restore completed state on load ──
+        $('.status-icon.done').each(function () {
+            var moduleHtmlId = $(this).closest('tr').closest('.dropdown-container').attr('id');
+            var moduleCard   = $('[data-module-html-id="' + moduleHtmlId + '"]');
+            var total        = parseInt(moduleCard.data('item-count'));
+            var done         = moduleCard.find('.status-icon.done').length;
+
+            moduleCard.find('.module-progress-text').text(done + ' / ' + total + ' done');
+
+            if (done >= total) {
+                $('#btn-' + moduleHtmlId).addClass('completed');
+                var allCards   = $('.module-card');
+                var currentIdx = allCards.index(moduleCard);
+                var nextCard   = allCards.eq(currentIdx + 1);
+                if (nextCard.length) {
+                    nextCard.find('.dropdown-btn')
+                            .removeClass('locked')
+                            .removeAttr('disabled')
+                            .prop('disabled', false);
+                }
             }
         });
+
+        // ── Countdown timer ──
+        var endDateJs = '@(enrollment?.Training?.EndDate?.ToString("yyyy-MM-ddTHH:mm:ss") ?? "")';
+        if (endDateJs) {
+            var endTime = new Date(endDateJs).getTime();
+            var timer = setInterval(function () {
+                var now  = new Date().getTime();
+                var diff = endTime - now;
+                if (diff <= 0) {
+                    clearInterval(timer);
+                    $('#countdown').text('Ended');
+                    return;
+                }
+                var d = Math.floor(diff / 86400000);
+                var h = Math.floor((diff % 86400000) / 3600000);
+                var m = Math.floor((diff % 3600000) / 60000);
+                var s = Math.floor((diff % 60000) / 1000);
+                $('#countdown').text(
+                    (d > 0 ? d + 'd ' : '') +
+                    String(h).padStart(2,'0') + 'h ' +
+                    String(m).padStart(2,'0') + 'm ' +
+                    String(s).padStart(2,'0') + 's'
+                );
+            }, 1000);
+        }
+
+    });
     </script>
 }

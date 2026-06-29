@@ -13,6 +13,11 @@ public class CourseManagerController : Controller
     {
         _db = db;
     }
+    private int GetUserId()
+{
+    var str = HttpContext.Session.GetString("UserId");
+    return int.TryParse(str, out int id) ? id : 0;
+}
 
     // ── Auth check helper ─────────────────────────────────────────
     private bool IsCourseManager() =>
@@ -166,7 +171,7 @@ public class CourseManagerController : Controller
             LectureSource   = lectureSource,
             LinkUrl         = linkUrl,
             FilePath        = filePath,
-            UploadedBy      = HttpContext.Session.GetInt32("UserId") ?? 0,
+            UploadedBy = GetUserId(),
             UploadedAt      = DateTime.UtcNow,
             UpdatedAt       = DateTime.UtcNow,
             SortOrder       = await _db.TrainingModules
