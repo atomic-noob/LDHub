@@ -173,6 +173,23 @@ public async Task<IActionResult> AssignRole(int userId, string role)
         return RedirectToAction("Employees");
     }
 
+    // Rule: only ONE additional role besides "Employee" is allowed
+    // (Raam, CourseManager, ResourcePerson are mutually exclusive)
+    if (role != "Employee")
+    {
+        var hasOtherSpecialRole = await _db.UserRoles
+            .AnyAsync(r => r.UserId == userId
+                        && r.Role != "Employee"
+                        && r.Role != "Admin");
+
+        if (hasOtherSpecialRole)
+        {
+            TempData["Error"] = "This employee already has a special role assigned. " +
+                                 "Remove the existing role first before assigning a new one.";
+            return RedirectToAction("Employees");
+        }
+    }
+
     _db.UserRoles.Add(new UserRole
     {
         UserId     = userId,

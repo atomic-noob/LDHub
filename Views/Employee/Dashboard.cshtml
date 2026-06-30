@@ -769,22 +769,12 @@
         });
 
         // ── Quiz: save progress then navigate ──
-        $(document).on('click', '.quiz-link', function (e) {
-            e.preventDefault();
-            var moduleId     = $(this).data('module-id');
-            var moduleHtmlId = $(this).data('module-html-id');
-            var trainingId   = $(this).data('training-id');
-            var quizUrl      = $(this).data('quiz-url');
-
-            $.post('/Employee/MarkModuleDone', {
-                moduleId:   moduleId,
-                trainingId: trainingId,
-                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
-            }).always(function () {
-                markItemDone(moduleId, moduleHtmlId, trainingId);
-                window.location.href = quizUrl;
-            });
-        });
+       // ── Quiz: just navigate, completion handled server-side after passing ──
+$(document).on('click', '.quiz-link', function (e) {
+    e.preventDefault();
+    var quizUrl = $(this).data('quiz-url');
+    window.location.href = quizUrl;
+});
 
         // ── Text modal: mark topic as read ──
         window.markTopicRead = function(el, moduleId) {

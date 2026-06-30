@@ -19,7 +19,7 @@
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item">
-                        <a asp-controller="CourseManager" asp-action="Modules"
+                        <a asp-controller="Content" asp-action="Modules"
                            asp-route-trainingId="@Model.TrainingId">Modules</a>
                     </li>
                     <li class="breadcrumb-item active">Quiz Builder</li>
@@ -133,7 +133,7 @@
                                             </ul>
                                         </div>
                                         <div class="ml-3">
-                                            <form asp-controller="CourseManager" asp-action="DeleteQuestion"
+                                            <form asp-controller="Content" asp-action="DeleteQuestion"
                                                   method="post">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="questionId" value="@q.QuestionId" />
@@ -153,7 +153,7 @@
             </div>
         }
 
-        <a asp-controller="CourseManager" asp-action="Modules"
+        <a asp-controller="Content" asp-action="Modules"
            asp-route-trainingId="@Model.TrainingId" class="btn btn-secondary">
             <i class="fas fa-arrow-left mr-1"></i> Back to Modules
         </a>
@@ -172,7 +172,7 @@
                 </h5>
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
-            <form asp-controller="CourseManager" asp-action="SaveQuizSettings" method="post">
+            <form asp-controller="Content" asp-action="SaveQuizSettings" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="moduleId" value="@Model.ModuleId" />
                 <input type="hidden" name="quizId" value="@(quiz?.QuizId ?? 0)" />
@@ -210,7 +210,7 @@
                 <h5 class="modal-title"><i class="fas fa-plus-circle mr-1"></i> Add Question</h5>
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
-            <form asp-controller="CourseManager" asp-action="AddQuestion" method="post">
+            <form asp-controller="Content" asp-action="AddQuestion" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="moduleId" value="@Model.ModuleId" />
                 <input type="hidden" name="quizId" value="@(quiz?.QuizId ?? 0)" />

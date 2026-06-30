@@ -42,8 +42,8 @@ public class EmployeeController : Controller
         var userId = GetUserId();
         var now    = DateTime.Now;
         // TEMP DEBUG
-Console.WriteLine($"SESSION UserId: {HttpContext.Session.GetInt32("UserId")}");
-Console.WriteLine($"GetUserId() returns: {userId}");
+        Console.WriteLine($"SESSION UserId: {HttpContext.Session.GetInt32("UserId")}");
+        Console.WriteLine($"GetUserId() returns: {userId}");
 
         // Get all enrollments
         var enrollments = await _db.TrainingParticipants
@@ -137,6 +137,10 @@ ViewBag.CompletedModuleIds = completedModuleIds;
         ViewBag.PostTestTaken   = postTestTaken;
         ViewBag.PostTestAttempts = postTestAttempts;
         ViewBag.PostTestPassed  = postTestPassed;
+        ViewBag.CompletedModuleIds = await _db.ModuleProgresses
+    .Where(mp => mp.UserId == userId)
+    .Select(mp => mp.ModuleId)
+    .ToListAsync();
 
         return View("~/Views/Employee/Dashboard.cshtml", enrollments);
     }
@@ -439,52 +443,101 @@ public async Task<IActionResult> TakeQuiz(int moduleId)
     ViewBag.Module = module;
     return View("~/Views/Employee/TakeQuiz.cshtml", quiz);
 }
-// ── POST: /Employee/SubmitQuiz ────────────────────────────────
 [HttpPost]
 [ValidateAntiForgeryToken]
-public async Task<IActionResult> SubmitQuiz(int moduleId, int quizId, 
+public async Task<IActionResult> SubmitQuiz(int moduleId, int quizId,
     int trainingId, IFormCollection form)
 {
     if (!IsEmployee()) return RedirectToAction("Login", "Home");
-
+ 
     var userId = GetUserId();
-
+ 
     var quiz = await _db.Quizzes
         .Include(q => q.Questions)
             .ThenInclude(q => q.Choices)
         .FirstOrDefaultAsync(q => q.QuizId == quizId);
-
+ 
     if (quiz == null) return NotFound();
-
+ 
     int correct = 0;
     int total   = quiz.Questions.Count;
-
+ 
     foreach (var question in quiz.Questions)
     {
         var selectedChoiceId = form[$"answer_{question.QuestionId}"].ToString();
         if (string.IsNullOrEmpty(selectedChoiceId)) continue;
-
+ 
         if (int.TryParse(selectedChoiceId, out int choiceId))
         {
             var choice = question.Choices.FirstOrDefault(c => c.ChoiceId == choiceId);
             if (choice?.IsCorrect == true) correct++;
         }
     }
-
+ 
     int scorePercentage = total > 0 ? (int)Math.Round((double)correct / total * 100) : 0;
     bool passed         = scorePercentage >= quiz.PassingScore;
+ 
+    // ── Save to database ──
+    var existing = await _db.QuizAttempts
+        .FirstOrDefaultAsync(qa => qa.UserId == userId && qa.ModuleId == moduleId);
+ 
+    if (existing != null)
+    {
+        // Overwrite previous attempt (quiz can only be taken once per module anyway)
+        existing.CorrectCount    = correct;
+        existing.TotalQuestions  = total;
+        existing.ScorePercentage = scorePercentage;
+        existing.IsPassed        = passed;
+        existing.TakenAt         = DateTime.UtcNow;
+    }
+    else
+    {
+        _db.QuizAttempts.Add(new QuizAttempt
+        {
+            UserId          = userId,
+            ModuleId        = moduleId,
+            QuizId          = quizId,
+            TrainingId      = trainingId,
+            CorrectCount    = correct,
+            TotalQuestions  = total,
+            ScorePercentage = scorePercentage,
+            IsPassed        = passed,
+            TakenAt         = DateTime.UtcNow
+        });
+    }
+ 
+   await _db.SaveChangesAsync();
 
-    TempData["QuizResult"]    = $"{correct}/{total}";
-    TempData["QuizScore"]     = scorePercentage;
-    TempData["QuizPassed"]    = passed;
-    TempData["QuizTitle"]     = quiz.QuizTitle;
-    TempData["PassingScore"]  = quiz.PassingScore;
-    TempData["ModuleId"]      = moduleId;
-    TempData["TrainingId"]    = trainingId;
+// ── Only mark module as complete if quiz is PASSED ──
+if (passed)
+{
+    var alreadyDone = await _db.ModuleProgresses
+        .AnyAsync(mp => mp.UserId == userId && mp.ModuleId == moduleId);
 
-    return RedirectToAction("QuizResult");
+    if (!alreadyDone)
+    {
+        _db.ModuleProgresses.Add(new ModuleProgress
+        {
+            UserId      = userId,
+            ModuleId    = moduleId,
+            TrainingId  = trainingId,
+            CompletedAt = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+    }
 }
 
+TempData["QuizResult"]   = $"{correct}/{total}";
+TempData["QuizScore"]    = scorePercentage;
+TempData["QuizPassed"]   = passed;
+TempData["QuizTitle"]    = quiz.QuizTitle;
+TempData["PassingScore"] = quiz.PassingScore;
+TempData["ModuleId"]     = moduleId;
+TempData["TrainingId"]   = trainingId;
+
+return RedirectToAction("QuizResult");
+}
+ 
 // ── GET: /Employee/QuizResult ─────────────────────────────────
 public IActionResult QuizResult()
 {
@@ -492,18 +545,50 @@ public IActionResult QuizResult()
     SetViewBag();
     return View("~/Views/Employee/QuizResult.cshtml");
 }
-// POST: /Employee/MarkModuleDone
+ 
+// ── GET: /Employee/QuizResult/{moduleId} — view past quiz score ──
+// (used by the "View Score" link on Dashboard for already-completed quizzes)
+[HttpGet("Employee/QuizResultByModule/{moduleId}")]
+public async Task<IActionResult> QuizResultByModule(int moduleId)
+{
+    if (!IsEmployee()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+ 
+    var userId = GetUserId();
+ 
+    var attempt = await _db.QuizAttempts
+        .Include(qa => qa.Quiz)
+        .FirstOrDefaultAsync(qa => qa.UserId == userId && qa.ModuleId == moduleId);
+ 
+    if (attempt == null)
+    {
+        TempData["Error"] = "No quiz attempt found.";
+        return RedirectToAction("Dashboard");
+    }
+ 
+    TempData["QuizResult"]   = $"{attempt.CorrectCount}/{attempt.TotalQuestions}";
+    TempData["QuizScore"]    = attempt.ScorePercentage;
+    TempData["QuizPassed"]  = attempt.IsPassed;
+    TempData["QuizTitle"]   = attempt.Quiz?.QuizTitle ?? "Quiz";
+    TempData["PassingScore"] = attempt.Quiz?.PassingScore ?? 0;
+    TempData["ModuleId"]    = moduleId;
+    TempData["TrainingId"]  = attempt.TrainingId;
+ 
+    return View("~/Views/Employee/QuizResult.cshtml");
+}
+
+// ── POST: /Employee/MarkModuleDone ────────────────────────────
 [HttpPost]
 public async Task<IActionResult> MarkModuleDone(int moduleId, int trainingId)
 {
+    if (!IsEmployee()) return Json(new { success = false });
+
     var userId = GetUserId();
 
-    var already = await _db.ModuleProgresses
-        .AnyAsync(mp => mp.UserId    == userId
-                     && mp.ModuleId  == moduleId
-                     && mp.TrainingId == trainingId);
+    var exists = await _db.ModuleProgresses
+        .AnyAsync(mp => mp.UserId == userId && mp.ModuleId == moduleId);
 
-    if (!already)
+    if (!exists)
     {
         _db.ModuleProgresses.Add(new ModuleProgress
         {
@@ -515,6 +600,7 @@ public async Task<IActionResult> MarkModuleDone(int moduleId, int trainingId)
         await _db.SaveChangesAsync();
     }
 
-    return Ok();
+    return Json(new { success = true });
 }
+
 }

@@ -17,31 +17,31 @@
 
                 <li class="nav-item">
                     <a asp-controller="CourseManager" asp-action="Dashboard"
-                       class="nav-link @(action == "Dashboard" ? "active" : "")">
+                       class="nav-link @(controller == "CourseManager" && action == "Dashboard" ? "active" : "")">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
 
-               <li class="nav-item">
+                <li class="nav-item">
                     <a asp-controller="CourseManager" asp-action="Trainings"
-                    class="nav-link @(action == "Trainings" || (controller == "Training") ? "active" : "")">
+                       class="nav-link @((controller == "CourseManager" && action == "Trainings") || controller == "Training" ? "active" : "")">
                         <i class="nav-icon fas fa-book"></i>
                         <p>Trainings</p>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a asp-controller="CourseManager" asp-action="Modules"
-                       class="nav-link @(action == "Modules" ? "active" : "")">
+                    <a asp-controller="Content" asp-action="Modules"
+                       class="nav-link @(controller == "Content" && action == "Modules" ? "active" : "")">
                         <i class="nav-icon fas fa-folder"></i>
                         <p>Modules</p>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a asp-controller="CourseManager" asp-action="TestMaker"
-                       class="nav-link @(action == "TestMaker" ? "active" : "")">
+                    <a asp-controller="Content" asp-action="TestMaker"
+                       class="nav-link @(controller == "Content" && action == "TestMaker" ? "active" : "")">
                         <i class="nav-icon fas fa-question-circle"></i>
                         <p>Post and Pre Test</p>
                     </a>
@@ -49,7 +49,7 @@
 
                 <li class="nav-item">
                     <a asp-controller="CourseManager" asp-action="TestResult"
-                       class="nav-link @(action == "TestResult" ? "active" : "")">
+                       class="nav-link @(controller == "CourseManager" && action == "TestResult" ? "active" : "")">
                         <i class="nav-icon fas fa-chart-bar"></i>
                         <p>Test Result</p>
                     </a>
@@ -57,7 +57,7 @@
 
                 <li class="nav-item">
                     <a asp-controller="CourseManager" asp-action="TrainingReport"
-                       class="nav-link @(action == "TrainingReport" ? "active" : "")">
+                       class="nav-link @(controller == "CourseManager" && action == "TrainingReport" ? "active" : "")">
                         <i class="nav-icon fas fa-chart-line"></i>
                         <p>Training Report</p>
                     </a>
@@ -65,7 +65,7 @@
 
                 <li class="nav-item">
                     <a asp-controller="CourseManager" asp-action="EvaluationDashboard"
-                       class="nav-link @(action == "EvaluationDashboard" ? "active" : "")">
+                       class="nav-link @(controller == "CourseManager" && action == "EvaluationDashboard" ? "active" : "")">
                         <i class="nav-icon fas fa-chart-line"></i>
                         <p>Evaluation Dashboard</p>
                     </a>
@@ -73,7 +73,7 @@
 
                 <li class="nav-item">
                     <a asp-controller="CourseManager" asp-action="AutoPdf"
-                       class="nav-link @(action == "AutoPdf" ? "active" : "")">
+                       class="nav-link @(controller == "CourseManager" && action == "AutoPdf" ? "active" : "")">
                         <i class="nav-icon fas fa-file-pdf"></i>
                         <p>Auto PDF</p>
                     </a>

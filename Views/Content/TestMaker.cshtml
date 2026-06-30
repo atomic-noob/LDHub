@@ -489,9 +489,9 @@
                                                     var diffClass = diff.HasValue
                                                         ? (diff > 0 ? "text-success" : diff < 0 ? "text-danger" : "text-muted")
                                                         : "text-muted";
-                                                    var diffText = diff.HasValue
-                                                        ? (diff > 0 ? $"+{diff}" : diff.ToString())
-                                                        : "—";
+                                                   var diffText = diff.HasValue
+    ? (diff > 0 ? $"+{diff.Value.ToString("0.##")}" : diff.Value.ToString("0.##"))
+    : "—";
                                                     var denom = totalPtsG > 0 ? totalPtsG : 1;
 
                                                     <tr>
@@ -500,7 +500,7 @@
                                                         <td>
                                                             @if (g.PreTestScore.HasValue)
                                                             {
-                                                                <span>@g.PreTestScore / @totalPtsG</span>
+                                                                <span>@g.PreTestScore.Value.ToString("0.##") / @totalPtsG.ToString("0.##")</span>
                                                                 <small class="text-muted">(@Math.Round(g.PreTestScore.Value / denom * 100)%)</small>
                                                             }
                                                             else { <span class="text-muted">Not taken</span> }
@@ -508,7 +508,7 @@
                                                         <td>
                                                             @if (g.PostTestScore.HasValue)
                                                             {
-                                                                <span>@g.PostTestScore / @totalPtsG</span>
+                                                               <span>@g.PostTestScore.Value.ToString("0.##") / @totalPtsG.ToString("0.##")</span>
                                                                 <small class="text-muted">(@Math.Round(g.PostTestScore.Value / denom * 100)%)</small>
                                                             }
                                                             else { <span class="text-muted">Not taken</span> }
