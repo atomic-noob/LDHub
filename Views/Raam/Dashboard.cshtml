@@ -1,21 +1,297 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "RAAM Dashboard";
+
+    var regionName        = ViewBag.RegionName        as string ?? "Unknown Region";
+    var totalTrainings    = ViewBag.TotalTrainings    as int?   ?? 0;
+    var totalParticipants = ViewBag.TotalParticipants as int?   ?? 0;
+    var pendingCount      = ViewBag.PendingCount      as int?   ?? 0;
+    var completedCount    = ViewBag.CompletedCount    as int?   ?? 0;
+    var ongoingCount      = ViewBag.OngoingCount      as int?   ?? 0;
+    var recentTrainings   = ViewBag.RecentTrainings   as List<LDHub.Models.Training> ?? new List<LDHub.Models.Training>();
+}
+
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg, #ffffff 0%, #f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg, #9BEC00, #4BB543, #117554); color: white; }
+        .region-banner {
+            background: linear-gradient(135deg, #117554, #4BB543);
+            color: white;
+            border-radius: 10px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(75,181,67,.3);
+        }
+        .region-banner h4 { font-weight: 800; margin-bottom: 3px; }
+        .region-banner p  { opacity: .85; margin-bottom: 0; font-size: .95rem; }
+        .stat-card {
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .stat-card .stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+        .stat-card .stat-label  { font-size: .9rem; opacity: .85; margin-top: 5px; }
+        .stat-card .stat-icon   { font-size: 3rem; opacity: .3; }
+        .stat-card.green  { background: linear-gradient(135deg, #4BB543, #117554); }
+        .stat-card.blue   { background: linear-gradient(135deg, #0984e3, #74b9ff); }
+        .stat-card.orange { background: linear-gradient(135deg, #e17055, #fdcb6e); }
+        .stat-card.purple { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+        .stat-card.teal   { background: linear-gradient(135deg, #00b894, #55efc4); }
+        .training-row { transition: background .2s; }
+        .training-row:hover { background: #f4fdf6; }
+    </style>
 }
 
 <div class="content-header">
     <div class="container-fluid">
-        <h1 class="m-0">RAAM Dashboard</h1>
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">RAAM Dashboard</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item active">Dashboard</li>
+                </ol>
+            </div>
+        </div>
     </div>
 </div>
 
 <section class="content">
     <div class="container-fluid">
-        <div class="card">
-            <div class="card-body">
-                <h5>Welcome, @ViewBag.UserName! 👋</h5>
-                <p class="text-muted">This is your RAAM Dashboard.</p>
+
+        @* Flash Messages *@
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
             </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle mr-2"></i>@TempData["Error"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        @* Region Banner *@
+        <div class="region-banner">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h4><i class="fas fa-map-marker-alt mr-2"></i>@regionName</h4>
+                    <p>You are managing trainings and participants within your assigned region.</p>
+                </div>
+                <div class="text-right">
+                    <i class="fas fa-shield-alt fa-3x" style="opacity:.3;"></i>
+                </div>
+            </div>
+        </div>
+
+        @* Stat Cards *@
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card green">
+                    <div>
+                        <div class="stat-number">@totalTrainings</div>
+                        <div class="stat-label">Total Trainings</div>
+                    </div>
+                    <i class="fas fa-book stat-icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card blue">
+                    <div>
+                        <div class="stat-number">@totalParticipants</div>
+                        <div class="stat-label">Total Participants</div>
+                    </div>
+                    <i class="fas fa-users stat-icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card orange">
+                    <div>
+                        <div class="stat-number">@pendingCount</div>
+                        <div class="stat-label">Pending Approvals</div>
+                    </div>
+                    <i class="fas fa-user-clock stat-icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card teal">
+                    <div>
+                        <div class="stat-number">@ongoingCount</div>
+                        <div class="stat-label">Ongoing Trainings</div>
+                    </div>
+                    <i class="fas fa-spinner stat-icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+
+            @* Recent Trainings *@
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-book mr-2"></i>Recent Trainings in @regionName
+                        </h3>
+                        <div class="card-tools">
+                            <a asp-controller="Raam" asp-action="Training"
+                               class="btn btn-sm btn-light">
+                                <i class="fas fa-list mr-1"></i> View All
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (!recentTrainings.Any())
+                        {
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-inbox fa-3x mb-3" style="opacity:.3;"></i>
+                                <p>No trainings found in your region yet.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <table class="table table-hover mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Training</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Participants</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var t in recentTrainings)
+                                    {
+                                        var now    = DateTime.Now;
+                                        var status = "Scheduled";
+                                        var badge  = "badge-info";
+
+                                        if (t.StartDate.HasValue && t.EndDate.HasValue)
+                                        {
+                                            if (now >= t.StartDate && now <= t.EndDate)
+                                            { status = "Ongoing";   badge = "badge-success"; }
+                                            else if (now > t.EndDate)
+                                            { status = "Completed"; badge = "badge-secondary"; }
+                                        }
+
+                                        <tr class="training-row">
+                                            <td>
+                                                <strong>@t.TrainingTitle</strong>
+                                                @if (!string.IsNullOrEmpty(t.TrainingCode))
+                                                {
+                                                    <small class="text-muted d-block">@t.TrainingCode</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (t.StartDate.HasValue)
+                                                {
+                                                    <small>
+                                                        @t.StartDate?.ToString("MMM dd") —
+                                                        @t.EndDate?.ToString("MMM dd, yyyy")
+                                                    </small>
+                                                }
+                                                else
+                                                {
+                                                    <small class="text-muted">No date set</small>
+                                                }
+                                            </td>
+                                            <td><span class="badge @badge">@status</span></td>
+                                            <td>
+                                                <span class="badge badge-light border">
+                                                    @t.TrainingParticipants.Count
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* Quick Actions *@
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-bolt mr-2"></i>Quick Actions
+                        </h3>
+                    </div>
+                    <div class="card-body p-2">
+                        <a asp-controller="Raam" asp-action="PendingParticipants"
+                           class="btn btn-block btn-outline-warning mb-2 text-left">
+                            <i class="fas fa-user-clock mr-2"></i>
+                            Pending Approvals
+                            @if (pendingCount > 0)
+                            {
+                                <span class="badge badge-warning float-right">@pendingCount</span>
+                            }
+                        </a>
+                        <a asp-controller="Raam" asp-action="Training"
+                           class="btn btn-block btn-outline-success mb-2 text-left">
+                            <i class="fas fa-book mr-2"></i> View Trainings
+                        </a>
+                        <a asp-controller="Training" asp-action="Create"
+                           class="btn btn-block btn-outline-primary mb-2 text-left">
+                            <i class="fas fa-plus mr-2"></i> Create Training
+                        </a>
+                        <a asp-controller="Raam" asp-action="ParticipantsList"
+                           class="btn btn-block btn-outline-info mb-2 text-left">
+                            <i class="fas fa-users mr-2"></i> Participants List
+                        </a>
+                        <a asp-controller="Content" asp-action="Modules"
+                           class="btn btn-block btn-outline-secondary mb-2 text-left">
+                            <i class="fas fa-folder mr-2"></i> Modules
+                        </a>
+                        <a asp-controller="Content" asp-action="TestMaker"
+                           class="btn btn-block btn-outline-secondary text-left">
+                            <i class="fas fa-question-circle mr-2"></i> Post and Pre Test
+                        </a>
+                    </div>
+                </div>
+
+                @* Completion stat *@
+                <div class="card shadow-sm">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-pie mr-2"></i>Completion Rate
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        @{
+                            var completionRate = totalParticipants > 0
+                                ? (int)Math.Round((double)completedCount / totalParticipants * 100)
+                                : 0;
+                        }
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Completed</small>
+                            <small><strong>@completedCount / @totalParticipants</strong></small>
+                        </div>
+                        <div class="progress mb-3" style="height:12px; border-radius:6px;">
+                            <div class="progress-bar bg-success"
+                                 role="progressbar"
+                                 style="width:@completionRate%">
+                            </div>
+                        </div>
+                        <p class="text-center mb-0">
+                            <span class="h4 font-weight-bold text-success">@completionRate%</span>
+                            <small class="text-muted d-block">overall completion rate</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </section>

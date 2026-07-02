@@ -14,7 +14,7 @@ public class ContentController : Controller
         _db = db;
     }
 
-    // ── Auth check — shared by CourseManager, ResourcePerson, Raam ──
+    // ── Auth check ─────────────────────────────────────────────
     private bool CanManageContent()
     {
         var role = HttpContext.Session.GetString("UserRole");
@@ -27,6 +27,9 @@ public class ContentController : Controller
         return int.TryParse(str, out int id) ? id : 0;
     }
 
+    private string GetUserRole() =>
+        HttpContext.Session.GetString("UserRole") ?? "";
+
     private void SetViewBag()
     {
         ViewBag.ActiveRole = HttpContext.Session.GetString("UserRole");
@@ -34,26 +37,96 @@ public class ContentController : Controller
         ViewBag.UserPhoto  = HttpContext.Session.GetString("UserPhoto");
     }
 
+    // ── Get filtered trainings based on role ───────────────────
+    private async Task<List<Training>> GetAccessibleTrainings()
+    {
+        var role   = GetUserRole();
+        var userId = GetUserId();
+
+        if (role == "CourseManager")
+        {
+            // See ALL trainings
+            return await _db.Trainings
+                .OrderBy(t => t.TrainingTitle)
+                .ToListAsync();
+        }
+        else if (role == "Raam")
+        {
+            // See only trainings in their region
+            var user = await _db.Users.FindAsync(userId);
+            var regionId = user?.RegionId;
+
+            return await _db.Trainings
+                .Where(t => t.RegionId == regionId)
+                .OrderBy(t => t.TrainingTitle)
+                .ToListAsync();
+        }
+        else if (role == "ResourcePerson")
+        {
+            // See only trainings assigned to them
+            var assignedTrainingIds = await _db.TrainingInstructors
+                .Where(ti => ti.UserId == userId)
+                .Select(ti => ti.TrainingId)
+                .ToListAsync();
+
+            return await _db.Trainings
+                .Where(t => assignedTrainingIds.Contains(t.TrainingId))
+                .OrderBy(t => t.TrainingTitle)
+                .ToListAsync();
+        }
+
+        return new List<Training>();
+    }
+
+    // ── Check if user can access a specific training ───────────
+    private async Task<bool> CanAccessTraining(int trainingId)
+    {
+        var role   = GetUserRole();
+        var userId = GetUserId();
+
+        if (role == "CourseManager") return true;
+
+        if (role == "Raam")
+        {
+            var user     = await _db.Users.FindAsync(userId);
+            var training = await _db.Trainings.FindAsync(trainingId);
+            return training?.RegionId == user?.RegionId;
+        }
+
+        if (role == "ResourcePerson")
+        {
+            return await _db.TrainingInstructors
+                .AnyAsync(ti => ti.UserId == userId && ti.TrainingId == trainingId);
+        }
+
+        return false;
+    }
+
     // ════════════════════════════════════════════════════════════
     //  MODULES
     // ════════════════════════════════════════════════════════════
 
-    // ── GET: /Content/Modules ──────────────────────────────────
     public async Task<IActionResult> Modules(int? id, int? trainingId)
     {
         if (!CanManageContent()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var selectedTrainingId = id ?? trainingId;
+        var trainings          = await GetAccessibleTrainings();
+
+        ViewBag.Trainings = trainings;
 
         if (selectedTrainingId == null)
         {
-            var trainings = await _db.Trainings
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
-            ViewBag.Trainings  = trainings;
             ViewBag.TrainingId = null;
             return View("~/Views/Content/Modules.cshtml");
+        }
+
+        // Check access
+        if (!await CanAccessTraining(selectedTrainingId.Value))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Modules");
         }
 
         var training = await _db.Trainings
@@ -75,10 +148,11 @@ public class ContentController : Controller
         ViewBag.Training       = training;
         ViewBag.GroupedModules = groupedModules;
         ViewBag.TrainingId     = selectedTrainingId;
+
         return View("~/Views/Content/Modules.cshtml");
     }
 
-    // ── POST: /Content/CreateModule ────────────────────────────
+    // ── POST: CreateModule ─────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateModule(
@@ -87,6 +161,12 @@ public class ContentController : Controller
         IFormFile? file)
     {
         if (!CanManageContent()) return RedirectToAction("Login", "Home");
+
+        if (!await CanAccessTraining(trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Modules");
+        }
 
         if (moduleType == "Activity" || moduleType == "Quiz")
         {
@@ -140,17 +220,17 @@ public class ContentController : Controller
 
         var module = new TrainingModule
         {
-            TrainingId         = trainingId,
-            ModuleName          = moduleName,
-            ModuleDescription   = moduleDescription,
-            ModuleType          = moduleType,
-            LectureSource       = lectureSource,
-            LinkUrl             = linkUrl,
-            FilePath            = filePath,
-            UploadedBy          = GetUserId(),
-            UploadedAt          = DateTime.UtcNow,
-            UpdatedAt           = DateTime.UtcNow,
-            SortOrder           = await _db.TrainingModules
+            TrainingId        = trainingId,
+            ModuleName        = moduleName,
+            ModuleDescription = moduleDescription,
+            ModuleType        = moduleType,
+            LectureSource     = lectureSource,
+            LinkUrl           = linkUrl,
+            FilePath          = filePath,
+            UploadedBy        = GetUserId(),
+            UploadedAt        = DateTime.UtcNow,
+            UpdatedAt         = DateTime.UtcNow,
+            SortOrder         = await _db.TrainingModules
                                     .CountAsync(m => m.TrainingId == trainingId)
         };
 
@@ -161,7 +241,7 @@ public class ContentController : Controller
         return RedirectToAction("Modules", new { trainingId });
     }
 
-    // ── POST: /Content/EditModule ──────────────────────────────
+    // ── POST: EditModule ───────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditModule(
@@ -169,6 +249,12 @@ public class ContentController : Controller
         string? linkUrl, IFormFile? file)
     {
         if (!CanManageContent()) return RedirectToAction("Login", "Home");
+
+        if (!await CanAccessTraining(trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Modules");
+        }
 
         var module = await _db.TrainingModules.FindAsync(moduleId);
         if (module == null) return NotFound();
@@ -199,12 +285,18 @@ public class ContentController : Controller
         return RedirectToAction("Modules", new { trainingId });
     }
 
-    // ── POST: /Content/DeleteModule ────────────────────────────
+    // ── POST: DeleteModule ─────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteModule(int moduleId, int trainingId)
     {
         if (!CanManageContent()) return RedirectToAction("Login", "Home");
+
+        if (!await CanAccessTraining(trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Modules");
+        }
 
         var module = await _db.TrainingModules.FindAsync(moduleId);
         if (module != null)
@@ -221,7 +313,6 @@ public class ContentController : Controller
     //  QUIZ BUILDER
     // ════════════════════════════════════════════════════════════
 
-    // ── GET: /Content/QuizBuilder ───────────────────────────────
     public async Task<IActionResult> QuizBuilder(int moduleId)
     {
         if (!CanManageContent()) return RedirectToAction("Login", "Home");
@@ -236,10 +327,15 @@ public class ContentController : Controller
 
         if (module == null) return NotFound();
 
+        if (!await CanAccessTraining(module.TrainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Modules");
+        }
+
         return View("~/Views/Content/QuizBuilder.cshtml", module);
     }
 
-    // ── POST: /Content/SaveQuizSettings ────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveQuizSettings(
@@ -273,7 +369,6 @@ public class ContentController : Controller
         return RedirectToAction("QuizBuilder", new { moduleId });
     }
 
-    // ── POST: /Content/AddQuestion ──────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddQuestion(
@@ -308,7 +403,6 @@ public class ContentController : Controller
         return RedirectToAction("QuizBuilder", new { moduleId });
     }
 
-    // ── POST: /Content/DeleteQuestion ──────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteQuestion(int questionId, int moduleId)
@@ -334,7 +428,6 @@ public class ContentController : Controller
     //  TEXT EDITOR
     // ════════════════════════════════════════════════════════════
 
-    // ── GET: /Content/TextEditor ────────────────────────────────
     public async Task<IActionResult> TextEditor(int moduleId)
     {
         if (!CanManageContent()) return RedirectToAction("Login", "Home");
@@ -348,10 +441,15 @@ public class ContentController : Controller
 
         if (module == null) return NotFound();
 
+        if (!await CanAccessTraining(module.TrainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Modules");
+        }
+
         return View("~/Views/Content/TextEditor.cshtml", module);
     }
 
-    // ── POST: /Content/SaveTextContent ──────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveTextContent(
@@ -421,82 +519,85 @@ public class ContentController : Controller
     }
 
     // ════════════════════════════════════════════════════════════
-    //  TEST MAKER (Pre/Post Test Questions)
+    //  TEST MAKER
     // ════════════════════════════════════════════════════════════
 
-    // ── GET: /Content/TestMaker ─────────────────────────────────
-  
-public async Task<IActionResult> TestMaker(int? trainingId)
-{
-    if (!CanManageContent()) return RedirectToAction("Login", "Home");
-    SetViewBag();
- 
-    var trainings = await _db.Trainings.OrderBy(t => t.TrainingTitle).ToListAsync();
-    ViewBag.Trainings = trainings;
- 
-    if (trainingId.HasValue && trainingId > 0)
+    public async Task<IActionResult> TestMaker(int? trainingId)
     {
-        var training = await _db.Trainings.FindAsync(trainingId);
-        var questions = await _db.Questions
-            .Where(q => q.TrainingId == trainingId)
-            .OrderBy(q => q.Id)
-            .ToListAsync();
- 
-        ViewBag.SelectedTraining = training;
-        ViewBag.Questions        = questions;
-        ViewBag.TrainingId       = trainingId;
- 
-        // ── Build Grades ──────────────────────────────────────────
-        var totalPoints = questions.Sum(q => q.Points);
- 
-        // Get all participants assigned to this training
-        var participants = await _db.TrainingParticipants
-            .Include(tp => tp.User)
-            .Where(tp => tp.TrainingId == trainingId)
-            .ToListAsync();
- 
-        // Get all test attempts for this training
-        var attempts = await _db.ParticipantTestAttempts
-            .Where(a => a.TrainingId == trainingId)
-            .ToListAsync();
- 
-        var gradeRows = participants.Select(tp =>
-        {
-            var userAttempts = attempts.Where(a => a.UserId == tp.UserId).ToList();
- 
-            var preTest = userAttempts
-                .Where(a => a.TestType == "PreTest")
-                .OrderByDescending(a => a.TakenAt)
-                .FirstOrDefault();
- 
-            var postTests = userAttempts
-                .Where(a => a.TestType == "PostTest")
-                .OrderByDescending(a => a.Score)
-                .ToList();
- 
-            var bestPost = postTests.FirstOrDefault();
- 
-            return new GradeRow
-            {
-                UserId           = tp.UserId,
-                EmployeeName     = tp.User != null
-                                    ? $"{tp.User.FirstName} {tp.User.LastName}"
-                                    : "Unknown",
-                PreTestScore     = preTest?.Score,
-                PostTestScore    = bestPost?.Score,
-                TotalPoints      = totalPoints,
-                PostTestAttempts = postTests.Count,
-                PostTestPassed   = bestPost?.IsPassed ?? false
-            };
-        }).ToList();
- 
-        ViewBag.Grades = gradeRows;
-    }
- 
-    return View("~/Views/Content/TestMaker.cshtml");
-}
+        if (!CanManageContent()) return RedirectToAction("Login", "Home");
+        SetViewBag();
 
-    // ── POST: /Content/SaveQuestion ─────────────────────────────
+        // Get filtered trainings based on role
+        var trainings = await GetAccessibleTrainings();
+        ViewBag.Trainings = trainings;
+
+        if (trainingId.HasValue && trainingId > 0)
+        {
+            // Check access
+            if (!await CanAccessTraining(trainingId.Value))
+            {
+                TempData["Error"] = "You do not have access to this training.";
+                return RedirectToAction("TestMaker");
+            }
+
+            var training = await _db.Trainings.FindAsync(trainingId);
+            var questions = await _db.Questions
+                .Where(q => q.TrainingId == trainingId)
+                .OrderBy(q => q.Id)
+                .ToListAsync();
+
+            ViewBag.SelectedTraining = training;
+            ViewBag.Questions        = questions;
+            ViewBag.TrainingId       = trainingId;
+
+            // Build Grades
+            var totalPoints = questions.Sum(q => q.Points);
+
+            var participants = await _db.TrainingParticipants
+                .Include(tp => tp.User)
+                .Where(tp => tp.TrainingId == trainingId)
+                .ToListAsync();
+
+            var attempts = await _db.ParticipantTestAttempts
+                .Where(a => a.TrainingId == trainingId)
+                .ToListAsync();
+
+            var gradeRows = participants.Select(tp =>
+            {
+                var userAttempts = attempts.Where(a => a.UserId == tp.UserId).ToList();
+
+                var preTest = userAttempts
+                    .Where(a => a.TestType == "PreTest")
+                    .OrderByDescending(a => a.TakenAt)
+                    .FirstOrDefault();
+
+                var postTests = userAttempts
+                    .Where(a => a.TestType == "PostTest")
+                    .OrderByDescending(a => a.Score)
+                    .ToList();
+
+                var bestPost = postTests.FirstOrDefault();
+
+                return new GradeRow
+                {
+                    UserId           = tp.UserId,
+                    EmployeeName     = tp.User != null
+                                        ? $"{tp.User.FirstName} {tp.User.LastName}"
+                                        : "Unknown",
+                    PreTestScore     = preTest?.Score,
+                    PostTestScore    = bestPost?.Score,
+                    TotalPoints      = totalPoints,
+                    PostTestAttempts = postTests.Count,
+                    PostTestPassed   = bestPost?.IsPassed ?? false
+                };
+            }).ToList();
+
+            ViewBag.Grades = gradeRows;
+        }
+
+        return View("~/Views/Content/TestMaker.cshtml");
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveQuestion(
@@ -506,6 +607,12 @@ public async Task<IActionResult> TestMaker(int? trainingId)
         string? correctAnswerTf, string? correctAnswerText, decimal points)
     {
         if (!CanManageContent()) return RedirectToAction("Login", "Home");
+
+        if (!await CanAccessTraining(trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("TestMaker");
+        }
 
         string? finalAnswer = questionType switch
         {
@@ -550,7 +657,6 @@ public async Task<IActionResult> TestMaker(int? trainingId)
         return RedirectToAction("TestMaker", new { trainingId, tab = "list" });
     }
 
-    // ── POST: /Content/DeleteQuestion2 ──────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteQuestion2(int questionId, int trainingId)
@@ -568,13 +674,18 @@ public async Task<IActionResult> TestMaker(int? trainingId)
         return RedirectToAction("TestMaker", new { trainingId, tab = "list" });
     }
 
-    // ── POST: /Content/SaveTestSettings ─────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveTestSettings(
         int trainingId, int minimumScore, int posttestTimer)
     {
         if (!CanManageContent()) return RedirectToAction("Login", "Home");
+
+        if (!await CanAccessTraining(trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("TestMaker");
+        }
 
         var training = await _db.Trainings.FindAsync(trainingId);
         if (training != null)
@@ -588,11 +699,6 @@ public async Task<IActionResult> TestMaker(int? trainingId)
         return RedirectToAction("TestMaker", new { trainingId, tab = "settings" });
     }
 
-    // ════════════════════════════════════════════════════════════
-    //  GRADES (built into TestMaker page as a tab, reused here)
-    // ════════════════════════════════════════════════════════════
-
-    // ── POST: /Content/ResetAttempts ────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetAttempts(int userId, int trainingId)

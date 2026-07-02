@@ -1,0 +1,417 @@
+@model List<LDHub.Models.User>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Subject Matter Expert (Outsource)";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="~/plugins/datatables-responsive/css/responsive.bootstrap4.min.css" />
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Subject Matter Expert (Outsource)</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Admin" asp-action="Dashboard">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Resource Persons</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @* Flash Messages *@
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle mr-2"></i>@TempData["Error"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        <div class="card card-outline card-primary">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chalkboard-teacher mr-2"></i>
+                    External Resource Persons
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-primary btn-sm"
+                            data-toggle="modal" data-target="#createModal">
+                        <i class="fas fa-plus mr-1"></i> Add Resource Person
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+
+                @* Summary cards *@
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-primary"><i class="fas fa-users"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Total</span>
+                                <span class="info-box-number">@Model.Count</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-success"><i class="fas fa-user-check"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Active</span>
+                                <span class="info-box-number">@Model.Count(u =>u.Status == "Active")</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-box">
+                            <span class="info-box-icon bg-danger"><i class="fas fa-user-times"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Inactive</span>
+                               <span class="info-box-number">@Model.Count(u => u.Status != "Active")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <table id="rpTable" class="table table-bordered table-striped table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Organization</th>
+                            <th>Expertise</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int i = 1; }
+                        @foreach (var u in Model)
+                        {
+                            <tr>
+                                <td>@i</td>
+                                <td>
+                                    <strong>@u.FirstName @u.LastName</strong>
+                                    @if (!string.IsNullOrEmpty(u.MiddleName))
+                                    {
+                                        <small class="text-muted d-block">@u.MiddleName</small>
+                                    }
+                                </td>
+                                <td>@u.Email</td>
+                                <td>@(u.Organization ?? "—")</td>
+                                <td>@(u.Expertise ?? "—")</td>
+                                <td>@(u.ContactNumber ?? "—")</td>
+                                <td>
+                                    @if (u.Status == "Active")
+                                    {
+                                        <span class="badge badge-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-info edit-btn"
+                                            data-id="@u.UserId"
+                                            data-firstname="@u.FirstName"
+                                            data-middlename="@u.MiddleName"
+                                            data-lastname="@u.LastName"
+                                            data-email="@u.Email"
+                                            data-organization="@u.Organization"
+                                            data-expertise="@u.Expertise"
+                                            data-contact="@u.ContactNumber"
+                                            data-gender="@u.Gender"
+                                            data-toggle="modal"
+                                            data-target="#editModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form asp-controller="Admin"
+                                          asp-action="ToggleResourcePersonStatus"
+                                          method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@u.UserId" />
+                                        <button type="submit"
+                                                class="btn btn-sm @(u.Status == "Active" ? "btn-warning" : "btn-success")"
+                                                onclick="return confirm('@(u.Status == "Active" ? "Deactivate" : "Activate") @u.FirstName @u.LastName?')">
+                                            <i class="fas fa-@(u.Status == "Active"? "ban" : "check")"></i>
+                                            @(u.Status == "Active" ? "Deactivate" : "Activate")
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            i++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ── Create Modal ── *@
+<div class="modal fade" id="createModal" tabindex="-1" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus mr-2"></i>Add External Resource Person
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <form asp-controller="Admin" asp-action="CreateResourcePerson" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="form-section-label text-primary font-weight-bold mb-3">
+                        <i class="fas fa-user mr-2"></i>Personal Information
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>First Name <span class="text-danger">*</span></label>
+                                <input type="text" name="firstName" class="form-control"
+                                       placeholder="Juan" required />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Middle Name</label>
+                                <input type="text" name="middleName" class="form-control"
+                                       placeholder="Santos" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Last Name <span class="text-danger">*</span></label>
+                                <input type="text" name="lastName" class="form-control"
+                                       placeholder="Dela Cruz" required />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Gender</label>
+                                <select name="gender" class="form-control">
+                                    <option value="">-- Select --</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                    <option value="Prefer not to say">Prefer not to say</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Contact Number</label>
+                                <input type="text" name="contactNumber" class="form-control"
+                                       placeholder="09XXXXXXXXX" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section-label text-primary font-weight-bold mb-3 mt-2">
+                        <i class="fas fa-building mr-2"></i>Organization Details
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Organization</label>
+                                <input type="text" name="organization" class="form-control"
+                                       placeholder="e.g. UP Los Baños" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Expertise / Specialization</label>
+                                <input type="text" name="expertise" class="form-control"
+                                       placeholder="e.g. Forest Management" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section-label text-primary font-weight-bold mb-3 mt-2">
+                        <i class="fas fa-lock mr-2"></i>Account Credentials
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Email <span class="text-danger">*</span></label>
+                                <input type="email" name="email" class="form-control"
+                                       placeholder="juan@organization.com" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Password <span class="text-danger">*</span></label>
+                                <input type="password" name="password" class="form-control"
+                                       placeholder="••••••••" required />
+                                <small class="text-muted">Share this with the Resource Person.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-1"></i> Create Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ── Edit Modal ── *@
+<div class="modal fade" id="editModal" tabindex="-1" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit mr-2"></i>Edit Resource Person
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <form asp-controller="Admin" asp-action="EditResourcePerson" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="userId" id="edit_userId" />
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>First Name <span class="text-danger">*</span></label>
+                                <input type="text" name="firstName" id="edit_firstName"
+                                       class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Middle Name</label>
+                                <input type="text" name="middleName" id="edit_middleName"
+                                       class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Last Name <span class="text-danger">*</span></label>
+                                <input type="text" name="lastName" id="edit_lastName"
+                                       class="form-control" required />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Gender</label>
+                                <select name="gender" id="edit_gender" class="form-control">
+                                    <option value="">-- Select --</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                    <option value="Prefer not to say">Prefer not to say</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Contact Number</label>
+                                <input type="text" name="contactNumber" id="edit_contact"
+                                       class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Organization</label>
+                                <input type="text" name="organization" id="edit_organization"
+                                       class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Expertise</label>
+                                <input type="text" name="expertise" id="edit_expertise"
+                                       class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Email <span class="text-danger">*</span></label>
+                                <input type="email" name="email" id="edit_email"
+                                       class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>New Password <small class="text-muted">(leave blank to keep current)</small></label>
+                                <input type="password" name="newPassword"
+                                       class="form-control" placeholder="••••••••" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save mr-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="~/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="~/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+<script>
+$(function () {
+    $('#rpTable').DataTable({
+        responsive: true,
+        autoWidth: false,
+        order: [[0, 'asc']]
+    });
+
+    // Populate edit modal
+    $('.edit-btn').on('click', function () {
+        $('#edit_userId').val($(this).data('id'));
+        $('#edit_firstName').val($(this).data('firstname'));
+        $('#edit_middleName').val($(this).data('middlename'));
+        $('#edit_lastName').val($(this).data('lastname'));
+        $('#edit_email').val($(this).data('email'));
+        $('#edit_organization').val($(this).data('organization'));
+        $('#edit_expertise').val($(this).data('expertise'));
+        $('#edit_contact').val($(this).data('contact'));
+        $('#edit_gender').val($(this).data('gender'));
+    });
+});
+</script>
+}

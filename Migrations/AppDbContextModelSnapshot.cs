@@ -804,6 +804,9 @@ namespace LDHub.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("email");
 
+                    b.Property<string>("Expertise")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -838,6 +841,9 @@ namespace LDHub.Migrations
                     b.Property<int?>("OfficeId")
                         .HasColumnType("int")
                         .HasColumnName("office_id");
+
+                    b.Property<string>("Organization")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Password")
                         .IsRequired()

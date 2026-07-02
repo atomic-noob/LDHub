@@ -117,6 +117,10 @@ namespace LDHub.Models
 
         // One user can have MANY roles (e.g. Admin + RAAM)
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public string? Organization { get; set; }
+        public string? Expertise    { get; set; }
+
+
 
         // One user can be assigned MANY trainings
         // public virtual ICollection<TrainingAssignment> TrainingAssignments { get; set; } = new List<TrainingAssignment>();

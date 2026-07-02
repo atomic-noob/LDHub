@@ -1,49 +1,596 @@
 ﻿@{
     Layout = null;
-    ViewData["Title"] = "Welcome";
+    ViewData["Title"] = "DENR L&D Hub";
 }
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DENR L&D Hub</title>
     <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css" />
-    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/dist/css/adminlte.min.css" />
-</head>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fdf9; }
 
+        /* ── Navbar ── */
+        .ldhub-navbar {
+            background: rgba(17, 117, 84, 0.92);
+            backdrop-filter: blur(10px);
+            padding: 14px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0,0,0,.25);
+            transition: background .3s;
+        }
+        .ldhub-navbar.scrolled {
+            background: rgba(17, 117, 84, 0.98);
+        }
+        .ldhub-navbar .brand {
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+        }
+        .ldhub-navbar .brand img {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+            border: 2px solid rgba(255,255,255,.6);
+        }
+        .ldhub-navbar .brand span {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+        .ldhub-navbar .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-size: .95rem;
+            opacity: .9;
+            transition: opacity .2s;
+        }
+        .ldhub-navbar .nav-links a:hover { opacity: 1; }
+        .ldhub-navbar .nav-links .btn-login {
+            background: white;
+            color: #117554;
+            border-radius: 25px;
+            padding: 7px 24px;
+            font-weight: 700;
+            transition: all .2s;
+        }
+        .ldhub-navbar .nav-links .btn-login:hover {
+            background: #f0fff4;
+            box-shadow: 0 2px 10px rgba(0,0,0,.2);
+            transform: translateY(-1px);
+        }
+        .ldhub-navbar .nav-links .btn-register {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,.7);
+            border-radius: 25px;
+            padding: 5px 20px;
+            font-weight: 600;
+            transition: all .2s;
+        }
+        .ldhub-navbar .nav-links .btn-register:hover {
+            background: rgba(255,255,255,.15);
+        }
+
+        /* ── Hero with fixed background ── */
+        .hero {
+            height: 100vh;
+            min-height: 600px;
+            background-image: url('/dist/img/denrbg.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed; /* ← locked/parallax effect */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        /* Dark overlay for readability */
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to bottom,
+                rgba(17, 117, 84, 0.65) 0%,
+                rgba(0, 0, 0, 0.55) 100%
+            );
+        }
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            color: white;
+            padding: 20px;
+            animation: fadeInUp .8s ease both;
+        }
+        @@keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .hero-content img {
+            width: 110px; height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid rgba(255,255,255,.7);
+            box-shadow: 0 6px 25px rgba(0,0,0,.3);
+            margin-bottom: 25px;
+        }
+        .hero-content h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 0 3px 10px rgba(0,0,0,.3);
+            line-height: 1.2;
+        }
+        .hero-content p {
+            font-size: 1.2rem;
+            opacity: .92;
+            max-width: 620px;
+            margin: 0 auto 35px;
+            line-height: 1.7;
+            text-shadow: 0 1px 4px rgba(0,0,0,.3);
+        }
+        .hero-btns a {
+            margin: 6px;
+            padding: 13px 38px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all .3s;
+            display: inline-block;
+        }
+        .btn-hero-login {
+            background: white;
+            color: #117554 !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,.25);
+        }
+        .btn-hero-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,.3);
+        }
+        .btn-hero-register {
+            background: transparent;
+            color: white !important;
+            border: 2px solid rgba(255,255,255,.85);
+        }
+        .btn-hero-register:hover {
+            background: rgba(255,255,255,.15);
+            transform: translateY(-3px);
+        }
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,.7);
+            font-size: .85rem;
+            text-align: center;
+            animation: bounce 2s infinite;
+        }
+        @@keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(8px); }
+        }
+
+        /* ── Stats Bar ── */
+        .stats-bar {
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,.08);
+            padding: 35px 20px;
+        }
+        .stat-item { text-align: center; padding: 10px; }
+        .stat-item .stat-number {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #117554, #4BB543);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-item .stat-label { font-size: .9rem; color: #6c757d; margin-top: 4px; }
+
+        /* ── Features ── */
+        .features { padding: 80px 20px; background: #f8fdf9; }
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 800;
+            color: #117554;
+            margin-bottom: 10px;
+        }
+        .section-subtitle {
+            text-align: center;
+            color: #6c757d;
+            margin-bottom: 50px;
+            font-size: 1rem;
+        }
+        .feature-card {
+            background: white;
+            border-radius: 14px;
+            padding: 35px 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,.06);
+            transition: all .3s;
+            height: 100%;
+            border-bottom: 4px solid transparent;
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 30px rgba(0,0,0,.1);
+            border-bottom-color: #4BB543;
+        }
+        .feature-icon {
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #117554, #4BB543);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 1.8rem;
+            color: white;
+            box-shadow: 0 4px 15px rgba(75,181,67,.3);
+        }
+        .feature-card h5 { font-weight: 700; color: #2d2d2d; margin-bottom: 10px; }
+        .feature-card p  { color: #6c757d; font-size: .92rem; line-height: 1.7; }
+
+        /* ── How It Works ── */
+        .how-it-works { padding: 80px 20px; background: white; }
+        .step-item { text-align: center; padding: 20px; }
+        .step-number {
+            width: 65px; height: 65px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #9BEC00, #4BB543);
+            color: white;
+            font-size: 1.6rem;
+            font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 18px;
+            box-shadow: 0 4px 15px rgba(75,181,67,.35);
+        }
+        .step-item h5 { font-weight: 700; color: #2d2d2d; margin-bottom: 8px; }
+        .step-item p  { color: #6c757d; font-size: .9rem; line-height: 1.6; }
+        .step-connector {
+            border-top: 3px dashed #c8e6c9;
+            margin-top: 32px;
+        }
+
+        /* ── About ── */
+        .about {
+            padding: 80px 20px;
+            background: linear-gradient(135deg, #117554, #4BB543);
+            color: white;
+            text-align: center;
+        }
+        .about h2 { font-size: 2rem; font-weight: 800; margin-bottom: 15px; }
+        .about p  { font-size: 1rem; opacity: .92; max-width: 700px; margin: 0 auto 20px; line-height: 1.8; }
+        .badge-pill-white {
+            background: rgba(255,255,255,.2);
+            color: white;
+            border-radius: 20px;
+            padding: 7px 18px;
+            font-size: .85rem;
+            margin: 4px;
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,.3);
+        }
+
+        /* ── CTA ── */
+        .cta { padding: 80px 20px; background: #f8fdf9; text-align: center; }
+        .cta h2 { font-size: 2rem; font-weight: 800; color: #117554; margin-bottom: 10px; }
+        .cta p  { color: #6c757d; margin-bottom: 30px; font-size: 1rem; }
+        .btn-cta-login {
+            background: linear-gradient(135deg, #117554, #4BB543);
+            color: white !important;
+            border-radius: 30px;
+            padding: 13px 45px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(75,181,67,.4);
+            transition: all .3s;
+            margin: 6px;
+        }
+        .btn-cta-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(75,181,67,.5);
+        }
+        .btn-cta-register {
+            background: white;
+            color: #117554 !important;
+            border: 2px solid #4BB543;
+            border-radius: 30px;
+            padding: 11px 40px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-block;
+            transition: all .3s;
+            margin: 6px;
+        }
+        .btn-cta-register:hover {
+            background: #f0fff4;
+            transform: translateY(-3px);
+        }
+
+        /* ── Footer ── */
+        footer {
+            background: #0d1b2a;
+            color: rgba(255,255,255,.65);
+            text-align: center;
+            padding: 40px 20px;
+            font-size: .88rem;
+        }
+        footer .footer-logo {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 12px;
+            opacity: .85;
+            border: 2px solid rgba(255,255,255,.2);
+        }
+        footer strong { color: white; }
+        footer a { color: #4BB543; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+        .footer-divider {
+            border-color: rgba(255,255,255,.1);
+            max-width: 450px;
+            margin: 18px auto;
+        }
+
+        /* ── Responsive ── */
+        @@media (max-width: 768px) {
+            .hero-content h1 { font-size: 2rem; }
+            .hero-content p  { font-size: 1rem; }
+            .ldhub-navbar .nav-links .btn-register { display: none; }
+            .hero { background-attachment: scroll; } /* Fix iOS parallax issue */
+        }
+    </style>
+</head>
 <body>
 
-    @* Public Navbar *@
-    @await Html.PartialAsync("_NavbarPublic")
-
-    @* Hero Section *@
-    <div class="container mt-5 text-center">
-
-        <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" class="img-circle mb-3"
-             style="width:100px;height:100px;object-fit:cover;" />
-
-        <h1 class="mt-3">DENR Learning & Development Hub</h1>
-        <p class="text-muted mt-2">
-            A centralized platform for managing trainings, modules, and
-            employee development programs of the Department of Environment
-            and Natural Resources.
-        </p>
-
-        <a href="/Home/Login" class="btn btn-success btn-lg mt-3">
-            <i class="fas fa-sign-in-alt mr-2"></i> Login to your account
+    @* ── NAVBAR ── *@
+    <nav class="ldhub-navbar" id="mainNavbar">
+        <a href="/" class="brand">
+            <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" />
+            <span>DENR L&amp;D Hub</span>
         </a>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#about">About</a>
+            <a href="/Account/Register" class="btn-register">Register</a>
+            <a href="/Home/Login" class="btn-login">
+                <i class="fas fa-sign-in-alt mr-1"></i> Login
+            </a>
+        </div>
+    </nav>
 
-            <div class="text-center mt-3">
-        <a asp-controller="Account" asp-action="Register">Register</a>
-    </div>
+    @* ── HERO with fixed background ── *@
+    <section class="hero">
+        <div class="hero-content">
+            <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" />
+            <h1>DENR Learning &amp; Development Hub</h1>
+            <p>
+                A centralized platform for managing trainings, modules, and
+                employee development programs of the Department of Environment
+                and Natural Resources.
+            </p>
+            <div class="hero-btns">
+                <a href="/Home/Login" class="btn-hero-login">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Login to Your Account
+                </a>
+                <a href="/Account/Register" class="btn-hero-register">
+                    <i class="fas fa-user-plus mr-2"></i>Register Now
+                </a>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <i class="fas fa-chevron-down fa-lg"></i><br/>
+            <small>Scroll Down</small>
+        </div>
+    </section>
 
-    </div>
+    @* ── STATS BAR ── *@
+    <section class="stats-bar">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-6 col-md-3">
+                    <div class="stat-item">
+                        <div class="stat-number">5</div>
+                        <div class="stat-label">User Roles</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-item">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Online Access</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-item">
+                        <div class="stat-number">3</div>
+                        <div class="stat-label">Test Attempts</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-item">
+                        <div class="stat-number">DENR</div>
+                        <div class="stat-label">Official Platform</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* ── FEATURES ── *@
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Platform Features</h2>
+            <p class="section-subtitle">Everything you need to manage learning and development in one place.</p>
+            <div class="row g-4">
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-book-open"></i></div>
+                        <h5>Training Management</h5>
+                        <p>Create, schedule, and manage training programs with ease. Assign participants and resource persons seamlessly.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-folder-open"></i></div>
+                        <h5>Module Library</h5>
+                        <p>Upload and organize training modules including lectures, activities, quizzes, and text-based reading materials.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-file-alt"></i></div>
+                        <h5>Pre &amp; Post Testing</h5>
+                        <p>Measure learning outcomes with pre-tests and post-tests. System automatically scores and tracks progress.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
+                        <h5>Grades &amp; Analytics</h5>
+                        <p>Real-time grade tracking showing pre-test vs post-test comparison, pass/fail status, and improvement metrics.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-certificate"></i></div>
+                        <h5>Certificates</h5>
+                        <p>Automatically generate certificates for employees who pass the post-test and complete all training modules.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-users"></i></div>
+                        <h5>Multi-Role Access</h5>
+                        <p>Separate dashboards for Admin, Course Manager, Resource Person, RAAM, and Employee — each tailored to their needs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* ── HOW IT WORKS ── *@
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Simple steps to get started with the L&D Hub.</p>
+            <div class="row align-items-start justify-content-center">
+                <div class="col-md-3">
+                    <div class="step-item">
+                        <div class="step-number">1</div>
+                        <h5>Register</h5>
+                        <p>Create your account and wait for Admin approval to access the platform.</p>
+                    </div>
+                </div>
+                <div class="col-md-1 d-none d-md-block">
+                    <div class="step-connector"></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="step-item">
+                        <div class="step-number">2</div>
+                        <h5>Get Assigned</h5>
+                        <p>Once approved, you'll be assigned to training programs relevant to your role.</p>
+                    </div>
+                </div>
+                <div class="col-md-1 d-none d-md-block">
+                    <div class="step-connector"></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="step-item">
+                        <div class="step-number">3</div>
+                        <h5>Learn &amp; Complete</h5>
+                        <p>Take the pre-test, complete all modules, then ace the post-test to earn your certificate.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* ── ABOUT ── *@
+    <section class="about" id="about">
+        <div class="container">
+            <h2><i class="fas fa-leaf mr-2"></i>About DENR TDD</h2>
+            <p>
+                The Talent Development Division (TDD) of the Department of Environment and Natural Resources
+                is committed to building the capacity of DENR employees through structured learning programs,
+                trainings, and professional development initiatives. The L&D Hub is TDD's digital solution
+                to streamline and modernize this process.
+            </p>
+            <div class="mt-3">
+                <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>Talent Development</span>
+                <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>Capacity Building</span>
+                <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>Digital Learning</span>
+                <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>DENR Official</span>
+            </div>
+        </div>
+    </section>
+
+    @* ── CTA ── *@
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Get Started?</h2>
+            <p>Join the DENR L&D Hub and take the next step in your professional development.</p>
+            <a href="/Home/Login" class="btn-cta-login">
+                <i class="fas fa-sign-in-alt mr-2"></i>Login Now
+            </a>
+            <a href="/Account/Register" class="btn-cta-register">
+                <i class="fas fa-user-plus mr-2"></i>Register
+            </a>
+        </div>
+    </section>
+
+    @* ── FOOTER ── *@
+    <footer>
+        <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" class="footer-logo" />
+        <p class="mb-1"><strong>DENR Learning &amp; Development Hub</strong></p>
+        <p class="mb-1">Talent Development Division &mdash; Human Resource Development Section</p>
+        <p class="mb-2">Department of Environment and Natural Resources &mdash; Central Office</p>
+        <hr class="footer-divider" />
+        <p class="mb-0">&copy; @DateTime.Now.Year DENR TDD &mdash; All Rights Reserved</p>
+    </footer>
 
     <script src="~/plugins/jquery/jquery.min.js"></script>
-    <script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-</body>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Navbar background on scroll
+        window.addEventListener('scroll', function () {
+            var navbar = document.getElementById('mainNavbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
 
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
 </html>

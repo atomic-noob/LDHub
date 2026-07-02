@@ -36,12 +36,19 @@
         }
 
         <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-users mr-2"></i>List of Employees
-                    <span class="badge badge-success ml-2">@Model.Count()</span>
-                </h3>
-            </div>
+           <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+    <h3 class="card-title">Employees List</h3>
+    <div class="ml-auto d-flex align-items-center" style="gap:8px;">
+        <label class="mb-0 font-weight-bold">Filter by Role:</label>
+        <select id="roleFilter" class="form-control form-control-sm" style="min-width:180px;">
+            <option value="">All Roles</option>
+            <option value="Employee">Employee</option>
+            <option value="CourseManager">Course Manager</option>
+            <option value="Raam">RAAM</option>
+            <option value="ResourcePerson">Resource Person</option>
+        </select>
+    </div>
+</div>
             <div class="card-body">
                 <table id="employeesTable" class="table table-bordered table-hover">
                     <thead class="thead-dark">
@@ -292,7 +299,15 @@
             $('#removeRoleForm').submit();
         });
             });
-
+            
+            // ── Role filter ──
+$('#roleFilter').on('change', function () {
+    var role = $(this).val();
+    $('#employeesTable').DataTable()
+        .column(5) // adjust column index where roles are shown
+        .search(role ? role : '', true, false)
+        .draw();
+});
     
 </script>
 }

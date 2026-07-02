@@ -1,95 +1,160 @@
 @model LDHub.Models.LoginViewModel
+
 @{
     Layout = null;
     ViewData["Title"] = "Login";
 }
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DENR L&D Hub — Login</title>
-    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css" />
-    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/dist/css/adminlte.min.css" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>DENR L&D Hub - @ViewData["Title"]</title>
+
+    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css"/>
+    <link rel="stylesheet" href="~/css/auth.css"/>
 </head>
-<body class="hold-transition login-page">
+<body>
 
-<div class="login-box">
+<div class="auth-container">
+    <div class="auth-wrapper">
 
-    <div class="login-logo">
-        <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo"
-             class="img-circle mb-2"
-             style="width:80px;height:80px;object-fit:cover;" />
-        <br />
-        <b>DENR L&amp;D Hub Employee Login</b>
-    </div>
+        <div class="auth-left">
+            <img src="~/dist/img/denrlogo.jpg" class="auth-logo" alt="DENR Logo">
+            <h1 class="auth-title">
+                DENR<br>
+                Learning & Development Hub
+            </h1>
+            <p class="auth-subtitle">
+                Learning. Growing. Serving.
+            </p>
 
-    <div class="card">
-        <div class="card-body login-card-body">
+            <div class="auth-feature">
+                <div class="auth-icon">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <div>
+                    <strong>Official Platform</strong><br>
+                    Talent Development Division
+                </div>
+            </div>
 
-            <p class="login-box-msg">Sign in to your DENR account</p>
+            <div class="auth-feature">
+                <div class="auth-icon">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div>
+                    <strong>Professional Development</strong><br>
+                    Digital Learning Experience
+                </div>
+            </div>
+
+            <div class="auth-feature">
+                <div class="auth-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div>
+                    <strong>Secure Access</strong><br>
+                    Protected Employee Portal
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="text-center mb-4">
+                <img src="~/dist/img/denrlogo.jpg" width="70" class="rounded-circle shadow" alt="DENR Logo Tiny">
+            </div>
+
+            <h2 class="glass-title">Welcome Back</h2>
+            <p class="glass-description">
+                Sign in to continue to the DENR L&D Hub
+            </p>
 
             @if (ViewBag.Error != null)
             {
-                <div class="alert alert-danger alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert">&times;</button>
-                    <i class="icon fas fa-ban"></i> @ViewBag.Error
+                <div class="alert alert-danger">
+                    @ViewBag.Error
                 </div>
             }
 
-            <form asp-controller="Home" asp-action="Login" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-warning mb-3"></div>
+
+            <form asp-action="Login" asp-controller="Home" method="post">
                 @Html.AntiForgeryToken()
 
-                <div class="input-group mb-3">
-                    <input asp-for="Email" type="email"
-                           class="form-control"
-                           placeholder="Email" required />
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <span class="fas fa-envelope"></span>
+                <div class="form-group mb-3">
+                    <label class="form-label">Email Address</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                        </div>
+                        <input asp-for="Email" class="form-control" placeholder="Enter your email">
+                    </div>
+                    <span asp-validation-for="Email" class="text-warning small"></span>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                        </div>
+                        <input asp-for="Password" type="password" class="form-control" id="password" placeholder="Enter your password">
+                        <div class="input-group-append">
+                            <span class="input-group-text togglePassword" style="cursor: pointer;">
+                                <i class="fas fa-eye"></i>
+                            </span>
                         </div>
                     </div>
+                    <span asp-validation-for="Password" class="text-warning small"></span>
                 </div>
 
-                <div class="input-group mb-3">
-                    <input asp-for="Password" type="password"
-                           class="form-control"
-                           placeholder="Password" required />
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <span class="fas fa-lock"></span>
-                        </div>
-                    </div>
+                <button type="submit" class="btn-auth w-100">
+                    <i class="fas fa-sign-in-alt me-2"></i> Login
+                </button>
+
+                <div class="text-center mt-4">
+                    <a asp-controller="Account" asp-action="Register" class="text-white">
+                        Create an Account
+                    </a>
                 </div>
 
-                <div class="row">
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-success btn-block">
-                            <i class="fas fa-sign-in-alt mr-2"></i> Sign In
-                        </button>
-                    </div>
+                <div class="text-center mt-3">
+                    <a href="/" class="text-white-50">
+                        Back to Home
+                    </a>
                 </div>
-
             </form>
-            <div class="text-center mt-3">
-    <a asp-controller="Account" asp-action="Register">Register</a>
-</div>
-
-            <div class="mt-3 text-center">
-                <a href="/" class="text-muted">
-                    <i class="fas fa-arrow-left mr-1"></i> Back to Home
-                </a>
-            </div>
-
         </div>
-    </div>
 
+    </div>
 </div>
 
 <script src="~/plugins/jquery/jquery.min.js"></script>
 <script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="~/dist/js/adminlte.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('.togglePassword').click(function () {
+            var input = $("#password");
+            var icon = $(this).find("i");
+
+            if (input.attr("type") === "password") {
+                input.attr("type", "text");
+                icon.removeClass("fa-eye").addClass("fa-eye-slash");
+            } else {
+                input.attr("type", "password");
+                icon.removeClass("fa-eye-slash").addClass("fa-eye");
+            }
+        });
+    });
+</script>
 
 </body>
 </html>

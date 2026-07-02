@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Models.ViewModels;
 using LDHub.Data;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace LDHub.Controllers;
 
@@ -16,11 +17,32 @@ public class AccountController : Controller
     }
 
     // GET: /Account/Register
-    public IActionResult Register()
-    {
-        ViewBag.Regions = _db.Regions.ToList();
-        return View();
-    }
+        public IActionResult Register()
+        {
+            ViewBag.Regions = new SelectList(_db.Regions.ToList(), "RegionId", "RegionName");
+            return View();
+        }
+        // GET: /Account/GetOffices?regionId=1
+            [HttpGet]
+            public IActionResult GetOffices(int regionId)
+            {
+                var offices = _db.Offices
+                    .Where(o => o.RegionId == regionId)
+                    .Select(o => new { value = o.OfficeId, text = o.OfficeName })
+                    .ToList();
+                return Json(offices);
+            }
+
+            // GET: /Account/GetDivisions?officeId=1
+            [HttpGet]
+            public IActionResult GetDivisions(int officeId)
+            {
+                var divisions = _db.Divisions
+                    .Where(d => d.OfficeId == officeId)
+                    .Select(d => new { value = d.DivisionId, text = d.DivisionName })
+                    .ToList();
+                return Json(divisions);
+            }
 
     // POST: /Account/Register
     [HttpPost]
@@ -42,7 +64,7 @@ public class AccountController : Controller
         if (emailExistsInUsers || emailExistsInPending)
         {
             ModelState.AddModelError("Email", "Email already registered or pending approval.");
-            ViewBag.Regions = _db.Regions.ToList();
+            ViewBag.Regions = new SelectList(_db.Regions.ToList(), "RegionId", "RegionName");
             return View(model);
         }
 

@@ -93,16 +93,19 @@ public async Task<IActionResult> Employees()
     if (!IsAdmin()) return RedirectToAction("Index");
     SetViewBag();
 
-    var employees = await _db.Users
+    var users = await _db.Users
         .Include(u => u.UserRoles)
         .Include(u => u.Region)
         .Include(u => u.Office)
         .Include(u => u.Division)
+        // ← Exclude Admin accounts
+        .Where(u => !u.UserRoles.Any(r => r.Role == "Admin"))
         .OrderBy(u => u.LastName)
         .ToListAsync();
 
-    return View("~/Views/Admin/Employees.cshtml", employees);
+    return View("~/Views/Admin/Employees.cshtml", users);
 }
+
 // POST: /Admin/EmployeeEdit
 [HttpPost]
 [ValidateAntiForgeryToken]
@@ -335,13 +338,142 @@ public async Task<IActionResult> RejectEmployee(int id)
     TempData["Success"] = $"{pending.FirstName} {pending.LastName} has been rejected.";
     return RedirectToAction("PendingEmployees");
 }
-
-    public IActionResult ResourcePersons()
+// ── GET: /Admin/ResourcePersons ───────────────────────────────
+public async Task<IActionResult> ResourcePersons()
+{
+    if (!IsAdmin()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+ 
+    var resourcePersons = await _db.Users
+        .Include(u => u.Region)
+        .Include(u => u.Office)
+        .Include(u => u.Division)
+        .Where(u => u.IsExternal == true)
+        .OrderByDescending(u => u.CreatedAt)
+        .ToListAsync();
+ 
+    return View("~/Views/Admin/ResourcePersons.cshtml", resourcePersons);
+}
+ 
+// ── POST: /Admin/CreateResourcePerson ────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> CreateResourcePerson(
+    string firstName, string lastName, string? middleName,
+    string email, string password, string? organization,
+    string? expertise, string? contactNumber, string? gender,
+    int? regionId, int? officeId, int? divisionId)
+{
+    if (!IsAdmin()) return RedirectToAction("Login", "Home");
+ 
+    // Check email exists
+    var emailExists = await _db.Users.AnyAsync(u => u.Email == email);
+    if (emailExists)
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
-        SetViewBag();
-        return View("~/Views/Admin/ResourcePersons.cshtml");
+        TempData["Error"] = "Email already exists.";
+        return RedirectToAction("ResourcePersons");
     }
+ 
+    var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
+ 
+    var user = new User
+    {
+        FirstName     = firstName,
+        MiddleName    = middleName,
+        LastName      = lastName,
+        Email         = email,
+        Password      = hashedPassword,
+        Organization  = organization,
+        Expertise     = expertise,
+        ContactNumber = contactNumber,
+        Gender        = gender,
+        RegionId      = regionId,
+        OfficeId      = officeId,
+        DivisionId    = divisionId,
+        IsExternal    = true,
+        Status = "Active",
+        CreatedAt     = DateTime.UtcNow,
+        UpdatedAt     = DateTime.UtcNow
+    };
+ 
+    _db.Users.Add(user);
+    await _db.SaveChangesAsync();
+ 
+    // Assign ResourcePerson role
+    _db.UserRoles.Add(new UserRole
+    {
+        UserId   = user.UserId,
+        Role = "ResourcePerson"
+    });
+    await _db.SaveChangesAsync();
+ 
+    TempData["Success"] = $"Resource Person {firstName} {lastName} created successfully!";
+    return RedirectToAction("ResourcePersons");
+}
+ 
+// ── POST: /Admin/EditResourcePerson ──────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> EditResourcePerson(
+    int userId, string firstName, string lastName, string? middleName,
+    string email, string? newPassword, string? organization,
+    string? expertise, string? contactNumber, string? gender,
+    int? regionId, int? officeId, int? divisionId)
+{
+    if (!IsAdmin()) return RedirectToAction("Login", "Home");
+ 
+    var user = await _db.Users.FindAsync(userId);
+    if (user == null)
+    {
+        TempData["Error"] = "User not found.";
+        return RedirectToAction("ResourcePersons");
+    }
+ 
+    user.FirstName     = firstName;
+    user.MiddleName    = middleName;
+    user.LastName      = lastName;
+    user.Email         = email;
+    user.Organization  = organization;
+    user.Expertise     = expertise;
+    user.ContactNumber = contactNumber;
+    user.Gender        = gender;
+    user.RegionId      = regionId;
+    user.OfficeId      = officeId;
+    user.DivisionId    = divisionId;
+    user.UpdatedAt     = DateTime.UtcNow;
+ 
+    // Only update password if new one provided
+    if (!string.IsNullOrWhiteSpace(newPassword))
+        user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+ 
+    await _db.SaveChangesAsync();
+ 
+    TempData["Success"] = "Resource Person updated successfully!";
+    return RedirectToAction("ResourcePersons");
+}
+ 
+// ── POST: /Admin/ToggleResourcePersonStatus ───────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> ToggleResourcePersonStatus(int userId)
+{
+    if (!IsAdmin()) return RedirectToAction("Login", "Home");
+
+    var user = await _db.Users.FindAsync(userId);
+    if (user == null)
+    {
+        TempData["Error"] = "User not found.";
+        return RedirectToAction("ResourcePersons");
+    }
+
+    user.Status    = user.Status == "Active" ? "Inactive" : "Active";
+    user.UpdatedAt = DateTime.UtcNow;
+
+    await _db.SaveChangesAsync();
+
+    TempData["Success"] = $"{user.FirstName} {user.LastName} has been {user.Status.ToLower()}.";
+    return RedirectToAction("ResourcePersons");
+}
 
     // ── Locations ─────────────────────────────────────────────────
     // ── REGIONS CRUD ──────────────────────────────────────────────
@@ -734,4 +866,54 @@ public async Task<IActionResult> GetDivisionsByOffice(int officeId)
         .ToListAsync();
     return Json(divisions);
 }
+
+// ── GET: /Admin/AccountSettings ──────────────────────────────
+public async Task<IActionResult> AccountSettings()
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+    SetViewBag();
+
+    var userId = int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
+    var admin  = await _db.Users.FindAsync(userId);
+
+    return View("~/Views/Admin/AccountSettings.cshtml", admin);
+}
+
+// ── POST: /Admin/UpdateAdminAccount ──────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> UpdateAdminAccount(string email, 
+    string? newPassword, string currentPassword)
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+
+    var userId = int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
+    var admin  = await _db.Users.FindAsync(userId);
+
+    if (admin == null) return RedirectToAction("Index");
+
+    // Verify current password first
+    if (!BCrypt.Net.BCrypt.Verify(currentPassword, admin.Password))
+    {
+        TempData["Error"] = "Current password is incorrect!";
+        return RedirectToAction("AccountSettings");
+    }
+
+    // Update email
+    admin.Email     = email;
+    admin.UpdatedAt = DateTime.UtcNow;
+
+    // Update password only if provided
+    if (!string.IsNullOrEmpty(newPassword))
+    {
+        admin.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+    }
+
+    await _db.SaveChangesAsync();
+    HttpContext.Session.SetString("UserName", $"{admin.FirstName} {admin.LastName}");
+    TempData["Success"] = "Admin account updated successfully!";
+    return RedirectToAction("AccountSettings");
+}
+
+
 }
