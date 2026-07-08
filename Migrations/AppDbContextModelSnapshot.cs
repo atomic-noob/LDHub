@@ -22,6 +22,42 @@ namespace LDHub.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("LDHub.Models.Competency", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CompetencyCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("competency_code");
+
+                    b.Property<string>("CompetencyName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("competency_name");
+
+                    b.Property<string>("CompetencyTitle")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("competency_title");
+
+                    b.Property<int?>("PageNumber")
+                        .HasColumnType("int")
+                        .HasColumnName("page_number");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("competencies");
+                });
+
             modelBuilder.Entity("LDHub.Models.Division", b =>
                 {
                     b.Property<int>("DivisionId")
@@ -341,6 +377,34 @@ namespace LDHub.Migrations
                     b.ToTable("pending_participants");
                 });
 
+            modelBuilder.Entity("LDHub.Models.ProficiencyLevel", b =>
+                {
+                    b.Property<int>("ProficiencyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("proficiency_id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ProficiencyId"));
+
+                    b.Property<string>("ProficiencyName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("proficiency_name");
+
+                    b.Property<int?>("ScoreMax")
+                        .HasColumnType("int")
+                        .HasColumnName("score_max");
+
+                    b.Property<int?>("ScoreMin")
+                        .HasColumnType("int")
+                        .HasColumnName("score_min");
+
+                    b.HasKey("ProficiencyId");
+
+                    b.ToTable("proficiency_levels");
+                });
+
             modelBuilder.Entity("LDHub.Models.Question", b =>
                 {
                     b.Property<int>("Id")
@@ -566,6 +630,10 @@ namespace LDHub.Migrations
                         .HasColumnName("training_id");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("TrainingId"));
+
+                    b.Property<int?>("CompetencyId")
+                        .HasColumnType("int")
+                        .HasColumnName("competency_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)")

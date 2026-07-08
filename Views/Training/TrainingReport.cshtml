@@ -1,0 +1,556 @@
+@model LDHub.Models.ViewModels.TrainingReportViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Training Report";
+
+    var trainings  = ViewBag.Trainings as List<LDHub.Models.Training> ?? new List<LDHub.Models.Training>();
+    int trainingId = ViewBag.TrainingId ?? 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/select2/css/select2.min.css" />
+    <link rel="stylesheet" href="~/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css" />
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+        .report-banner {
+            background: linear-gradient(135deg,#117554,#4BB543);
+            color: white; border-radius: 8px;
+            padding: 20px 25px; margin-bottom: 20px;
+        }
+        .report-banner h4 { font-weight:800; margin-bottom:4px; }
+        .report-banner p  { opacity:.85; margin-bottom:0; font-size:.9rem; }
+        .stat-box { border-radius:8px; padding:15px; text-align:center; margin-bottom:15px; color:white; }
+        .stat-box .num   { font-size:2rem; font-weight:800; line-height:1; }
+        .stat-box .label { font-size:.78rem; opacity:.85; margin-top:4px; }
+        .diff-pos { color:#4BB543; font-weight:bold; }
+        .diff-neg { color:#dc3545; font-weight:bold; }
+        .diff-zero { color:#6c757d; }
+        .row-passed  { background:#f0fff4 !important; }
+        .row-failed  { background:#fff5f5 !important; }
+        .row-pending { background:#fffde7 !important; }
+        @@media print {
+            body * { visibility:hidden; }
+            #printable, #printable * { visibility:visible; }
+            #printable { position:absolute; top:0; left:0; width:100%; }
+            .no-print  { display:none !important; }
+            .print-only { display:block !important; }
+            table { font-size:9px; }
+            .badge { border:1px solid #000 !important; color:#000 !important; background:none !important; }
+        }
+        .print-only { display:none; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Training Report</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Training" asp-action="Index">Trainings</a>
+                    </li>
+                    <li class="breadcrumb-item active">Training Report</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @* Filter *@
+        <div class="card card-outline card-success mb-4 no-print">
+            <div class="card-header success-gradient">
+                <h3 class="card-title"><i class="fas fa-filter mr-2"></i>Select Training</h3>
+            </div>
+            <div class="card-body">
+                <form method="get" asp-controller="Training" asp-action="TrainingReport">
+                    <div class="row align-items-end">
+                        <div class="col-md-8">
+                            <label>Training</label>
+                            <select class="form-control select2-training" name="trainingId">
+                                <option value="">-- Select Training --</option>
+                                @foreach (var t in trainings)
+                                {
+                                    var dates = t.StartDate.HasValue
+                                        ? $"{t.StartDate?.ToString("MMM dd")} – {t.EndDate?.ToString("MMM dd, yyyy")}"
+                                        : "No date set";
+                                    var reg = t.Region?.RegionName ?? "No region";
+                                    <option value="@t.TrainingId"
+                                            selected="@(trainingId == t.TrainingId ? "selected" : null)">
+                                        @t.TrainingTitle — @dates | @reg
+                                    </option>
+                                }
+                            </select>
+                            <small class="text-muted">Includes title, date range, and region for easy filtering.</small>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success btn-block mt-2">
+                                <i class="fas fa-search mr-1"></i> Generate
+                            </button>
+                        </div>
+                        @if (Model != null)
+                        {
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-secondary btn-block mt-2"
+                                        onclick="printReport()">
+                                    <i class="fas fa-print mr-1"></i> Print
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @if (Model == null)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-chart-bar fa-4x mb-3" style="opacity:.2;"></i>
+                <h4>Select a training above to generate the report.</h4>
+            </div>
+        }
+        else
+        {
+            <div id="printable">
+
+                @* Print-only header *@
+                <div class="print-only text-center mb-3">
+                    <h3>DENR Learning &amp; Development Hub</h3>
+                    <h4>Training Report</h4>
+                    <p>Printed: @DateTime.Now.ToString("MMMM dd, yyyy hh:mm tt")</p>
+                    <hr />
+                </div>
+
+                @* Training Banner *@
+                <div class="report-banner">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4><i class="fas fa-book mr-2"></i>@Model.Training.TrainingTitle</h4>
+                            <p>
+                                <i class="fas fa-hashtag mr-1"></i>@Model.Training.TrainingCode
+                                &nbsp;|&nbsp;
+                                <i class="fas fa-map-marker-alt mr-1"></i>@(Model.Training.Location ?? "No location")
+                                &nbsp;|&nbsp;
+                                <i class="fas fa-map mr-1"></i>@(Model.Training.Region?.RegionName ?? "No region")
+                            </p>
+                            <p>
+                                <i class="fas fa-calendar mr-1"></i>
+                                @(Model.Training.StartDate?.ToString("MMM dd, yyyy") ?? "TBD") –
+                                @(Model.Training.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                &nbsp;|&nbsp;
+                                <i class="fas fa-clock mr-1"></i>@(Model.Training.TrainingHrs ?? 0) hrs
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-right" style="font-size:.9rem; opacity:.9;">
+                            <div>Min Score: <strong>@Model.Training.MinimumScore pts</strong></div>
+                            <div>Total Possible: <strong>@Model.TotalPoints.ToString("0.##") pts</strong></div>
+                            <div>Participants: <strong>@Model.TotalParticipants</strong></div>
+                        </div>
+                    </div>
+                </div>
+
+                @* Stat Boxes *@
+                <div class="row">
+                    <div class="col-md-2 col-6">
+                        <div class="stat-box bg-primary shadow-sm">
+                            <div class="num">@Model.TotalParticipants</div>
+                            <div class="label">Total</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="stat-box bg-success shadow-sm">
+                            <div class="num">@Model.PassedCount</div>
+                            <div class="label">Passed</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="stat-box bg-danger shadow-sm">
+                            <div class="num">@Model.FailedCount</div>
+                            <div class="label">Failed</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="stat-box bg-warning shadow-sm">
+                            <div class="num">@Model.NotTakenCount</div>
+                            <div class="label">Not Taken</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="stat-box bg-info shadow-sm">
+                            <div class="num">@Model.PassingRate.ToString("0.#")%</div>
+                            <div class="label">Passing Rate</div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="stat-box @(Model.LearningGain >= 0 ? "bg-success" : "bg-danger") shadow-sm">
+                            <div class="num">@(Model.LearningGain >= 0 ? "+" : "")@Model.LearningGain.ToString("0.##")</div>
+                            <div class="label">Learning Gain</div>
+                        </div>
+                    </div>
+                </div>
+
+                @* Score Summary Card *@
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title"><i class="fas fa-chart-line mr-2"></i>Score Summary</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center mb-3">
+                            <div class="col-md-4">
+                                <p class="text-muted mb-1">Pre-Test Average</p>
+                                <h2 class="text-primary font-weight-bold">
+                                    @Model.PreTestAvg.ToString("0.##")
+                                    <small class="text-muted" style="font-size:1rem;">/ @Model.TotalPoints.ToString("0.##")</small>
+                                </h2>
+                                <small class="text-muted">
+                                    (@(Model.TotalPoints > 0 ? Math.Round(Model.PreTestAvg / Model.TotalPoints * 100, 1) : 0)%)
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="text-muted mb-1">Post-Test Average</p>
+                                <h2 class="text-success font-weight-bold">
+                                    @Model.PostTestAvg.ToString("0.##")
+                                    <small class="text-muted" style="font-size:1rem;">/ @Model.TotalPoints.ToString("0.##")</small>
+                                </h2>
+                                <small class="text-muted">
+                                    (@(Model.TotalPoints > 0 ? Math.Round(Model.PostTestAvg / Model.TotalPoints * 100, 1) : 0)%)
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="text-muted mb-1">Learning Gain</p>
+                                <h2 class="@(Model.LearningGain > 0 ? "text-success" : Model.LearningGain < 0 ? "text-danger" : "text-muted") font-weight-bold">
+                                    @(Model.LearningGain >= 0 ? "+" : "")@Model.LearningGain.ToString("0.##")
+                                </h2>
+                                <small class="text-muted">Post Avg − Pre Avg</small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Passing Rate</small>
+                            <small><strong>@Model.PassedCount / @Model.TotalParticipants passed (@Model.PassingRate.ToString("0.#")%)</strong></small>
+                        </div>
+                        <div class="progress" style="height:15px; border-radius:8px;">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 style="width:@Model.PassingRate%">
+                                @Model.PassingRate.ToString("0.#")%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @* ─────────────────────────────────────────────────────────────────────────────
+   Add this section AFTER the Score Summary card and BEFORE the
+   Participant Results table in TrainingReport.cshtml
+   ─────────────────────────────────────────────────────────────────────────────*@
+@if (Model.TTest != null)
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-header @(Model.TTest.IsSignificant ? "bg-success" : "bg-secondary") text-white">
+            <h3 class="card-title">
+                <i class="fas fa-flask mr-2"></i>
+                Statistical Analysis — Paired Samples T-Test
+            </h3>
+            <div class="card-tools">
+                <span class="badge badge-light text-dark font-weight-bold" style="font-size:.9rem;">
+                    @(Model.TTest.IsSignificant ? "✓ SIGNIFICANT DIFFERENCE" : "✗ NO SIGNIFICANT DIFFERENCE")
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+
+            @* Conclusion Banner *@
+            <div class="alert @(Model.TTest.IsSignificant ? "alert-success" : "alert-warning") mb-4">
+                <div class="d-flex align-items-start">
+                    <i class="fas @(Model.TTest.IsSignificant ? "fa-check-circle" : "fa-exclamation-triangle") fa-2x mr-3 mt-1"></i>
+                    <div>
+                        <strong>@Model.TTest.Conclusion</strong>
+                        <p class="mb-1 mt-1" style="font-size:.9rem;">
+                            The p-value (@Model.TTest.PValue.ToString("F4")) is
+                            @(Model.TTest.IsSignificant ? "less than" : "greater than")
+                            the significance level (α) (0.05).
+                            We @(Model.TTest.IsSignificant ? "reject" : "fail to reject") the null hypothesis.
+                            @(Model.TTest.IsSignificant
+                                ? "The difference is statistically significant."
+                                : "The difference is likely due to random chance.")
+                        </p>
+                        <hr class="my-2" />
+                        <p class="mb-0" style="font-size:.88rem; font-style:italic;">
+                            @Model.TTest.NarrativeResult
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+
+                @* T-Test Results *@
+                <div class="col-md-6">
+                    <h6 class="font-weight-bold text-muted mb-3">
+                        <i class="fas fa-calculator mr-1"></i> T-TEST RESULTS (PAIRED)
+                    </h6>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">Hypothesis</td>
+                                <td><strong>Two-Tailed (Group 1 ≠ Group 2)</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Significance Level</td>
+                                <td><strong>0.05</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">t-statistic</td>
+                                <td><strong>@Model.TTest.TStatistic.ToString("F4")</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">p-value</td>
+                                <td>
+                                    <strong class="@(Model.TTest.IsSignificant ? "text-success" : "text-danger")">
+                                        @Model.TTest.PValue.ToString("F4")
+                                    </strong>
+                                    @(Model.TTest.IsSignificant ? "(< 0.05)" : "(> 0.05)")
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Degrees of Freedom</td>
+                                <td><strong>@Model.TTest.DegreesOfFreedom.ToString("F2")</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Cohen's d (Effect)</td>
+                                <td>
+                                    <strong>@Model.TTest.CohensD.ToString("F4")</strong>
+                                    <span class="badge badge-secondary ml-1">@Model.TTest.EffectSize</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Mean Difference</td>
+                                <td><strong>@Model.TTest.MeanDifference.ToString("F4")</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">95% CI of Diff</td>
+                                <td>
+                                    <strong>
+                                        [@Model.TTest.CI_Lower.ToString("F4"), @Model.TTest.CI_Upper.ToString("F4")]
+                                    </strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Pairs Included (N)</td>
+                                <td><strong>@Model.TTest.N</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                @* Group Statistics *@
+                <div class="col-md-6">
+                    <h6 class="font-weight-bold text-muted mb-3">
+                        <i class="fas fa-table mr-1"></i> GROUP STATISTICS
+                    </h6>
+                    <table class="table table-sm table-bordered">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Metric</th>
+                                <th>Pre-Test</th>
+                                <th>Post-Test</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">Count (N)</td>
+                                <td><strong>@Model.TTest.N</strong></td>
+                                <td><strong>@Model.TTest.N</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Mean</td>
+                                <td><strong>@Model.TTest.PreMean.ToString("F4")</strong></td>
+                                <td><strong>@Model.TTest.PostMean.ToString("F4")</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Std Dev</td>
+                                <td><strong>@Model.TTest.PreSD.ToString("F4")</strong></td>
+                                <td><strong>@Model.TTest.PostSD.ToString("F4")</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Std Error (SEM)</td>
+                                <td><strong>@Model.TTest.PreSEM.ToString("F4")</strong></td>
+                                <td><strong>@Model.TTest.PostSEM.ToString("F4")</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    @* Visual indicator *@
+                    <div class="mt-3 p-3 rounded" style="background:#f8f9fa;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Pre-Test Mean</small>
+                            <small><strong>@Model.TTest.PreMean.ToString("F2")</strong></small>
+                        </div>
+                        <div class="progress mb-2" style="height:10px;">
+                            <div class="progress-bar bg-primary" style="width:@(Model.TotalPoints > 0 ? Math.Round(Model.TTest.PreMean / (double)Model.TotalPoints * 100) : 0)%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Post-Test Mean</small>
+                            <small><strong>@Model.TTest.PostMean.ToString("F2")</strong></small>
+                        </div>
+                        <div class="progress" style="height:10px;">
+                            <div class="progress-bar bg-success" style="width:@(Model.TotalPoints > 0 ? Math.Round(Model.TTest.PostMean / (double)Model.TotalPoints * 100) : 0)%"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle mr-2"></i>
+        Statistical analysis requires at least <strong>2 participants</strong> who completed both the pre-test and post-test.
+    </div>
+}
+
+
+
+                @* Participant Results Table *@
+                <div class="card shadow-sm">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title"><i class="fas fa-users mr-2"></i>Participant Results</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (!Model.Rows.Any())
+                        {
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-inbox fa-3x mb-3" style="opacity:.3;"></i>
+                                <p>No participants found for this training.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            var denom = Model.TotalPoints > 0 ? Model.TotalPoints : 1;
+                            <table class="table table-bordered table-hover mb-0">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Position</th>
+                                        <th>Office</th>
+                                        <th>Pre-Test</th>
+                                        <th>Post-Test</th>
+                                        <th>Attempts</th>
+                                        <th>Difference</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int n = 1; }
+                                    @foreach (var r in Model.Rows)
+                                    {
+                                        var rowClass  = !r.PostScore.HasValue ? "row-pending"
+                                                      : r.IsPassed ? "row-passed" : "row-failed";
+                                        var diffClass = !r.Difference.HasValue ? "diff-zero"
+                                                      : r.Difference > 0 ? "diff-pos"
+                                                      : r.Difference < 0 ? "diff-neg" : "diff-zero";
+                                        var diffText  = r.Difference.HasValue
+                                                      ? (r.Difference >= 0 ? $"+{r.Difference.Value.ToString("0.##")}" : r.Difference.Value.ToString("0.##"))
+                                                      : "—";
+                                        <tr class="@rowClass">
+                                            <td>@n</td>
+                                            <td><strong>@r.Name</strong></td>
+                                            <td><small>@r.Position</small></td>
+                                            <td><small>@r.Office</small></td>
+                                            <td>
+                                                @if (r.PreScore.HasValue)
+                                                {
+                                                    <span>@r.PreScore.Value.ToString("0.##") / @Model.TotalPoints.ToString("0.##")</span>
+                                                    <small class="text-muted d-block">(@Math.Round(r.PreScore.Value / denom * 100, 1)%)</small>
+                                                }
+                                                else { <span class="text-muted">Not taken</span> }
+                                            </td>
+                                            <td>
+                                                @if (r.PostScore.HasValue)
+                                                {
+                                                    <span>@r.PostScore.Value.ToString("0.##") / @Model.TotalPoints.ToString("0.##")</span>
+                                                    <small class="text-muted d-block">(@Math.Round(r.PostScore.Value / denom * 100, 1)%)</small>
+                                                }
+                                                else { <span class="text-muted">Not taken</span> }
+                                            </td>
+                                            <td class="text-center">
+                                                @if (r.PostAttempts > 0)
+                                                {
+                                                    <span class="badge @(r.PostAttempts >= 3 ? "badge-danger" : "badge-secondary")">
+                                                        @r.PostAttempts / 3
+                                                    </span>
+                                                }
+                                                else { <span class="text-muted">—</span> }
+                                            </td>
+                                            <td class="@diffClass text-center font-weight-bold">@diffText</td>
+                                            <td>
+                                                @if (!r.PostScore.HasValue)
+                                                { <span class="badge badge-warning">Pending</span> }
+                                                else if (r.IsPassed)
+                                                { <span class="badge badge-success">Passed</span> }
+                                                else if (r.PostAttempts >= 3)
+                                                { <span class="badge badge-danger">Failed</span> }
+                                                else
+                                                { <span class="badge badge-warning">Failed (@(3 - r.PostAttempts) left)</span> }
+                                            </td>
+                                        </tr>
+                                        n++;
+                                    }
+                                </tbody>
+                                <tfoot class="thead-light font-weight-bold">
+                                    <tr>
+                                        <td colspan="4" class="text-right">Average:</td>
+                                        <td>
+                                            @Model.PreTestAvg.ToString("0.##")
+                                            <small class="text-muted d-block">(@(Model.TotalPoints > 0 ? Math.Round(Model.PreTestAvg / denom * 100, 1) : 0)%)</small>
+                                        </td>
+                                        <td>
+                                            @Model.PostTestAvg.ToString("0.##")
+                                            <small class="text-muted d-block">(@(Model.TotalPoints > 0 ? Math.Round(Model.PostTestAvg / denom * 100, 1) : 0)%)</small>
+                                        </td>
+                                        <td></td>
+                                        <td class="@(Model.LearningGain >= 0 ? "diff-pos" : "diff-neg") text-center">
+                                            @(Model.LearningGain >= 0 ? "+" : "")@Model.LearningGain.ToString("0.##")
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-success">@Model.PassedCount P</span>
+                                            <span class="badge badge-danger ml-1">@Model.FailedCount F</span>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+<script src="~/plugins/select2/js/select2.full.min.js"></script>
+<script>
+$(function () {
+    $('.select2-training').select2({
+        theme: 'bootstrap4',
+        placeholder: '-- Select Training --',
+        allowClear: true,
+        width: '100%'
+    });
+});
+
+function printReport() {
+    var h = document.querySelector('.print-only');
+    if (h) h.style.display = 'block';
+    window.print();
+    if (h) h.style.display = 'none';
+}
+</script>
+}

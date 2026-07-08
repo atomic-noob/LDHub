@@ -1,304 +1,561 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using LDHub.Data;
 using LDHub.Models;
+using LDHub.Data;
 using Microsoft.AspNetCore.Mvc.Rendering;
+namespace LDHub.Controllers;
+using LDHub.Models.ViewModels;
 
-namespace LDHub.Controllers
+public class TrainingController : Controller
 {
-    public class TrainingController : Controller
+    private readonly AppDbContext _db;
+
+    public TrainingController(AppDbContext db)
     {
-        private readonly AppDbContext _context;
-
-        public TrainingController(AppDbContext context)
-        {
-            _context = context;
-        }
-
-        // ── Auth helpers ──────────────────────────────────────────
-        private bool CanAccessTraining()
-        {
-            var role = HttpContext.Session.GetString("UserRole");
-            return role == "Admin" || role == "CourseManager" || role == "Raam";
-        }
-
-        private IActionResult RedirectAfterSave()
-        {
-            var role = HttpContext.Session.GetString("UserRole");
-            if (role == "CourseManager")
-                return RedirectToAction("Trainings", "CourseManager");
-            if (role == "Raam")
-                return RedirectToAction("Trainings", "Raam");
-            return RedirectToAction(nameof(Index));
-        }
-
-        private void SetProficiencyAndRegions()
-        {
-            ViewBag.Regions = _context.Regions.ToList();
-            ViewBag.Proficiencies = new List<SelectListItem>
-            {
-                new SelectListItem { Value = "1", Text = "Basic" },
-                new SelectListItem { Value = "2", Text = "Intermediate" },
-                new SelectListItem { Value = "3", Text = "Advanced" },
-                new SelectListItem { Value = "4", Text = "Superior" }
-            };
-        }
-
-        // GET: Training
-        public async Task<IActionResult> Index()
-        {
-            var role = HttpContext.Session.GetString("UserRole");
-            if (!CanAccessTraining())
-            {
-                Console.WriteLine($"[DEBUG] Access denied for role: {role}");
-                return RedirectToAction("Index", "Admin");
-            }
-
-            var trainings = await _context.Trainings.ToListAsync();
-            Console.WriteLine($"[DEBUG] Role: {role}");
-            Console.WriteLine($"[DEBUG] Trainings fetched: {trainings?.Count ?? 0}");
-            if (trainings != null && trainings.Any())
-            {
-                Console.WriteLine($"[DEBUG] First training: {trainings.First().TrainingTitle}");
-            }
-
-            return View(trainings);
-        }
-
-        // GET: Training/Create
-        public IActionResult Create()
-        {
-            if (!CanAccessTraining()) return RedirectToAction("Index", "Admin");
-            SetProficiencyAndRegions();
-            return View();
-        }
-
-        // POST: Training/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Training training)
-        {
-            ModelState.Remove("TrainingCode");
-
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Where(x => x.Value.Errors.Count > 0)
-                    .Select(x => new { x.Key, x.Value.Errors })
-                    .ToList();
-
-                foreach (var error in errors)
-                {
-                    Console.WriteLine($"Field: {error.Key}");
-                    foreach (var e in error.Errors)
-                        Console.WriteLine($"Error: {e.ErrorMessage}");
-                }
-
-                SetProficiencyAndRegions();
-                return View(training);
-            }
-
-            var region = await _context.Regions
-                .FirstOrDefaultAsync(r => r.RegionId == training.RegionId);
-
-            string regionCode = region?.RegionCode ?? "DENR";
-
-            int count = await _context.Trainings
-                .Where(t => t.RegionId == training.RegionId
-                    && t.CreatedAt.Year == DateTime.Now.Year)
-                .CountAsync();
-
-            training.TrainingCode = $"{regionCode}-{DateTime.Now.Year}-{(count + 1):D4}";
-            training.CreatedAt = DateTime.UtcNow;
-            training.UpdatedAt = DateTime.UtcNow;
-            training.CreatedBy = HttpContext.Session.GetInt32("UserId") ?? 0;
-
-            _context.Add(training);
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Training created successfully!";
-            return RedirectAfterSave();
-        }
-
-        // GET: Training/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (!CanAccessTraining()) return RedirectToAction("Index", "Admin");
-            if (id == null) return NotFound();
-
-            var training = await _context.Trainings.FindAsync(id);
-            if (training == null) return NotFound();
-
-            SetProficiencyAndRegions();
-            return View(training);
-        }
-
-        // POST: Training/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Training training)
-        {
-            if (id != training.TrainingId) return NotFound();
-
-            ModelState.Remove("TrainingCode");
-
-            if (!ModelState.IsValid)
-            {
-                SetProficiencyAndRegions();
-                return View(training);
-            }
-
-            training.UpdatedAt = DateTime.UtcNow;
-            _context.Update(training);
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Training updated successfully!";
-            return RedirectAfterSave();
-        }
-
-        // GET: Training/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (!CanAccessTraining()) return RedirectToAction("Index", "Admin");
-            if (id == null) return NotFound();
-
-            var training = await _context.Trainings
-                .Include(t => t.TrainingParticipants)
-                    .ThenInclude(tp => tp.User)
-                .Include(t => t.TrainingInstructors)
-                    .ThenInclude(ti => ti.User)
-                .FirstOrDefaultAsync(t => t.TrainingId == id);
-
-            if (training == null) return NotFound();
-
-            return View(training);
-        }
-
-        // GET: Training/AssignParticipant/5
-        public async Task<IActionResult> AssignParticipant(int? id)
-        {
-            if (!CanAccessTraining()) return RedirectToAction("Index", "Admin");
-            if (id == null) return NotFound();
-
-            var training = await _context.Trainings
-                .FirstOrDefaultAsync(t => t.TrainingId == id);
-            if (training == null) return NotFound();
-
-            var assignedIds = await _context.TrainingParticipants
-                .Where(tp => tp.TrainingId == id)
-                .Select(tp => tp.UserId)
-                .ToListAsync();
-
-            var availableUsers = await _context.Users
-                .Where(u => u.Status == "Active" && !assignedIds.Contains(u.UserId))
-                .ToListAsync();
-
-            var assignedParticipants = await _context.TrainingParticipants
-                .Where(tp => tp.TrainingId == id)
-                .Include(tp => tp.User)
-                .ToListAsync();
-
-            ViewBag.Training = training;
-            ViewBag.AvailableUsers = availableUsers;
-            ViewBag.AssignedParticipants = assignedParticipants;
-
-            return View();
-        }
-
-        // POST: Training/AssignParticipant
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AssignParticipant(int trainingId, List<int> userIds)
-        {
-            if (userIds == null || userIds.Count == 0)
-            {
-                TempData["Error"] = "Please select at least one participant.";
-                return RedirectToAction("AssignParticipant", new { id = trainingId });
-            }
-
-            foreach (var userId in userIds)
-            {
-                var exists = await _context.TrainingParticipants
-                    .AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId);
-
-                if (!exists)
-                {
-                    _context.TrainingParticipants.Add(new TrainingParticipant
-                    {
-                        TrainingId = trainingId,
-                        UserId = userId,
-                        EnrollmentDate = DateTime.UtcNow,
-                        CompletionStatus = "Enrolled"
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Participants assigned successfully!";
-            return RedirectToAction("AssignParticipant", new { id = trainingId });
-        }
-
-        // GET: Training/AssignResourcePerson/5
-        public async Task<IActionResult> AssignResourcePerson(int? id)
-        {
-            if (!CanAccessTraining()) return RedirectToAction("Index", "Admin");
-            if (id == null) return NotFound();
-
-            var training = await _context.Trainings
-                .FirstOrDefaultAsync(t => t.TrainingId == id);
-            if (training == null) return NotFound();
-
-            var assignedIds = await _context.TrainingInstructors
-                .Where(ti => ti.TrainingId == id)
-                .Select(ti => ti.UserId)
-                .ToListAsync();
-
-            var availableUsers = await _context.Users
-                .Where(u => u.Status == "Active" && !assignedIds.Contains(u.UserId))
-                .ToListAsync();
-
-            var assignedInstructors = await _context.TrainingInstructors
-                .Where(ti => ti.TrainingId == id)
-                .Include(ti => ti.User)
-                .ToListAsync();
-
-            ViewBag.Training = training;
-            ViewBag.AvailableUsers = availableUsers;
-            ViewBag.AssignedInstructors = assignedInstructors;
-
-            return View();
-        }
-
-        // POST: Training/AssignResourcePerson
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> userIds)
-        {
-            if (userIds == null || userIds.Count == 0)
-            {
-                TempData["Error"] = "Please select at least one resource person.";
-                return RedirectToAction("AssignResourcePerson", new { id = trainingId });
-            }
-
-            foreach (var userId in userIds)
-            {
-                var exists = await _context.TrainingInstructors
-                    .AnyAsync(ti => ti.TrainingId == trainingId && ti.UserId == userId);
-
-                if (!exists)
-                {
-                    _context.TrainingInstructors.Add(new TrainingInstructor
-                    {
-                        TrainingId = trainingId,
-                        UserId = userId,
-                        AssignedDate = DateTime.UtcNow
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Resource persons assigned successfully!";
-            return RedirectToAction("AssignResourcePerson", new { id = trainingId });
-        }
+        _db = db;
     }
+
+    private bool CanAccessTraining()
+    {
+        var role = HttpContext.Session.GetString("UserRole");
+        return role == "Admin" || role == "CourseManager" || role == "Raam";
+    }
+
+    private int GetUserId()
+    {
+        var str = HttpContext.Session.GetString("UserId");
+        return int.TryParse(str, out int id) ? id : 0;
+    }
+
+    private string GetUserRole() =>
+        HttpContext.Session.GetString("UserRole") ?? "";
+
+    private void SetViewBag()
+    {
+        ViewBag.ActiveRole = HttpContext.Session.GetString("UserRole");
+        ViewBag.UserName   = HttpContext.Session.GetString("UserName");
+        ViewBag.UserPhoto  = HttpContext.Session.GetString("UserPhoto");
+    }
+
+    // ── Get RAAM's region ID ───────────────────────────────────
+    private async Task<int?> GetRaamRegionId()
+    {
+        if (GetUserRole() != "Raam") return null;
+        var user = await _db.Users.FindAsync(GetUserId());
+        return user?.RegionId;
+    }
+
+    // ── GET: /Training/Index ───────────────────────────────────
+    public async Task<IActionResult> Index()
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+        var role     = GetUserRole();
+        var regionId = await GetRaamRegionId();
+
+        IQueryable<Training> query = _db.Trainings
+            .Include(t => t.TrainingParticipants);
+
+        // RAAM only sees their region
+        if (role == "Raam")
+            query = query.Where(t => t.RegionId == regionId);
+
+        var trainings = await query
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+
+        ViewBag.IsRaam   = role == "Raam";
+        ViewBag.RegionId = regionId;
+
+        return View("~/Views/Training/Index.cshtml", trainings);
+    }
+
+    // ── GET: /Training/Create ──────────────────────────────────
+    public async Task<IActionResult> Create()
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+        var role     = GetUserRole();
+        var regionId = await GetRaamRegionId();
+
+        ViewBag.Regions      = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+         ViewBag.Proficiencies = new SelectList(
+        await _db.ProficiencyLevels.ToListAsync(),
+        "ProficiencyId",
+        "ProficiencyName"
+    );
+
+
+        ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).ToListAsync();
+        ViewBag.IsRaam       = role == "Raam";
+        ViewBag.RaamRegionId = regionId;
+
+        return View("~/Views/Training/Create.cshtml");
+    }
+
+    // ── POST: /Training/Create ─────────────────────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(Training model)
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+
+        var role     = GetUserRole();
+        var regionId = await GetRaamRegionId();
+
+        // Force RAAM's region
+        if (role == "Raam")
+            model.RegionId = regionId;
+
+        model.CreatedBy = GetUserId();
+        model.CreatedAt = DateTime.UtcNow;
+        model.UpdatedAt = DateTime.UtcNow;
+
+        if (ModelState.IsValid)
+        {
+            _db.Trainings.Add(model);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Training created successfully!";
+            return RedirectToAction("Index", "Training");
+        }
+
+        ViewBag.Regions       = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+        ViewBag.Proficiencies = new SelectList(
+                await _db.ProficiencyLevels.ToListAsync(),
+                "ProficiencyId",
+                "ProficiencyName"
+            );
+        ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).ToListAsync();
+        ViewBag.IsRaam        = role == "Raam";
+        ViewBag.RaamRegionId  = regionId;
+
+        return View("~/Views/Training/Create.cshtml", model);
+    }
+
+    // ── GET: /Training/Edit/{id} ───────────────────────────────
+    public async Task<IActionResult> Edit(int id)
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+        var training = await _db.Trainings.FindAsync(id);
+        if (training == null) return NotFound();
+
+        var role     = GetUserRole();
+        var regionId = await GetRaamRegionId();
+
+        // RAAM can only edit trainings in their region
+        if (role == "Raam" && training.RegionId != regionId)
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", "Training");
+        }
+
+        ViewBag.Regions       = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+      ViewBag.Proficiencies = new SelectList(
+    await _db.ProficiencyLevels.ToListAsync(),
+    "ProficiencyId",
+    "ProficiencyName"
+);
+
+        ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).ToListAsync();
+        ViewBag.IsRaam        = role == "Raam";
+        ViewBag.RaamRegionId  = regionId;
+
+        return View("~/Views/Training/Edit.cshtml", training);
+    }
+
+    // ── POST: /Training/Edit ───────────────────────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, Training model)
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+
+        var role     = GetUserRole();
+        var regionId = await GetRaamRegionId();
+
+        var training = await _db.Trainings.FindAsync(id);
+        if (training == null) return NotFound();
+
+        // RAAM can only edit trainings in their region
+        if (role == "Raam" && training.RegionId != regionId)
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", "Training");
+        }
+
+        // Force RAAM's region
+        if (role == "Raam")
+            model.RegionId = regionId;
+
+        if (ModelState.IsValid)
+        {
+            training.TrainingCode      = model.TrainingCode;
+            training.TrainingTitle     = model.TrainingTitle;
+            training.Description       = model.Description;
+            training.Location          = model.Location;
+            training.StartDate         = model.StartDate;
+            training.EndDate           = model.EndDate;
+            training.TrainingHrs       = model.TrainingHrs;
+            training.DevelopmentAct    = model.DevelopmentAct;
+            training.MOVs              = model.MOVs;
+            training.SuccessIndicator  = model.SuccessIndicator;
+            training.ProficiencyId     = model.ProficiencyId;
+            training.RegionId          = role == "Raam" ? regionId : model.RegionId;
+            training.UpdatedAt         = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Training updated successfully!";
+            return RedirectToAction("Index", "Training");
+        }
+
+        ViewBag.Regions       = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+       ViewBag.Proficiencies = new SelectList(
+    await _db.ProficiencyLevels.ToListAsync(),
+    "ProficiencyId",
+    "ProficiencyName",
+    training.ProficiencyId  // ← this pre-selects the current value
+);
+ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).ToListAsync();
+        ViewBag.IsRaam        = role == "Raam";
+        ViewBag.RaamRegionId  = regionId;
+
+        return View("~/Views/Training/Edit.cshtml", model);
+    }
+
+    // ── GET: /Training/Details/{id} ────────────────────────────
+    public async Task<IActionResult> Details(int id)
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+      var training = await _db.Trainings
+    .Include(t => t.TrainingParticipants)
+        .ThenInclude(tp => tp.User)
+    .Include(t => t.TrainingInstructors)
+        .ThenInclude(ti => ti.User)
+            .ThenInclude(u => u.Office)  // ← add this
+    .FirstOrDefaultAsync(t => t.TrainingId == id);
+
+        if (training == null) return NotFound();
+
+        var role     = GetUserRole();
+        var regionId = await GetRaamRegionId();
+
+        // RAAM can only view trainings in their region
+        if (role == "Raam" && training.RegionId != regionId)
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", "Training");
+        }
+
+        return View("~/Views/Training/Details.cshtml", training);
+    }
+
+    // ── GET: /Training/AssignParticipant/{id} ──────────────────
+    public async Task<IActionResult> AssignParticipant(int id)
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+        SetViewBag();
+
+        var training = await _db.Trainings
+            .Include(t => t.TrainingParticipants)
+                .ThenInclude(tp => tp.User)
+            .FirstOrDefaultAsync(t => t.TrainingId == id);
+
+        if (training == null) return NotFound();
+
+        var role     = GetUserRole();
+        var regionId = await GetRaamRegionId();
+
+        // RAAM can only assign participants to trainings in their region
+        if (role == "Raam" && training.RegionId != regionId)
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", "Training");
+        }
+
+        // Get available employees — RAAM sees only their region
+        IQueryable<User> usersQuery = _db.Users
+            .Include(u => u.UserRoles)
+            .Where(u => u.UserRoles.Any(r => r.Role == "Employee")
+                     && u.IsExternal == false
+                     && u.Status == "Active");
+
+        if (role == "Raam")
+            usersQuery = usersQuery.Where(u => u.RegionId == regionId);
+
+        var users = await usersQuery
+            .OrderBy(u => u.LastName)
+            .ToListAsync();
+
+        ViewBag.Training  = training;
+        ViewBag.Users     = users;
+
+        return View("~/Views/Training/AssignParticipant.cshtml");
+    }
+
+    // ── POST: /Training/AssignParticipant ──────────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignParticipant(int trainingId, List<int> userIds)
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+
+        foreach (var userId in userIds)
+        {
+            var exists = await _db.TrainingParticipants
+                .AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId);
+
+            if (!exists)
+            {
+                _db.TrainingParticipants.Add(new TrainingParticipant
+                {
+                    TrainingId       = trainingId,
+                    UserId           = userId,
+                    EnrollmentDate   = DateTime.UtcNow,
+                    CompletionStatus = "Enrolled"
+                });
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Participants assigned successfully!";
+        return RedirectToAction("Index", "Training");
+    }
+
+  // ── GET: /Training/AssignResourcePerson/{id} ───────────────
+// REPLACE the existing AssignResourcePerson GET action with this:
+
+public async Task<IActionResult> AssignResourcePerson(int id)
+{
+    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+
+    var training = await _db.Trainings
+        .Include(t => t.TrainingInstructors)
+            .ThenInclude(ti => ti.User)
+        .Include(t => t.TrainingParticipants)
+        .FirstOrDefaultAsync(t => t.TrainingId == id);
+
+    if (training == null) return NotFound();
+
+    var role     = GetUserRole();
+    var regionId = await GetRaamRegionId();
+
+    if (role == "Raam" && training.RegionId != regionId)
+    {
+        TempData["Error"] = "You do not have access to this training.";
+        return RedirectToAction("Index", "Training");
+    }
+
+    // Get all active resource persons with Region and Office included
+    var resourcePersons = await _db.Users
+        .Include(u => u.UserRoles)
+        .Include(u => u.Region)
+        .Include(u => u.Office)
+        .Where(u => u.UserRoles.Any(r => r.Role == "ResourcePerson")
+                 && u.Status == "Active")
+        .OrderBy(u => u.IsExternal)
+        .ThenBy(u => u.LastName)
+        .ToListAsync();
+
+    ViewBag.Training        = training;
+    ViewBag.ResourcePersons = resourcePersons;
+
+    return View("~/Views/Training/AssignResourcePerson.cshtml");
+}
+
+// ── POST: /Training/AssignResourcePerson ───────────────────
+// REPLACE the existing AssignResourcePerson POST action with this:
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> userIds)
+{
+    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+
+    // Security check — prevent assigning someone who is already a participant
+    var participantIds = await _db.TrainingParticipants
+        .Where(tp => tp.TrainingId == trainingId)
+        .Select(tp => tp.UserId)
+        .ToListAsync();
+
+    var blocked = userIds.Where(id => participantIds.Contains(id)).ToList();
+    if (blocked.Any())
+    {
+        TempData["Error"] = "One or more selected users are already participants in this training and cannot be assigned as Resource Persons.";
+        return RedirectToAction("AssignResourcePerson", new { id = trainingId });
+    }
+
+    // Remove existing assignments not in the new list
+    var existing = await _db.TrainingInstructors
+        .Where(ti => ti.TrainingId == trainingId)
+        .ToListAsync();
+
+    _db.TrainingInstructors.RemoveRange(existing);
+
+    // Add new assignments
+    foreach (var userId in userIds)
+    {
+        _db.TrainingInstructors.Add(new TrainingInstructor
+        {
+            TrainingId   = trainingId,
+            UserId       = userId,
+            AssignedDate = DateTime.UtcNow
+        });
+    }
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Resource Persons assigned successfully!";
+    return RedirectToAction("Index", "Training");
+}
+
+    // ── POST: /Training/Delete ─────────────────────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+
+        var training = await _db.Trainings.FindAsync(id);
+        if (training == null) return NotFound();
+
+        var role     = GetUserRole();
+        var regionId = await GetRaamRegionId();
+
+        // RAAM can only delete trainings in their region
+        if (role == "Raam" && training.RegionId != regionId)
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", "Training");
+        }
+
+        _db.Trainings.Remove(training);
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Training deleted successfully!";
+        return RedirectToAction("Index", "Training");
+    }
+  // ── GET: /Training/TrainingReport ─────────────────────────────
+public async Task<IActionResult> TrainingReport(int? trainingId)
+{
+    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+
+    // Load regions for dropdown
+    ViewBag.Regions   = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+    ViewBag.Trainings = await _db.Trainings.OrderByDescending(t => t.CreatedAt).ToListAsync();
+
+    if (trainingId == null) return View("~/Views/Training/TrainingReport.cshtml");
+
+    var training = await _db.Trainings
+        .Include(t => t.TrainingParticipants)
+            .ThenInclude(tp => tp.User)
+        .FirstOrDefaultAsync(t => t.TrainingId == trainingId);
+
+    if (training == null) return View("~/Views/Training/TrainingReport.cshtml");
+
+    var rows = new List<ReportRow>();
+
+    foreach (var tp in training.TrainingParticipants)
+    {
+        if (tp.User == null) continue;
+
+        // Get pre-test score
+        var preAttempt = await _db.ParticipantTestAttempts
+            .Where(e => e.UserId == tp.UserId 
+                     && e.TrainingId == trainingId 
+                     && e.TestType == "PreTest")
+            .OrderByDescending(e => e.TakenAt)
+            .FirstOrDefaultAsync();
+
+        // Get post-test score
+        var postAttempt = await _db.ParticipantTestAttempts
+            .Where(e => e.UserId == tp.UserId 
+                     && e.TrainingId == trainingId 
+                     && e.TestType == "PostTest")
+            .OrderByDescending(e => e.TakenAt)
+            .FirstOrDefaultAsync();
+
+        rows.Add(new ReportRow
+        {
+            UserId       = tp.UserId,
+            Name         = $"{tp.User.FirstName} {tp.User.LastName}",
+            Position     = tp.User.Position ?? "—",
+            Office       = tp.User.Office?.OfficeName ?? "—",
+            PreScore     = preAttempt  != null ? (decimal?)preAttempt.Score : null,
+            PostScore    = postAttempt != null ? (decimal?)postAttempt.Score: null,
+            IsPassed     = postAttempt?.IsPassed ?? false,
+            PostAttempts = await _db.ParticipantTestAttempts
+                .CountAsync(e => e.UserId == tp.UserId 
+                              && e.TrainingId == trainingId 
+                              && e.TestType == "PostTest")
+        });
+    }
+    
+
+
+    var vm = new TrainingReportViewModel
+    {
+        Training          = training,
+        TotalParticipants = rows.Count,
+        PassedCount       = rows.Count(r => r.IsPassed),
+        FailedCount       = rows.Count(r => !r.IsPassed && r.PostScore.HasValue),
+        NotTakenCount     = rows.Count(r => !r.PostScore.HasValue),
+        PreTestAvg        = rows.Any(r => r.PreScore.HasValue)
+                            ? Math.Round(rows.Where(r => r.PreScore.HasValue)
+                                .Average(r => r.PreScore!.Value), 2)
+                            : 0,
+        PostTestAvg       = rows.Any(r => r.PostScore.HasValue)
+                            ? Math.Round(rows.Where(r => r.PostScore.HasValue)
+                                .Average(r => r.PostScore!.Value), 2)
+                            : 0,
+        PassingRate       = rows.Count > 0
+                            ? Math.Round((decimal)rows.Count(r => r.IsPassed) / rows.Count * 100, 2)
+                            : 0,
+        Rows              = rows
+    };
+
+    vm.LearningGain = vm.PostTestAvg - vm.PreTestAvg;
+    vm.TotalPoints  = rows.Sum(r => r.PostScore ?? 0);
+
+    // ── Paired T-Test ──────────────────────────────────────────
+    var pairs = rows
+        .Where(r => r.PreScore.HasValue && r.PostScore.HasValue)
+        .Select(r => (Pre: (double)r.PreScore!.Value, Post: (double)r.PostScore!.Value))
+        .ToList();
+
+    if (pairs.Count >= 2)
+    {
+        var differences = pairs.Select(p => p.Post - p.Pre).ToList();
+        var meanDiff    = differences.Average();
+        var variance    = differences.Sum(d => Math.Pow(d - meanDiff, 2)) / (pairs.Count - 1);
+        var stdDev      = Math.Sqrt(variance);
+        var stdError    = stdDev / Math.Sqrt(pairs.Count);
+        var tStat       = stdError > 0 ? meanDiff / stdError : 0;
+        // Paired T-Test
+        var pairedPre  = new List<double>();
+        var pairedPost = new List<double>();
+
+        foreach (var r in rows)
+        {
+            if (r.PreScore.HasValue && r.PostScore.HasValue)
+            {
+                pairedPre.Add((double)r.PreScore.Value);
+                pairedPost.Add((double)r.PostScore.Value);
+            }
+        }
+
+        vm.TTest = LDHub.Services.TTestService.ComputePairedTTest(
+            pairedPre, pairedPost, training.TrainingTitle);
+
+            
+            }
+
+            return View("~/Views/Training/TrainingReport.cshtml", vm);
+        }
 }

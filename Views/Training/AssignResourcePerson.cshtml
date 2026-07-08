@@ -1,155 +1,245 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Assign Resource Persons";
-    var training = ViewBag.Training as LDHub.Models.Training;
-    var availableUsers = ViewBag.AvailableUsers as List<LDHub.Models.User>;
-    var assignedInstructors = ViewBag.AssignedInstructors as List<LDHub.Models.TrainingInstructor>;
+    ViewData["Title"] = "Assign Resource Person";
+    var training         = ViewBag.Training as LDHub.Models.Training;
+    var resourcePersons  = ViewBag.ResourcePersons as List<LDHub.Models.User> ?? new List<LDHub.Models.User>();
+    var assignedIds      = (training?.TrainingInstructors?.Select(ti => ti.UserId) ?? Enumerable.Empty<int>()).ToList();
+    var participantIds   = (training?.TrainingParticipants?.Select(tp => tp.UserId) ?? Enumerable.Empty<int>()).ToList();
 }
 
-<section class="content-header">
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="~/plugins/datatables-responsive/css/responsive.bootstrap4.min.css" />
+    <style>
+        .success-gradient { background: linear-gradient(225deg, #9BEC00, #4BB543, #117554); color: white; }
+        .already-assigned { background: #f0fff4 !important; }
+        .is-participant   { background: #fff3cd !important; opacity: .7; }
+    </style>
+}
+
+<div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
-            <div class="col-sm-6"><h1>Assign Resource Persons</h1></div>
+            <div class="col-sm-6">
+                <h1 class="m-0">Assign Resource Person</h1>
+            </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a asp-action="Index">Trainings</a></li>
-                    <li class="breadcrumb-item active">Assign Resource Persons</li>
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Training" asp-action="Index">Trainings</a>
+                    </li>
+                    <li class="breadcrumb-item active">Assign Resource Person</li>
                 </ol>
             </div>
         </div>
     </div>
-</section>
+</div>
 
 <section class="content">
     <div class="container-fluid">
 
         @if (TempData["Success"] != null)
         {
-            <div class="alert alert-success">@TempData["Success"]</div>
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
         }
         @if (TempData["Error"] != null)
         {
-            <div class="alert alert-danger">@TempData["Error"]</div>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle mr-2"></i>@TempData["Error"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
         }
 
-        <div class="card">
-            <div class="card-header">
+        @* Training Info *@
+        <div class="card card-outline card-success mb-3">
+            <div class="card-header success-gradient">
                 <h3 class="card-title">
-                    <i class="fas fa-book mr-2"></i>@training.TrainingTitle
-                    <span class="badge badge-info ml-2">@training.TrainingCode</span>
+                    <i class="fas fa-book mr-2"></i>@training?.TrainingTitle
                 </h3>
+                <div class="card-tools">
+                    <span class="badge badge-light">@training?.TrainingCode</span>
+                </div>
             </div>
-        </div>
-
-        <div class="row">
-            <!-- Available Users -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-users mr-2"></i>Available Employees</h3>
+            <div class="card-body py-2">
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-muted">Start Date:</small>
+                        <strong class="d-block">@(training?.StartDate?.ToString("MMM dd, yyyy") ?? "TBD")</strong>
                     </div>
-                    <div class="card-body">
-                        <form asp-action="AssignResourcePerson" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="trainingId" value="@training.TrainingId" />
-
-                            <table class="table table-bordered table-hover table-sm">
-                                <thead class="thead-dark">
-                                    <tr>
-                                        <th width="40px">
-                                            <input type="checkbox" id="selectAll" />
-                                        </th>
-                                        <th>Name</th>
-                                        <th>Office</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (availableUsers != null && availableUsers.Count > 0)
-                                    {
-                                        @foreach (var user in availableUsers)
-                                        {
-                                            <tr>
-                                                <td>
-                                                    <input type="checkbox" name="userIds" value="@user.UserId" class="instructor-check" />
-                                                </td>
-                                                <td>@user.FirstName @user.LastName</td>
-                                                <td>@(user.OfficeId?.ToString() ?? "N/A")</td>
-                                            </tr>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <tr>
-                                            <td colspan="3" class="text-center text-muted">No available employees</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-
-                            <button type="submit" class="btn btn-success btn-sm">
-                                <i class="fas fa-chalkboard-teacher mr-1"></i> Assign Selected
-                            </button>
-                        </form>
+                    <div class="col-md-4">
+                        <small class="text-muted">End Date:</small>
+                        <strong class="d-block">@(training?.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Currently Assigned:</small>
+                        <strong class="d-block">@assignedIds.Count Resource Person(s)</strong>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Assigned Resource Persons -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-chalkboard-teacher mr-2"></i>Assigned Resource Persons
-                            <span class="badge badge-success ml-2">@assignedInstructors?.Count</span>
-                        </h3>
+       
+
+        <form asp-controller="Training" asp-action="AssignResourcePerson" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="trainingId" value="@training?.TrainingId" />
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chalkboard-teacher mr-2"></i>Available Resource Persons
+                    </h3>
+                    <div class="card-tools">
+                        <div class="input-group input-group-sm" style="width:250px;">
+                            <input type="text" id="searchInput" class="form-control"
+                                   placeholder="Search by name or organization..." />
+                            <div class="input-group-append">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <table class="table table-bordered table-hover table-sm">
+                </div>
+                <div class="card-body p-0">
+                    @if (!resourcePersons.Any())
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-user-slash fa-3x mb-3" style="opacity:.3;"></i>
+                            <p>No resource persons found.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <table id="rpTable" class="table table-bordered table-hover mb-0">
                             <thead class="thead-dark">
                                 <tr>
-                                    <th>#</th>
+                                    <th style="width:40px;">
+                                        <input type="checkbox" id="selectAll" title="Select All" />
+                                    </th>
                                     <th>Name</th>
-                                    <th>Assigned Date</th>
+                                    <th>Type</th>
+                                    <th>Organization / Office</th>
+                                    <th>Region</th>
+                                    <th>Expertise</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @if (assignedInstructors != null && assignedInstructors.Count > 0)
+                                @foreach (var u in resourcePersons)
                                 {
-                                    int i = 1;
-                                    @foreach (var inst in assignedInstructors)
-                                    {
-                                        <tr>
-                                            <td>@i</td>
-                                            <td>@inst.User?.FirstName @inst.User?.LastName</td>
-                                            <td>@inst.AssignedDate.ToString("MMM dd, yyyy")</td>
-                                        </tr>
-                                        i++;
-                                    }
-                                }
-                                else
-                                {
-                                    <tr>
-                                        <td colspan="3" class="text-center text-muted">No resource persons assigned yet</td>
+                                    var isAssigned    = assignedIds.Contains(u.UserId);
+                                    var isParticipant = participantIds.Contains(u.UserId);
+                                    var rowClass      = isAssigned ? "already-assigned" : isParticipant ? "is-participant" : "";
+                                    var isExternal    = u.IsExternal;
+
+                                    <tr class="@rowClass rp-row">
+                                        <td class="text-center">
+                                            @if (isParticipant)
+                                            {
+                                                <input type="checkbox" disabled title="Cannot assign — already a participant" />
+                                            }
+                                            else
+                                            {
+                                                <input type="checkbox"
+                                                       name="userIds"
+                                                       value="@u.UserId"
+                                                       @(isAssigned ? "checked" : "") />
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong>@u.FirstName @u.LastName</strong>
+                                            @if (!string.IsNullOrEmpty(u.MiddleName))
+                                            {
+                                                <small class="text-muted"> @u.MiddleName</small>
+                                            }
+                                            <small class="text-muted d-block">@u.Email</small>
+                                            @if (isAssigned)
+                                            {
+                                                <span class="badge badge-success">
+                                                    <i class="fas fa-check mr-1"></i>Assigned
+                                                </span>
+                                            }
+                                            @if (isParticipant)
+                                            {
+                                                <span class="badge badge-warning">
+                                                    <i class="fas fa-exclamation-triangle mr-1"></i>Is a Participant
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (isExternal)
+                                            {
+                                                <span class="badge badge-secondary">
+                                                    <i class="fas fa-external-link-alt mr-1"></i>Outsource
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-info">
+                                                    <i class="fas fa-building mr-1"></i>Internal
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (isExternal)
+                                            {
+                                                @(u.Organization ?? "—")
+                                            }
+                                            else
+                                            {
+                                                @(u.Office?.OfficeName ?? "—")
+                                            }
+                                        </td>
+                                        <td>@(u.Region?.RegionName ?? "—")</td>
+                                        <td>@(u.Expertise ?? "—")</td>
+                                        <td>
+                                            <span class="badge @(u.Status == "Active" ? "badge-success" : "badge-danger")">
+                                                @u.Status
+                                            </span>
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
-                    </div>
+                    }
+                </div>
+                <div class="card-footer text-right">
+                    <a asp-controller="Training" asp-action="Index" class="btn btn-secondary mr-2">
+                        <i class="fas fa-arrow-left mr-1"></i> Back
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save mr-1"></i> Save Assignments
+                    </button>
                 </div>
             </div>
-        </div>
-
-        <a asp-action="Index" class="btn btn-secondary">
-            <i class="fas fa-arrow-left mr-1"></i> Back to Trainings
-        </a>
+        </form>
 
     </div>
 </section>
 
 @section Scripts {
+<script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
 <script>
-    $('#selectAll').on('change', function() {
-        $('.instructor-check').prop('checked', $(this).prop('checked'));
+$(function () {
+
+    // Search filter
+    $('#searchInput').on('keyup', function () {
+        var val = $(this).val().toLowerCase();
+        $('.rp-row').each(function () {
+            var text = $(this).text().toLowerCase();
+            $(this).toggle(text.indexOf(val) > -1);
+        });
     });
+
+    // Select all
+    $('#selectAll').on('change', function () {
+        var checked = $(this).is(':checked');
+        $('input[name="userIds"]:not(:disabled)').prop('checked', checked);
+    });
+
+});
 </script>
 }

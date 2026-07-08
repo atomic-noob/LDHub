@@ -20,6 +20,8 @@ namespace LDHub.Data
         public DbSet<ParticipantTestAttempt> ParticipantTestAttempts { get; set; }
         public DbSet<ModuleProgress> ModuleProgresses { get; set; }
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
+        public DbSet<Competency> Competencies { get; set; }
+        public DbSet<ProficiencyLevel> ProficiencyLevels { get; set; }
         
         
 
@@ -122,6 +124,9 @@ public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
                 .WithMany()
                 .HasForeignKey(ti => ti.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProficiencyLevel>()
+    .HasKey(p => p.ProficiencyId);
                     }
     }
 }

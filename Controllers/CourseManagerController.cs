@@ -74,7 +74,7 @@ public class CourseManagerController : Controller
     {
         if (!IsCourseManager()) return RedirectToAction("Login", "Home");
         SetViewBag();
-        return View("~/Views/CourseManager/TrainingReport.cshtml");
+        return View("~/Views/Training/TrainingReport.cshtml");
     }
 
     // ── GET: /CourseManager/EvaluationDashboard ───────────────────

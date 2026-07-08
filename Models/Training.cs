@@ -61,12 +61,13 @@ namespace LDHub.Models
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         [Column("minimum_score")]
-public int MinimumScore { get; set; } = 0;
+        public int MinimumScore { get; set; } = 0;
+        [Column("competency_id")]
+        public int? CompetencyId { get; set; }
+        [Column("posttest_timer")]
+        public int PosttestTimer { get; set; } = 30;
 
-[Column("posttest_timer")]
-public int PosttestTimer { get; set; } = 30;
-
-public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
+        public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
 
      // Navigation
         [InverseProperty("Training")]
@@ -74,5 +75,11 @@ public virtual ICollection<Question> Questions { get; set; } = new List<Question
 
         [InverseProperty("Training")]
        public virtual ICollection<TrainingInstructor> TrainingInstructors { get; set; } = new List<TrainingInstructor>();
+       [ForeignKey(nameof(RegionId))]
+        public virtual Region? Region { get; set; }
+
+
+
             }
+
 }

@@ -147,13 +147,13 @@
                                 <p>IDP Report</p>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a asp-controller="Admin" asp-action="ReportTraining"
-                               class="nav-link @(action == "ReportTraining" ? "active" : "")">
-                                <i class="fas fa-file-contract nav-icon"></i>
-                                <p>Training Report</p>
-                            </a>
-                        </li>
+                       <li class="nav-item">
+    <a asp-controller="Training" asp-action="TrainingReport"
+       class="nav-link @(controller == "Training" && action == "TrainingReport" ? "active" : "")">
+        <i class="fas fa-file-contract nav-icon"></i>
+        <p>Training Report</p>
+    </a>
+</li>
                     </ul>
                 </li>
 
