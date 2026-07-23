@@ -130,7 +130,11 @@ public class ContentController : Controller
         }
 
         var training = await _db.Trainings
-            .FirstOrDefaultAsync(t => t.TrainingId == selectedTrainingId);
+    .Include(t => t.Region)
+    .Include(t => t.TrainingParticipants)
+        .ThenInclude(tp => tp.User)
+            .ThenInclude(u => u.Office)
+    .FirstOrDefaultAsync(t => t.TrainingId == selectedTrainingId);
 
         if (training == null) return NotFound();
 

@@ -1,0 +1,208 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Training History";
+
+    var assignedTrainings = ViewBag.AssignedTrainings as List<LDHub.Models.TrainingInstructor>
+                            ?? new List<LDHub.Models.TrainingInstructor>();
+    var now = ViewBag.Now as DateTime? ?? DateTime.Now;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="~/plugins/datatables-responsive/css/responsive.bootstrap4.min.css" />
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Training History</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="ResourcePerson" asp-action="Index">Dashboard</a>
+                    </li>
+                    <li class="breadcrumb-item active">Training History</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @* Summary *@
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="info-box">
+                    <span class="info-box-icon bg-success"><i class="fas fa-book"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Assigned</span>
+                        <span class="info-box-number">@assignedTrainings.Count</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-box">
+                    <span class="info-box-icon bg-primary"><i class="fas fa-spinner"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Ongoing</span>
+                        <span class="info-box-number">
+                            @assignedTrainings.Count(ti =>
+                                ti.Training?.StartDate.HasValue == true &&
+                                ti.Training?.EndDate.HasValue == true &&
+                                now >= ti.Training.StartDate &&
+                                now <= ti.Training.EndDate)
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-box">
+                    <span class="info-box-icon bg-secondary"><i class="fas fa-check-circle"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Completed</span>
+                        <span class="info-box-number">
+                            @assignedTrainings.Count(ti =>
+                                ti.Training?.EndDate.HasValue == true &&
+                                now > ti.Training.EndDate)
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-box">
+                    <span class="info-box-icon bg-info"><i class="fas fa-calendar"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Upcoming</span>
+                        <span class="info-box-number">
+                            @assignedTrainings.Count(ti =>
+                                ti.Training?.StartDate.HasValue == true &&
+                                now < ti.Training.StartDate)
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header success-gradient">
+                <h3 class="card-title">
+                    <i class="fas fa-history mr-2"></i>All Training Assignments
+                </h3>
+            </div>
+            <div class="card-body">
+                @if (!assignedTrainings.Any())
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-3x mb-3" style="opacity:.3;"></i>
+                        <h5>No training assignments yet.</h5>
+                        <p>You will appear here once assigned to a training by an Administrator or Course Manager.</p>
+                    </div>
+                }
+                else
+                {
+                    <table id="historyTable" class="table table-bordered table-striped table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Training Title</th>
+                                <th>Code</th>
+                                <th>Region</th>
+                                <th>Location</th>
+                                <th>Date</th>
+                                <th>Hours</th>
+                                <th>Participants</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int i = 1; }
+                            @foreach (var ti in assignedTrainings)
+                            {
+                                var t      = ti.Training;
+                                var status = "Upcoming";
+                                var badge  = "badge-info";
+
+                                if (t?.StartDate.HasValue == true && t?.EndDate.HasValue == true)
+                                {
+                                    if (now >= t.StartDate && now <= t.EndDate)
+                                    { status = "Ongoing";   badge = "badge-success"; }
+                                    else if (now > t.EndDate)
+                                    { status = "Completed"; badge = "badge-secondary"; }
+                                }
+
+                                <tr>
+                                    <td>@i</td>
+                                    <td>
+                                        <strong>@t?.TrainingTitle</strong>
+                                    </td>
+                                    <td>@(t?.TrainingCode ?? "—")</td>
+                                    <td>@(t?.Region?.RegionName ?? "—")</td>
+                                    <td>@(t?.Location ?? "—")</td>
+                                    <td>
+                                        <small>
+                                            @(t?.StartDate?.ToString("MMM dd, yyyy") ?? "TBD")<br/>
+                                            @(t?.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                        </small>
+                                    </td>
+                                    <td>@(t?.TrainingHrs ?? 0) hrs</td>
+                                    <td class="text-center">
+                                        <span class="badge badge-light border">
+                                            @(t?.TrainingParticipants.Count ?? 0)
+                                        </span>
+                                    </td>
+                                    <td><span class="badge @badge">@status</span></td>
+                                    <td>
+                                        @if (t != null)
+                                        {
+                                            <a asp-controller="Content" asp-action="Modules"
+                                               asp-route-trainingId="@t.TrainingId"
+                                               class="btn btn-sm btn-success" title="Modules">
+                                                <i class="fas fa-folder"></i>
+                                            </a>
+                                            <a asp-controller="Content" asp-action="TestMaker"
+                                               asp-route-trainingId="@t.TrainingId"
+                                               class="btn btn-sm btn-primary" title="Test Maker">
+                                                <i class="fas fa-question-circle"></i>
+                                            </a>
+                                            <a asp-controller="Training" asp-action="TrainingReport"
+                                               asp-route-trainingId="@t.TrainingId"
+                                               class="btn btn-sm btn-info" title="Report">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </a>
+                                        }
+                                    </td>
+                                </tr>
+                                i++;
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+    </div>
+</section>
+
+@section Scripts {
+<script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="~/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="~/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+<script>
+$(function () {
+    $('#historyTable').DataTable({
+        responsive: true,
+        autoWidth: false,
+        order: [[5, 'desc']]
+    });
+});
+</script>
+}

@@ -1,0 +1,320 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Resource Person Dashboard";
+
+    var user            = ViewBag.User            as LDHub.Models.User;
+    var totalAssigned   = ViewBag.TotalAssigned   as int? ?? 0;
+    var ongoingCount    = ViewBag.OngoingCount    as int? ?? 0;
+    var completedCount  = ViewBag.CompletedCount  as int? ?? 0;
+    var upcomingCount   = ViewBag.UpcomingCount   as int? ?? 0;
+    var currentTraining = ViewBag.CurrentTraining as LDHub.Models.Training;
+    var recentTrainings = ViewBag.RecentTrainings as List<LDHub.Models.Training> ?? new List<LDHub.Models.Training>();
+}
+
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+        .profile-card {
+            background: linear-gradient(135deg,#117554,#4BB543);
+            color: white; border-radius: 12px;
+            padding: 25px; margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(75,181,67,.3);
+        }
+        .profile-card h4 { font-weight:800; margin-bottom:3px; }
+        .profile-card p  { opacity:.85; margin-bottom:0; font-size:.9rem; }
+        .stat-card {
+            border-radius: 10px; padding: 20px; color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,.1); margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .stat-card .num   { font-size:2.5rem; font-weight:800; line-height:1; }
+        .stat-card .label { font-size:.85rem; opacity:.85; margin-top:4px; }
+        .stat-card .icon  { font-size:3rem; opacity:.3; }
+        .stat-card.green  { background: linear-gradient(135deg,#4BB543,#117554); }
+        .stat-card.blue   { background: linear-gradient(135deg,#0984e3,#74b9ff); }
+        .stat-card.orange { background: linear-gradient(135deg,#e17055,#fdcb6e); }
+        .stat-card.teal   { background: linear-gradient(135deg,#00b894,#55efc4); }
+        .training-status-badge { font-size:.8rem; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Dashboard</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item active">Dashboard</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @* Profile Banner *@
+        <div class="profile-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="mr-3">
+                        @if (!string.IsNullOrEmpty(user?.Photo))
+                        {
+                            <img src="~/uploads/photos/@user.Photo"
+                                 class="img-circle elevation-2"
+                                 style="width:60px;height:60px;object-fit:cover;border:3px solid rgba(255,255,255,.5);" />
+                        }
+                        else
+                        {
+                            <div style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;">
+                                <i class="fas fa-user fa-2x"></i>
+                            </div>
+                        }
+                    </div>
+                    <div>
+                        <h4>@user?.FirstName @user?.LastName</h4>
+                        <p>
+                            @if (user?.IsExternal == true)
+                            {
+                                <span><i class="fas fa-external-link-alt mr-1"></i>External Resource Person</span>
+                                @if (!string.IsNullOrEmpty(user?.Organization))
+                                {
+                                    <span class="ml-2">| @user.Organization</span>
+                                }
+                            }
+                            else
+                            {
+                                <span><i class="fas fa-building mr-1"></i>@(user?.Position ?? "Resource Person")</span>
+                                @if (!string.IsNullOrEmpty(user?.Office?.OfficeName))
+                                {
+                                    <span class="ml-2">| @user.Office.OfficeName</span>
+                                }
+                            }
+                        </p>
+                        @if (!string.IsNullOrEmpty(user?.Expertise))
+                        {
+                            <p><i class="fas fa-star mr-1"></i>Expertise: @user.Expertise</p>
+                        }
+                    </div>
+                </div>
+                <div class="text-right">
+                    <i class="fas fa-chalkboard-teacher fa-3x" style="opacity:.3;"></i>
+                </div>
+            </div>
+        </div>
+
+        @* Stat Cards *@
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card green">
+                    <div>
+                        <div class="num">@totalAssigned</div>
+                        <div class="label">Total Assigned</div>
+                    </div>
+                    <i class="fas fa-book stat-icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card blue">
+                    <div>
+                        <div class="num">@ongoingCount</div>
+                        <div class="label">Ongoing</div>
+                    </div>
+                    <i class="fas fa-spinner stat-icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card orange">
+                    <div>
+                        <div class="num">@upcomingCount</div>
+                        <div class="label">Upcoming</div>
+                    </div>
+                    <i class="fas fa-calendar stat-icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card teal">
+                    <div>
+                        <div class="num">@completedCount</div>
+                        <div class="label">Completed</div>
+                    </div>
+                    <i class="fas fa-check-circle stat-icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+
+            @* Current Training *@
+            <div class="col-lg-8">
+                @if (currentTraining != null)
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header success-gradient">
+                            <h3 class="card-title">
+                                <i class="fas fa-chalkboard mr-2"></i>Current Training
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <h4 class="font-weight-bold">@currentTraining.TrainingTitle</h4>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Training Code</small>
+                                    <strong>@(currentTraining.TrainingCode ?? "—")</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Location</small>
+                                    <strong>@(currentTraining.Location ?? "—")</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Region</small>
+                                    <strong>@(currentTraining.Region?.RegionName ?? "—")</strong>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Start Date</small>
+                                    <strong>@currentTraining.StartDate?.ToString("MMM dd, yyyy")</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">End Date</small>
+                                    <strong>@currentTraining.EndDate?.ToString("MMM dd, yyyy")</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Participants</small>
+                                    <strong>@currentTraining.TrainingParticipants.Count</strong>
+                                </div>
+                            </div>
+                            <hr />
+                            <div class="d-flex gap-2">
+                                <a asp-controller="Content" asp-action="Modules"
+                                   asp-route-trainingId="@currentTraining.TrainingId"
+                                   class="btn btn-success mr-2">
+                                    <i class="fas fa-folder mr-1"></i> Manage Modules
+                                </a>
+                                <a asp-controller="Content" asp-action="TestMaker"
+                                   asp-route-trainingId="@currentTraining.TrainingId"
+                                   class="btn btn-outline-success">
+                                    <i class="fas fa-question-circle mr-1"></i> Pre/Post Test
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header success-gradient">
+                            <h3 class="card-title">
+                                <i class="fas fa-chalkboard mr-2"></i>Current Training
+                            </h3>
+                        </div>
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-inbox fa-3x mb-3" style="color:#c8e6c9;opacity:.6;"></i>
+                            <h5 class="text-muted">No ongoing training at the moment.</h5>
+                            <p class="text-muted small">Check Training History for past assignments.</p>
+                        </div>
+                    </div>
+                }
+
+                @* Recent Trainings *@
+                <div class="card shadow-sm">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-history mr-2"></i>Recent Training Assignments
+                        </h3>
+                        <div class="card-tools">
+                            <a asp-controller="ResourcePerson" asp-action="TrainingHistory"
+                               class="btn btn-sm btn-light">
+                                <i class="fas fa-list mr-1"></i> View All
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (!recentTrainings.Any())
+                        {
+                            <div class="text-center text-muted py-4">
+                                <p>No training assignments yet.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <table class="table table-hover mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Training</th>
+                                        <th>Date</th>
+                                        <th>Participants</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var t in recentTrainings)
+                                    {
+                                        var now    = DateTime.Now;
+                                        var status = "Upcoming";
+                                        var badge  = "badge-info";
+                                        if (t.StartDate.HasValue && t.EndDate.HasValue)
+                                        {
+                                            if (now >= t.StartDate && now <= t.EndDate)
+                                            { status = "Ongoing";   badge = "badge-success"; }
+                                            else if (now > t.EndDate)
+                                            { status = "Completed"; badge = "badge-secondary"; }
+                                        }
+                                        <tr>
+                                            <td>
+                                                <strong>@t.TrainingTitle</strong>
+                                                <small class="text-muted d-block">@t.TrainingCode</small>
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    @(t.StartDate?.ToString("MMM dd") ?? "TBD") —
+                                                    @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                                </small>
+                                            </td>
+                                            <td>@t.TrainingParticipants.Count</td>
+                                            <td><span class="badge @badge">@status</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* Quick Actions *@
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-bolt mr-2"></i>Quick Actions
+                        </h3>
+                    </div>
+                    <div class="card-body p-2">
+                        <a asp-controller="Content" asp-action="Modules"
+                           class="btn btn-block btn-outline-success mb-2 text-left">
+                            <i class="fas fa-folder mr-2"></i> Manage Modules
+                        </a>
+                        <a asp-controller="Content" asp-action="TestMaker"
+                           class="btn btn-block btn-outline-primary mb-2 text-left">
+                            <i class="fas fa-question-circle mr-2"></i> Pre/Post Test
+                        </a>
+                        <a asp-controller="ResourcePerson" asp-action="TrainingHistory"
+                           class="btn btn-block btn-outline-info mb-2 text-left">
+                            <i class="fas fa-history mr-2"></i> Training History
+                        </a>
+                        <a asp-controller="Training" asp-action="TrainingReport"
+                           class="btn btn-block btn-outline-secondary text-left">
+                            <i class="fas fa-chart-bar mr-2"></i> Training Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>

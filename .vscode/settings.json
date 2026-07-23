@@ -1,5 +1,10 @@
 {
     "pokemon-pets.rewards.pushCandy": 100,
     "pokemon-pets.rewards.pushFriendship": 255,
-    "pokemon-pets.rewards.pushGold": 10000
+    "pokemon-pets.rewards.pushGold": 10000,
+    "pokemon-pets.filter": "None",
+    "pokemon-pets.background": "Minecraft_grass",
+    "pokemon-pets.scale": "Medium",
+    "pokemon-pets.rewards.saveGold": 1000,
+    "pokemon-pets.telemetry": true
 }
