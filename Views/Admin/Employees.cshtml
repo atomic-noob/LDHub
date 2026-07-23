@@ -9,19 +9,19 @@
     <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
 }
 
-<section class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1>Employee Management</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="#">Home</a></li>
-                    <li class="breadcrumb-item active">Employees</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-</section>
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><h1>Employee Management</h1></div>
+                        <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-right">
+                                <li class="breadcrumb-item"><a href="#">Home</a></li>
+                                <li class="breadcrumb-item active">Employees</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
 <section class="content">
     <div class="container-fluid">
@@ -36,19 +36,19 @@
         }
 
         <div class="card">
-           <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
-    <h3 class="card-title">Employees List</h3>
-    <div class="ml-auto d-flex align-items-center" style="gap:8px;">
-        <label class="mb-0 font-weight-bold">Filter by Role:</label>
-        <select id="roleFilter" class="form-control form-control-sm" style="min-width:180px;">
-            <option value="">All Roles</option>
-            <option value="Employee">Employee</option>
-            <option value="CourseManager">Course Manager</option>
-            <option value="Raam">RAAM</option>
-            <option value="ResourcePerson">Resource Person</option>
-        </select>
-    </div>
-</div>
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+            <h3 class="card-title">Employees List</h3>
+            <div class="ml-auto d-flex align-items-center" style="gap:8px;">
+                <label class="mb-0 font-weight-bold">Filter by Role:</label>
+                <select id="roleFilter" class="form-control form-control-sm" style="min-width:180px;">
+                    <option value="">All Roles</option>
+                    <option value="Employee">Employee</option>
+                    <option value="CourseManager">Course Manager</option>
+                    <option value="Raam">RAAM</option>
+                    <option value="ResourcePerson">Resource Person</option>
+                        </select>
+            </div>
+        </div>
             <div class="card-body">
                 <table id="employeesTable" class="table table-bordered table-hover">
                     <thead class="thead-dark">
