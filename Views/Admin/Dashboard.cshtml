@@ -1,8 +1,315 @@
+
 @{
-    ViewData["Title"] = "Home Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Admin Dashboard";
+
+    var totalUsers       = ViewBag.TotalUsers       as int? ?? 0;
+    var totalTrainings   = ViewBag.TotalTrainings   as int? ?? 0;
+    var totalEmployees   = ViewBag.TotalEmployees   as int? ?? 0;
+    var pendingCount     = ViewBag.PendingCount     as int? ?? 0;
+    var activeTrainings  = ViewBag.ActiveTrainings  as int? ?? 0;
+    var totalSME         = ViewBag.TotalSME         as int? ?? 0;
+    var recentTrainings  = ViewBag.RecentTrainings  as List<LDHub.Models.Training> ?? new List<LDHub.Models.Training>();
+    var recentPending    = ViewBag.RecentPending    as List<LDHub.Models.PendingParticipant> ?? new List<LDHub.Models.PendingParticipant>();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>This is admin welcome</p>
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg, #ffffff 0%, #f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg, #9BEC00, #4BB543, #117554); color: white; }
+        .stat-card {
+            border-radius: 10px; padding: 20px; color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,.1); margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .stat-card .num   { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+        .stat-card .label { font-size: .88rem; opacity: .85; margin-top: 5px; }
+        .stat-card .icon  { font-size: 3rem; opacity: .3; }
+        .stat-card.green  { background: linear-gradient(135deg, #4BB543, #117554); }
+        .stat-card.blue   { background: linear-gradient(135deg, #0984e3, #74b9ff); }
+        .stat-card.orange { background: linear-gradient(135deg, #e17055, #fdcb6e); }
+        .stat-card.purple { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+        .stat-card.teal   { background: linear-gradient(135deg, #00b894, #55efc4); }
+        .stat-card.red    { background: linear-gradient(135deg, #d63031, #ff7675); }
+        .welcome-banner {
+            background: linear-gradient(135deg, #117554, #4BB543);
+            color: white; border-radius: 10px;
+            padding: 22px 28px; margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(75,181,67,.3);
+        }
+        .welcome-banner h4 { font-weight: 800; margin-bottom: 3px; }
+        .welcome-banner p  { opacity: .85; margin-bottom: 0; font-size: .92rem; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Admin Dashboard</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item active">Dashboard</li>
+                </ol>
+            </div>
+        </div>
+    </div>
 </div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        @* Welcome Banner *@
+        <div class="welcome-banner">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h4><i class="fas fa-shield-alt mr-2"></i>Welcome, @ViewBag.UserName!</h4>
+                    <p>
+                        <i class="fas fa-calendar mr-1"></i>
+                        @DateTime.Now.ToString("dddd, MMMM dd, yyyy")
+                        &nbsp;|&nbsp;
+                        DENR L&amp;D Hub — Administrator Portal
+                    </p>
+                </div>
+                <i class="fas fa-user-shield fa-3x" style="opacity:.3;"></i>
+            </div>
+        </div>
+
+        @* Stat Cards *@
+        <div class="row">
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card green">
+                    <div>
+                        <div class="num">@totalEmployees</div>
+                        <div class="label">Employees</div>
+                    </div>
+                    <i class="fas fa-users icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card blue">
+                    <div>
+                        <div class="num">@totalTrainings</div>
+                        <div class="label">Trainings</div>
+                    </div>
+                    <i class="fas fa-book icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card teal">
+                    <div>
+                        <div class="num">@activeTrainings</div>
+                        <div class="label">Ongoing</div>
+                    </div>
+                    <i class="fas fa-spinner icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card orange">
+                    <div>
+                        <div class="num">@pendingCount</div>
+                        <div class="label">Pending</div>
+                    </div>
+                    <i class="fas fa-user-clock icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card purple">
+                    <div>
+                        <div class="num">@totalSME</div>
+                        <div class="label">SME (Outsource)</div>
+                    </div>
+                    <i class="fas fa-chalkboard-teacher icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card red">
+                    <div>
+                        <div class="num">@totalUsers</div>
+                        <div class="label">Total Users</div>
+                    </div>
+                    <i class="fas fa-id-card icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+
+            @* Recent Trainings *@
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-book mr-2"></i>Recent Trainings
+                        </h3>
+                        <div class="card-tools">
+                            <a asp-controller="Training" asp-action="Index"
+                               class="btn btn-sm btn-light">
+                                <i class="fas fa-list mr-1"></i> View All
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (!recentTrainings.Any())
+                        {
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2" style="opacity:.3;"></i>
+                                <p>No trainings yet.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <table class="table table-hover mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Training</th>
+                                        <th>Region</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var t in recentTrainings)
+                                    {
+                                        var now    = DateTime.Now;
+                                        var status = "Scheduled";
+                                        var badge  = "badge-info";
+                                        if (t.StartDate.HasValue && t.EndDate.HasValue)
+                                        {
+                                            if (now >= t.StartDate && now <= t.EndDate)
+                                            { status = "Ongoing";   badge = "badge-success"; }
+                                            else if (now > t.EndDate)
+                                            { status = "Completed"; badge = "badge-secondary"; }
+                                        }
+                                        <tr>
+                                            <td>
+                                                <strong>@t.TrainingTitle</strong>
+                                                <small class="text-muted d-block">@t.TrainingCode</small>
+                                            </td>
+                                            <td><small>@(t.Region?.RegionName ?? "—")</small></td>
+                                            <td>
+                                                <small>
+                                                    @(t.StartDate?.ToString("MMM dd") ?? "TBD") —
+                                                    @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                                </small>
+                                            </td>
+                                            <td><span class="badge @badge">@status</span></td>
+                                            <td>
+                                                <a asp-controller="Training" asp-action="Details"
+                                                   asp-route-id="@t.TrainingId"
+                                                   class="btn btn-xs btn-info">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a asp-controller="Training" asp-action="AssignParticipant"
+                                                   asp-route-id="@t.TrainingId"
+                                                   class="btn btn-xs btn-success">
+                                                    <i class="fas fa-user-plus"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* Right Column *@
+            <div class="col-lg-4">
+
+                @* Pending Approvals *@
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-user-clock mr-2"></i>Pending Approvals
+                            @if (pendingCount > 0)
+                            {
+                                <span class="badge badge-warning ml-1">@pendingCount</span>
+                            }
+                        </h3>
+                        <div class="card-tools">
+                            <a asp-controller="Admin" asp-action="PendingEmployees"
+                               class="btn btn-sm btn-light">View All</a>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        @if (!recentPending.Any())
+                        {
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                                <p class="mb-0 small">No pending approvals!</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var p in recentPending.Take(5))
+                                {
+                                    <li class="list-group-item py-2 px-2 border-0">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <strong style="font-size:.85rem;">
+                                                    @p.FirstName @p.LastName
+                                                </strong>
+                                                <small class="text-muted d-block">@p.Email</small>
+                                            </div>
+                                            <small class="text-muted">
+                                                @p.CreatedAt.ToString("MMM dd")
+                                            </small>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+
+                @* Quick Actions *@
+                <div class="card shadow-sm">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-bolt mr-2"></i>Quick Actions
+                        </h3>
+                    </div>
+                    <div class="card-body p-2">
+                        <a asp-controller="Training" asp-action="Create"
+                           class="btn btn-block btn-outline-success mb-2 text-left">
+                            <i class="fas fa-plus mr-2"></i> Create Training
+                        </a>
+                        <a asp-controller="Admin" asp-action="PendingEmployees"
+                           class="btn btn-block btn-outline-warning mb-2 text-left">
+                            <i class="fas fa-user-clock mr-2"></i> Pending Employees
+                            @if (pendingCount > 0)
+                            {
+                                <span class="badge badge-warning float-right">@pendingCount</span>
+                            }
+                        </a>
+                        <a asp-controller="Admin" asp-action="Employees"
+                           class="btn btn-block btn-outline-primary mb-2 text-left">
+                            <i class="fas fa-users mr-2"></i> Manage Employees
+                        </a>
+                        <a asp-controller="Admin" asp-action="ResourcePersons"
+                           class="btn btn-block btn-outline-info mb-2 text-left">
+                            <i class="fas fa-chalkboard-teacher mr-2"></i> Manage SME
+                        </a>
+                        <a asp-controller="Training" asp-action="TrainingReport"
+                           class="btn btn-block btn-outline-secondary text-left">
+                            <i class="fas fa-chart-bar mr-2"></i> Training Report
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>

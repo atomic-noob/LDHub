@@ -104,6 +104,14 @@ public class TrainingController : Controller
 
         var role     = GetUserRole();
         var regionId = await GetRaamRegionId();
+        
+            // Auto-generate training code if empty
+            if (string.IsNullOrWhiteSpace(model.TrainingCode))
+            {
+                var year  = DateTime.Now.Year;
+                var count = await _db.Trainings.CountAsync() + 1;
+                model.TrainingCode = $"TRN-{year}-{count:D3}";
+            }
 
         // Force RAAM's region
         if (role == "Raam")

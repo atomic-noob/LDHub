@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["dotnet-sdk_10_0"]
+
+[phases.build]
+cmds = ["dotnet publish -c Release -o /app/publish"]
+
+[phases.start]
+cmd = "dotnet /app/publish/LDHub.dll"
