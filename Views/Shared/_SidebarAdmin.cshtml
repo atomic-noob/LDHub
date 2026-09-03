@@ -119,10 +119,16 @@
 
                 @* Announcements *@
                 <li class="nav-item">
-                    <a asp-controller="Admin" asp-action="Announcements"
-                       class="nav-link @(action == "Announcements" ? "active" : "")">
+                     <a asp-controller="Announcements"
+                    asp-action="Index"
+                    class="nav-link">
+
                         <i class="nav-icon fas fa-bullhorn"></i>
-                        <p>Announcements</p>
+
+                        <p>
+                            Announcements
+                        </p>
+
                     </a>
                 </li>
 

@@ -1,195 +1,1229 @@
-﻿
-@model LDHub.Models.LoginViewModel
+﻿@model LDHub.Models.LoginViewModel
+
 @{
     Layout = null;
     ViewData["Title"] = "Admin Login — DENR L&D Hub";
 }
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>@ViewData["Title"]</title>
-    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css" />
-    <link rel="stylesheet" href="~/dist/css/adminlte.min.css" />
-    <link rel="stylesheet" href="~/css/auth.css" />
+
+    <link rel="stylesheet"
+          href="~/plugins/fontawesome-free/css/all.min.css" />
+
+    <link rel="stylesheet"
+          href="~/dist/css/adminlte.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/auth.css" />
+
     <style>
+
+        /* =========================================================
+           GLOBAL
+        ========================================================= */
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+        }
+
         body {
             min-height: 100vh;
-            background: url('/dist/img/denrbg.jpg') center center / cover no-repeat fixed;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(4, 40, 25, 0.88),
+                    rgba(7, 75, 51, 0.68),
+                    rgba(0, 0, 0, 0.72)
+                ),
+                url('/dist/img/denrbg.jpg')
+                center center / cover
+                no-repeat fixed;
+
             display: flex;
             align-items: center;
             justify-content: center;
+
+            padding: 25px;
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Arial,
+                sans-serif;
+
+            overflow-x: hidden;
         }
+
+
+        /* =========================================================
+           DECORATIVE BACKGROUND
+        ========================================================= */
+
+        .bg-circle {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(4px);
+            pointer-events: none;
+            opacity: .35;
+        }
+
+        .circle-one {
+            width: 320px;
+            height: 320px;
+
+            background: rgba(155, 236, 0, .22);
+
+            top: -120px;
+            right: -100px;
+        }
+
+        .circle-two {
+            width: 260px;
+            height: 260px;
+
+            background: rgba(75, 181, 67, .2);
+
+            bottom: -100px;
+            left: -80px;
+        }
+
+
+        /* =========================================================
+           LOGIN WRAPPER
+        ========================================================= */
+
         .admin-login-wrapper {
             width: 100%;
-            max-width: 420px;
-            padding: 20px;
+            max-width: 440px;
+            position: relative;
+            z-index: 2;
+
+            animation: fadeUp .65s ease-out;
         }
+
+
+        /* =========================================================
+           GLASS CARD
+        ========================================================= */
+
         .glass-card {
-            background: rgba(255,255,255,0.08);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 16px;
-            padding: 40px 35px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+
+            position: relative;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255, 255, 255, .13),
+                    rgba(255, 255, 255, .06)
+                );
+
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, .18);
+
+            border-radius: 22px;
+
+            padding: 42px 38px 35px;
+
+            box-shadow:
+                0 25px 60px rgba(0, 0, 0, .35),
+                inset 0 1px 0 rgba(255, 255, 255, .12);
+
+            overflow: hidden;
         }
+
+        .glass-card::before {
+            content: "";
+
+            position: absolute;
+
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 4px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #9BEC00,
+                    #4BB543,
+                    #117554
+                );
+        }
+
+
+        /* =========================================================
+           BRAND
+        ========================================================= */
+
         .brand-section {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 28px;
         }
-        .brand-section img {
-            width: 75px; height: 75px;
+
+        .logo-wrapper {
+
+            width: 92px;
+            height: 92px;
+
+            margin: 0 auto 15px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
             border-radius: 50%;
+
+            background:
+                rgba(255, 255, 255, .12);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, .2);
+
+            box-shadow:
+                0 10px 30px
+                rgba(0, 0, 0, .28);
+        }
+
+        .brand-section img {
+
+            width: 78px;
+            height: 78px;
+
+            border-radius: 50%;
+
             object-fit: cover;
-            border: 3px solid rgba(255,255,255,.4);
-            box-shadow: 0 4px 15px rgba(0,0,0,.3);
-            margin-bottom: 12px;
+
+            border:
+                3px solid
+                rgba(255, 255, 255, .65);
         }
+
         .brand-section h4 {
-            color: white;
+
+            color: #ffffff;
+
             font-weight: 800;
-            font-size: 1.3rem;
-            margin-bottom: 4px;
+
+            font-size: 1.5rem;
+
+            letter-spacing: -.3px;
+
+            margin: 0 0 5px;
         }
+
         .brand-section p {
-            color: rgba(255,255,255,.6);
-            font-size: .85rem;
-            margin-bottom: 0;
+
+            color:
+                rgba(255, 255, 255, .65);
+
+            font-size: .84rem;
+
+            margin: 0;
         }
+
+
+        /* =========================================================
+           ADMIN BADGE
+        ========================================================= */
+
         .admin-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #9BEC00, #4BB543);
-            color: white;
-            border-radius: 20px;
-            padding: 4px 16px;
-            font-size: .78rem;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 5px;
+
+            margin-top: 15px;
+
+            padding:
+                6px 16px;
+
+            border-radius: 30px;
+
+            color: #ffffff;
+
+            font-size: .72rem;
+
             font-weight: 700;
-            letter-spacing: 1px;
+
+            letter-spacing: 1.1px;
+
             text-transform: uppercase;
-            margin-bottom: 25px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(155, 236, 0, .95),
+                    rgba(75, 181, 67, .95),
+                    rgba(17, 117, 84, .95)
+                );
+
+            box-shadow:
+                0 5px 15px
+                rgba(75, 181, 67, .30);
         }
-        .form-label {
-            color: rgba(255,255,255,.7);
-            font-size: .82rem;
-            margin-bottom: 6px;
-        }
-        .glass-input {
-            background: rgba(255,255,255,0.08) !important;
-            border: 1px solid rgba(255,255,255,0.15) !important;
-            border-radius: 8px !important;
-            color: white !important;
-            padding: 11px 14px !important;
-            font-size: .9rem !important;
-            transition: all .3s;
-            width: 100%;
-        }
-        .glass-input:focus {
-            background: rgba(255,255,255,0.12) !important;
-            border-color: #4BB543 !important;
-            box-shadow: 0 0 0 3px rgba(75,181,67,0.2) !important;
-            outline: none !important;
-            color: white !important;
-        }
-        .glass-input::placeholder { color: rgba(255,255,255,.35) !important; }
-        .btn-admin-login {
-            background: linear-gradient(135deg, #9BEC00, #4BB543, #117554) !important;
-            border: none !important;
-            border-radius: 10px !important;
-            color: white !important;
-            font-size: 1rem !important;
-            font-weight: 700 !important;
-            padding: 12px !important;
-            width: 100% !important;
-            margin-top: 10px;
-            transition: all .3s !important;
-            box-shadow: 0 4px 15px rgba(75,181,67,.4) !important;
-            cursor: pointer;
-        }
-        .btn-admin-login:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 25px rgba(75,181,67,.5) !important;
-        }
-        .error-alert {
-            background: rgba(220,53,69,0.15);
-            border: 1px solid rgba(220,53,69,.3);
-            border-radius: 8px;
-            color: #ff6b6b;
-            padding: 10px 15px;
-            font-size: .85rem;
-            margin-bottom: 16px;
-        }
-        .back-link {
+
+
+        /* =========================================================
+           LOGIN HEADING
+        ========================================================= */
+
+        .login-heading {
+
             text-align: center;
-            margin-top: 20px;
+
+            margin-bottom: 24px;
         }
+
+        .login-heading h5 {
+
+            color: #ffffff;
+
+            font-weight: 700;
+
+            margin-bottom: 5px;
+        }
+
+        .login-heading span {
+
+            color:
+                rgba(255, 255, 255, .53);
+
+            font-size: .81rem;
+        }
+
+
+        /* =========================================================
+           ERROR MESSAGE
+        ========================================================= */
+
+        .error-alert {
+
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 8px;
+
+            background:
+                rgba(220, 53, 69, .13);
+
+            border:
+                1px solid
+                rgba(255, 107, 107, .35);
+
+            border-radius: 10px;
+
+            color: #ff9da6;
+
+            padding: 11px 14px;
+
+            font-size: .84rem;
+
+            margin-bottom: 18px;
+        }
+
+
+        /* =========================================================
+           FORM
+        ========================================================= */
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+
+            display: block;
+
+            color:
+                rgba(255, 255, 255, .78);
+
+            font-size: .79rem;
+
+            font-weight: 600;
+
+            margin-bottom: 7px;
+
+            letter-spacing: .2px;
+        }
+
+
+        /* =========================================================
+           INPUT GROUP
+        ========================================================= */
+
+        .glass-input-group {
+
+            position: relative;
+
+            display: flex;
+
+            align-items: center;
+        }
+
+        .input-icon {
+
+            position: absolute;
+
+            left: 14px;
+
+            z-index: 3;
+
+            color:
+                rgba(255, 255, 255, .45);
+
+            font-size: .9rem;
+
+            pointer-events: none;
+
+            transition: .25s;
+        }
+
+        .glass-input {
+
+            width: 100%;
+
+            height: 48px;
+
+            padding:
+                11px 45px 11px 43px !important;
+
+            border-radius: 11px !important;
+
+            border:
+                1px solid
+                rgba(255, 255, 255, .14) !important;
+
+            background:
+                rgba(255, 255, 255, .08) !important;
+
+            color: #ffffff !important;
+
+            font-size: .9rem !important;
+
+            transition:
+                border .25s,
+                background .25s,
+                box-shadow .25s,
+                transform .25s;
+        }
+
+        .glass-input:hover {
+
+            background:
+                rgba(255, 255, 255, .10) !important;
+
+            border-color:
+                rgba(255, 255, 255, .25) !important;
+        }
+
+        .glass-input:focus {
+
+            background:
+                rgba(255, 255, 255, .12) !important;
+
+            border-color:
+                #7DDC48 !important;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(75, 181, 67, .18) !important;
+
+            outline: none !important;
+        }
+
+        .glass-input-group:focus-within
+        .input-icon {
+
+            color: #9BEC00;
+        }
+
+        .glass-input::placeholder {
+
+            color:
+                rgba(255, 255, 255, .30) !important;
+        }
+
+
+        /* =========================================================
+           PASSWORD TOGGLE
+        ========================================================= */
+
+        .password-toggle {
+
+            position: absolute;
+
+            right: 14px;
+
+            z-index: 4;
+
+            border: none;
+
+            background: none;
+
+            color:
+                rgba(255, 255, 255, .45);
+
+            cursor: pointer;
+
+            padding: 5px;
+
+            transition: .2s;
+        }
+
+        .password-toggle:hover {
+
+            color: #9BEC00;
+        }
+
+        .password-toggle:focus {
+
+            outline: none;
+        }
+
+
+        /* =========================================================
+           VALIDATION
+        ========================================================= */
+
+        .field-validation-error {
+
+            color: #ff9da6;
+
+            display: block;
+
+            margin-top: 5px;
+
+            font-size: .75rem;
+        }
+
+        .validation-summary-errors {
+
+            background:
+                rgba(220, 53, 69, .13);
+
+            border:
+                1px solid
+                rgba(220, 53, 69, .3);
+
+            color: #ff9da6;
+
+            border-radius: 10px;
+
+            padding:
+                10px 15px;
+
+            margin-bottom: 15px;
+
+            font-size: .8rem;
+        }
+
+        .validation-summary-errors ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+
+        /* =========================================================
+           LOGIN BUTTON
+        ========================================================= */
+
+        .btn-admin-login {
+
+            position: relative;
+
+            width: 100% !important;
+
+            min-height: 50px;
+
+            margin-top: 7px;
+
+            padding: 12px !important;
+
+            border: none !important;
+
+            border-radius: 11px !important;
+
+            color: #ffffff !important;
+
+            font-size: .94rem !important;
+
+            font-weight: 700 !important;
+
+            letter-spacing: .15px;
+
+            cursor: pointer;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #8BDC00,
+                    #43B047,
+                    #117554
+                ) !important;
+
+            box-shadow:
+                0 8px 22px
+                rgba(29, 145, 82, .32) !important;
+
+            transition:
+                transform .25s,
+                box-shadow .25s,
+                filter .25s !important;
+
+            overflow: hidden;
+        }
+
+        .btn-admin-login::before {
+
+            content: "";
+
+            position: absolute;
+
+            top: 0;
+            left: -110%;
+
+            width: 100%;
+            height: 100%;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, .22),
+                    transparent
+                );
+
+            transition: left .5s;
+        }
+
+        .btn-admin-login:hover::before {
+
+            left: 110%;
+        }
+
+        .btn-admin-login:hover {
+
+            transform:
+                translateY(-2px) !important;
+
+            box-shadow:
+                0 12px 28px
+                rgba(29, 145, 82, .42) !important;
+
+            filter: brightness(1.04);
+        }
+
+        .btn-admin-login:active {
+
+            transform:
+                translateY(0) !important;
+        }
+
+        .btn-admin-login:disabled {
+
+            opacity: .75;
+
+            cursor: not-allowed;
+
+            transform: none !important;
+        }
+
+
+        /* =========================================================
+           SECURITY TEXT
+        ========================================================= */
+
+        .secure-text {
+
+            text-align: center;
+
+            margin-top: 14px;
+
+            color:
+                rgba(255, 255, 255, .4);
+
+            font-size: .72rem;
+        }
+
+        .secure-text i {
+
+            color:
+                rgba(155, 236, 0, .65);
+
+            margin-right: 4px;
+        }
+
+
+        /* =========================================================
+           DIVIDER
+        ========================================================= */
+
+        .login-divider {
+
+            display: flex;
+
+            align-items: center;
+
+            margin:
+                23px 0 17px;
+
+            gap: 12px;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+
+            content: "";
+
+            flex: 1;
+
+            height: 1px;
+
+            background:
+                rgba(255, 255, 255, .12);
+        }
+
+        .login-divider span {
+
+            color:
+                rgba(255, 255, 255, .35);
+
+            font-size: .7rem;
+
+            text-transform: uppercase;
+
+            letter-spacing: .7px;
+        }
+
+
+        /* =========================================================
+           BACK BUTTON
+        ========================================================= */
+
+        .back-link {
+
+            text-align: center;
+        }
+
         .back-link a {
-            color: rgba(255,255,255,.5);
-            font-size: .82rem;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            color:
+                rgba(255, 255, 255, .58);
+
+            font-size: .8rem;
+
+            font-weight: 500;
+
             text-decoration: none;
-            transition: color .2s;
+
+            transition:
+                color .2s,
+                transform .2s;
         }
-        .back-link a:hover { color: #9BEC00; }
-        .form-group { margin-bottom: 16px; }
+
+        .back-link a:hover {
+
+            color: #9BEC00;
+
+            text-decoration: none;
+
+            transform:
+                translateX(-2px);
+        }
+
+
+        /* =========================================================
+           FOOTER
+        ========================================================= */
+
+        .login-footer {
+
+            margin-top: 22px;
+
+            text-align: center;
+
+            color:
+                rgba(255, 255, 255, .34);
+
+            font-size: .68rem;
+        }
+
+
+        /* =========================================================
+           ANIMATION
+        ========================================================= */
+
+        @@keyframes fadeUp {
+
+            from {
+
+                opacity: 0;
+
+                transform:
+                    translateY(25px);
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform:
+                    translateY(0);
+            }
+        }
+
+
+        /* =========================================================
+           RESPONSIVE
+        ========================================================= */
+
+        @@media (max-width: 576px) {
+
+            body {
+
+                padding: 16px;
+
+                background-attachment: scroll;
+            }
+
+            .glass-card {
+
+                padding:
+                    34px 24px 28px;
+
+                border-radius: 18px;
+            }
+
+            .logo-wrapper {
+
+                width: 82px;
+                height: 82px;
+            }
+
+            .brand-section img {
+
+                width: 69px;
+                height: 69px;
+            }
+
+            .brand-section h4 {
+
+                font-size: 1.3rem;
+            }
+
+            .admin-badge {
+
+                font-size: .67rem;
+
+                padding:
+                    6px 13px;
+            }
+        }
+
     </style>
 </head>
+
 <body>
 
-<div class="admin-login-wrapper">
-    <div class="glass-card">
+    <!-- Decorative background elements -->
+    <div class="bg-circle circle-one"></div>
+    <div class="bg-circle circle-two"></div>
 
-        @* Brand *@
-        <div class="brand-section">
-            <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" />
-            <h4>DENR L&amp;D Hub</h4>
-            <p>Human Resource Development Service</p>
-            <div class="mt-2">
+
+    <div class="admin-login-wrapper">
+
+        <div class="glass-card">
+
+            <!-- ================================================
+                 BRAND
+            ================================================= -->
+
+            <div class="brand-section">
+
+                <div class="logo-wrapper">
+
+                    <img src="~/dist/img/denrlogo.jpg"
+                         alt="DENR Logo" />
+
+                </div>
+
+                <h4>DENR L&amp;D Hub</h4>
+
+                <p>
+                    Human Resource Development Service
+                </p>
+
                 <span class="admin-badge">
-                    <i class="fas fa-shield-alt mr-1"></i> Administrator Portal
+
+                    <i class="fas fa-shield-alt"></i>
+
+                    Administrator Portal
+
                 </span>
-            </div>
-        </div>
 
-        @* Error *@
-        @if (ViewBag.Error != null)
-        {
-            <div class="error-alert">
-                <i class="fas fa-exclamation-circle mr-2"></i>@ViewBag.Error
-            </div>
-        }
-
-        @* Form *@
-        <form asp-controller="Admin" asp-action="Login" method="post">
-            @Html.AntiForgeryToken()
-
-            <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input asp-for="Email" type="email" class="glass-input"
-                       placeholder="admin@denr.gov.ph" required />
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Password</label>
-                <input asp-for="Password" type="password" class="glass-input"
-                       placeholder="••••••••" required />
+
+            <!-- ================================================
+                 ERROR MESSAGE
+            ================================================= -->
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="error-alert">
+
+                    <i class="fas fa-exclamation-circle mt-1"></i>
+
+                    <span>
+                        @ViewBag.Error
+                    </span>
+
+                </div>
+            }
+
+
+            <!-- ================================================
+                 FORM
+            ================================================= -->
+
+            <form asp-controller="Admin"
+                  asp-action="Login"
+                  method="post"
+                  id="loginForm">
+
+                @Html.AntiForgeryToken()
+
+
+                <!-- Validation Summary -->
+
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger"></div>
+
+
+                <!-- ============================================
+                     EMAIL
+                ============================================= -->
+
+                <div class="form-group">
+
+                    <label asp-for="Email"
+                           class="form-label">
+
+                        Email Address
+
+                    </label>
+
+
+                    <div class="glass-input-group">
+
+                        <i class="fas fa-envelope input-icon"></i>
+
+                        <input asp-for="Email"
+                               type="email"
+                               class="glass-input"
+                               placeholder="Enter your email address"
+                               autocomplete="email" />
+
+                    </div>
+
+
+                    <span asp-validation-for="Email"
+                          class="field-validation-error">
+                    </span>
+
+                </div>
+
+
+                <!-- ============================================
+                     PASSWORD
+                ============================================= -->
+
+                <div class="form-group">
+
+                    <label asp-for="Password"
+                           class="form-label">
+
+                        Password
+
+                    </label>
+
+
+                    <div class="glass-input-group">
+
+                        <i class="fas fa-lock input-icon"></i>
+
+
+                        <input asp-for="Password"
+                               type="password"
+                               id="passwordInput"
+                               class="glass-input"
+                               placeholder="Enter your password"
+                               autocomplete="current-password" />
+
+
+                        <button type="button"
+                                class="password-toggle"
+                                id="togglePassword"
+                                aria-label="Show password">
+
+                            <i class="fas fa-eye"
+                               id="passwordIcon">
+                            </i>
+
+                        </button>
+
+                    </div>
+
+
+                    <span asp-validation-for="Password"
+                          class="field-validation-error">
+                    </span>
+
+                </div>
+
+
+                <!-- ============================================
+                     LOGIN BUTTON
+                ============================================= -->
+
+                <button type="submit"
+                        class="btn-admin-login"
+                        id="loginButton">
+
+                    <span id="loginButtonText">
+
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+
+                        Sign In as Administrator
+
+                    </span>
+
+                    <span id="loginLoading"
+                          style="display:none;">
+
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+
+                        Signing In...
+
+                    </span>
+
+                </button>
+
+
+                <div class="secure-text">
+
+                    <i class="fas fa-lock"></i>
+
+                    Secure administrator authentication
+
+                </div>
+
+            </form>
+
+
+            <!-- ================================================
+                 DIVIDER
+            ================================================= -->
+
+            <div class="login-divider">
+
+                <span>DENR L&amp;D Hub</span>
+
             </div>
 
-            <button type="submit" class="btn-admin-login">
-                <i class="fas fa-shield-alt mr-2"></i> Sign In as Administrator
-            </button>
-        </form>
 
-        <div class="back-link">
-            <a href="/">
-                <i class="fas fa-arrow-left mr-1"></i> Back to Landing Page
-            </a>
+            <!-- ================================================
+                 BACK LINK
+            ================================================= -->
+
+            <div class="back-link">
+
+                <a asp-controller="Home"
+                   asp-action="Index">
+
+                    <i class="fas fa-arrow-left"></i>
+
+                    Back to Landing Page
+
+                </a>
+
+            </div>
+
+
+            <!-- ================================================
+                 FOOTER
+            ================================================= -->
+
+            <div class="login-footer">
+
+                Department of Environment and Natural Resources
+                <br />
+
+                Learning &amp; Development Hub
+
+            </div>
+
         </div>
 
     </div>
-</div>
 
-<script src="~/plugins/jquery/jquery.min.js"></script>
-<script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ======================================================
+         SCRIPTS
+    ======================================================= -->
+
+    <script src="~/plugins/jquery/jquery.min.js"></script>
+
+    <script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+
+    <script>
+
+        $(document).ready(function () {
+
+
+            /*
+            =====================================================
+            SHOW / HIDE PASSWORD
+            =====================================================
+            */
+
+            $("#togglePassword").on("click", function () {
+
+                const password =
+                    document.getElementById("passwordInput");
+
+                const icon =
+                    document.getElementById("passwordIcon");
+
+
+                if (password.type === "password") {
+
+                    password.type = "text";
+
+                    icon.classList.remove("fa-eye");
+
+                    icon.classList.add("fa-eye-slash");
+
+                    $(this).attr(
+                        "aria-label",
+                        "Hide password"
+                    );
+
+                }
+                else {
+
+                    password.type = "password";
+
+                    icon.classList.remove("fa-eye-slash");
+
+                    icon.classList.add("fa-eye");
+
+                    $(this).attr(
+                        "aria-label",
+                        "Show password"
+                    );
+
+                }
+
+            });
+
+
+            /*
+            =====================================================
+            LOGIN LOADING STATE
+            =====================================================
+            */
+
+            $("#loginForm").on("submit", function () {
+
+                const form = this;
+
+                if (!form.checkValidity()) {
+
+                    return;
+
+                }
+
+
+                $("#loginButton")
+                    .prop("disabled", true);
+
+
+                $("#loginButtonText")
+                    .hide();
+
+
+                $("#loginLoading")
+                    .show();
+
+            });
+
+
+            /*
+            =====================================================
+            PRESS ENTER
+            =====================================================
+            */
+
+            $(".glass-input").on(
+                "keypress",
+                function (event) {
+
+                    if (event.which === 13) {
+
+                        $("#loginForm").submit();
+
+                    }
+
+                }
+            );
+
+
+        });
+
+    </script>
+
+
+    <!-- ======================================================
+         ASP.NET VALIDATION
+    ======================================================= -->
+
+    <partial name="_ValidationScriptsPartial" />
+
 </body>
 </html>

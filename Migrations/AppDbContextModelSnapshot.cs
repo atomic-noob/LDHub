@@ -22,6 +22,37 @@ namespace LDHub.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("LDHub.Models.Announcement", b =>
+                {
+                    b.Property<int>("AnnouncementId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AnnouncementId"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("AnnouncementId");
+
+                    b.ToTable("Announcements");
+                });
+
             modelBuilder.Entity("LDHub.Models.Competency", b =>
                 {
                     b.Property<int>("Id")
@@ -710,6 +741,8 @@ namespace LDHub.Migrations
 
                     b.HasKey("TrainingId");
 
+                    b.HasIndex("RegionId");
+
                     b.ToTable("trainings");
                 });
 
@@ -1179,6 +1212,15 @@ namespace LDHub.Migrations
                         .IsRequired();
 
                     b.Navigation("Quiz");
+                });
+
+            modelBuilder.Entity("LDHub.Models.Training", b =>
+                {
+                    b.HasOne("LDHub.Models.Region", "Region")
+                        .WithMany()
+                        .HasForeignKey("RegionId");
+
+                    b.Navigation("Region");
                 });
 
             modelBuilder.Entity("LDHub.Models.TrainingInstructor", b =>

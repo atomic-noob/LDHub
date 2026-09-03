@@ -1,4 +1,5 @@
-﻿@{
+﻿@model IEnumerable<LDHub.Models.Announcement>
+@{
     Layout = null;
     ViewData["Title"] = "DENR L&D Hub";
 }
@@ -92,14 +93,13 @@
             background-image: url('/dist/img/denrbg.jpg');
             background-size: cover;
             background-position: center;
-            background-attachment: fixed; /* ← locked/parallax effect */
+            background-attachment: fixed;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
             position: relative;
         }
-        /* Dark overlay for readability */
         .hero::before {
             content: '';
             position: absolute;
@@ -172,7 +172,6 @@
             background: rgba(255,255,255,.15);
             transform: translateY(-3px);
         }
-        /* Scroll indicator */
         .scroll-indicator {
             position: absolute;
             bottom: 30px;
@@ -204,6 +203,59 @@
             background-clip: text;
         }
         .stat-item .stat-label { font-size: .9rem; color: #6c757d; margin-top: 4px; }
+
+        /* ── ANNOUNCEMENTS SECTION (NEW) ── */
+        .announcements-section {
+            padding: 80px 20px;
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .announcement-banner {
+            background: linear-gradient(135deg, rgba(17, 117, 84, 0.08), rgba(75, 181, 67, 0.12));
+            border: 1px solid rgba(17, 117, 84, 0.2);
+            border-radius: 16px;
+            padding: 35px;
+            margin-bottom: 40px;
+        }
+        .announcement-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #eef2f5;
+            border-left: 5px solid #117554 !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,.04);
+            transition: transform .25s ease, box-shadow .25s ease;
+            margin-bottom: 20px;
+        }
+        .announcement-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(17, 117, 84, 0.12);
+        }
+        .announcement-date-badge {
+            background: #f0fff4;
+            color: #117554;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid #c8e6c9;
+        }
+        .btn-manage-announcements {
+            background: transparent;
+            color: #117554;
+            border: 2px solid #117554;
+            border-radius: 25px;
+            padding: 8px 22px;
+            font-weight: 600;
+            transition: all .2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-manage-announcements:hover {
+            background: #117554;
+            color: white !important;
+        }
 
         /* ── Features ── */
         .features { padding: 80px 20px; background: #f8fdf9; }
@@ -358,7 +410,7 @@
             .hero-content h1 { font-size: 2rem; }
             .hero-content p  { font-size: 1rem; }
             .ldhub-navbar .nav-links .btn-register { display: none; }
-            .hero { background-attachment: scroll; } /* Fix iOS parallax issue */
+            .hero { background-attachment: scroll; }
         }
     </style>
 </head>
@@ -371,6 +423,7 @@
             <span>DENR L&amp;D Hub</span>
         </a>
         <div class="nav-links">
+            <a href="#announcements">Announcements</a>
             <a href="#features">Features</a>
             <a href="#how-it-works">How It Works</a>
             <a href="#about">About</a>
@@ -433,6 +486,72 @@
                         <div class="stat-number">DENR</div>
                         <div class="stat-label">Official Platform</div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* ── ANNOUNCEMENTS CONTENT DISPLAY SECTION (NEW) ── *@
+    <section class="announcements-section" id="announcements">
+        <div class="container">
+            <!-- Header Announcement Banner -->
+            <div class="announcement-banner">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                    <div>
+                        <h2 class="h3 fw-bold text-success mb-2">
+                            <i class="fas fa-bullhorn mr-2"></i>L&amp;D Hub Announcements
+                        </h2>
+                        <p class="mb-0 text-muted fs-6" style="max-width: 750px;">
+                            Hi, This is the announcement page for the L&D Hub. Here you can find the latest updates and news regarding the platform. Stay tuned for more information and upcoming features!
+                        </p>
+                    </div>
+                    <div>
+                        <a href="/Announcements/Announcements" class="btn-manage-announcements">
+                            <i class="fas fa-cog"></i> Manage Feed
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Announcements List -->
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    @if (Model == null || !Model.Any())
+                    {
+                        <div class="text-center py-5 border rounded-3 bg-light">
+                            <i class="fas fa-newspaper fa-3x text-muted mb-3 opacity-50"></i>
+                            <h5 class="text-secondary fw-semibold">No Announcements Posted Yet</h5>
+                            <p class="text-muted mb-0">Check back later for updates and new platform features.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <div class="card announcement-card p-3">
+                                <div class="card-body">
+                                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-2 gap-2">
+                                        <h4 class="card-title fw-bold text-dark mb-0">
+                                            <i class="fas fa-tag text-success mr-2"></i>@item.Title
+                                        </h4>
+                                        <span class="announcement-date-badge">
+                                            <i class="far fa-clock mr-1"></i>@item.CreatedAt.ToString("MMM dd, yyyy - hh:mm tt")
+                                        </span>
+                                    </div>
+                                    <hr class="my-3 text-muted" />
+                                    <p class="card-text text-secondary mb-1" style="white-space: pre-line; line-height: 1.7; font-size: 1rem;">
+                                        @item.Content
+                                    </p>
+                                    @if (item.UpdatedAt.HasValue)
+                                    {
+                                        <small class="text-muted fst-italic d-block mt-2">
+                                            (Last updated: @item.UpdatedAt.Value.ToString("MMM dd, yyyy"))
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </div>
@@ -532,13 +651,13 @@
         <div class="container">
             <h2><i class="fas fa-leaf mr-2"></i>About DENR TDD</h2>
             <p>
-                The Talent Development Division (TDD) of the Department of Environment and Natural Resources
+                The Training Development Division (TDD) of the Department of Environment and Natural Resources
                 is committed to building the capacity of DENR employees through structured learning programs,
                 trainings, and professional development initiatives. The L&D Hub is TDD's digital solution
                 to streamline and modernize this process.
             </p>
             <div class="mt-3">
-                <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>Talent Development</span>
+                <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>Training Development</span>
                 <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>Capacity Building</span>
                 <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>Digital Learning</span>
                 <span class="badge-pill-white"><i class="fas fa-check mr-1"></i>DENR Official</span>
@@ -564,7 +683,7 @@
     <footer>
         <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" class="footer-logo" />
         <p class="mb-1"><strong>DENR Learning &amp; Development Hub</strong></p>
-        <p class="mb-1">Talent Development Division &mdash; Human Resource Development Section</p>
+        <p class="mb-1">Training Development Division &mdash; Human Resource Development Section</p>
         <p class="mb-2">Department of Environment and Natural Resources &mdash; Central Office</p>
         <hr class="footer-divider" />
         <p class="mb-0">&copy; @DateTime.Now.Year DENR TDD &mdash; All Rights Reserved</p>

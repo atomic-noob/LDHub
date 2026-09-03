@@ -1,0 +1,334 @@
+@model IEnumerable<LDHub.Models.Announcement>
+
+@{
+    ViewData["Title"] = "Announcements";
+}
+
+<div class="container-fluid mt-4">
+
+    <!-- ============================================================
+         PAGE HEADER
+         ============================================================ -->
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <div class="d-flex flex-column flex-md-row
+                        justify-content-between
+                        align-items-md-center">
+
+                <!-- LEFT SIDE -->
+                <div>
+
+                    <h2 class="fw-bold mb-2">
+
+                        <i class="fas fa-bullhorn text-primary me-2"></i>
+
+                        Announcements
+
+                    </h2>
+
+                    <p class="text-muted mb-0">
+
+                        Hi, this is the announcement page for the L&amp;D Hub.
+                        Here you can find the latest updates and news regarding
+                        the platform. Stay tuned for more information and
+                        upcoming features!
+
+                    </p>
+
+                </div>
+
+
+                <!-- RIGHT SIDE - CREATE BUTTON -->
+                <div class="mt-3 mt-md-0">
+
+                    <a asp-controller="Announcements"
+                       asp-action="Create"
+                       class="btn btn-primary">
+
+                        <i class="fas fa-plus me-1"></i>
+
+                        Create Announcement
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ============================================================
+         SUCCESS MESSAGE
+         ============================================================ -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show"
+             role="alert">
+
+            <i class="fas fa-check-circle me-2"></i>
+
+            @TempData["SuccessMessage"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- ============================================================
+         ANNOUNCEMENT LIST
+         ============================================================ -->
+    @if (Model != null && Model.Any())
+    {
+        @foreach (var announcement in Model)
+        {
+            <div class="card shadow-sm mb-3">
+
+                <div class="card-body">
+
+                    <!-- Announcement Header -->
+                    <div class="d-flex flex-column flex-md-row
+                                justify-content-between
+                                align-items-md-start">
+
+                        <div>
+
+                            <!-- Title -->
+                            <h4 class="fw-bold mb-1">
+
+                                <i class="fas fa-bullhorn
+                                          text-primary me-2"></i>
+
+                                @announcement.Title
+
+                            </h4>
+
+
+                            <!-- Created Date -->
+                            <small class="text-muted">
+
+                                <i class="far fa-calendar-alt me-1"></i>
+
+                                Posted:
+
+                                @announcement.CreatedAt.ToString(
+                                    "MMMM dd, yyyy hh:mm tt")
+
+                            </small>
+
+
+                            <!-- Updated Date -->
+                            @if (announcement.UpdatedAt.HasValue)
+                            {
+                                <small class="text-muted ms-md-2">
+
+                                    <i class="fas fa-edit me-1"></i>
+
+                                    Updated:
+
+                                    @announcement.UpdatedAt.Value.ToString(
+                                        "MMMM dd, yyyy hh:mm tt")
+
+                                </small>
+                            }
+
+                        </div>
+
+
+                        <!-- Status -->
+                        <div class="mt-2 mt-md-0">
+
+                            @if (announcement.IsActive)
+                            {
+                                <span class="badge bg-success">
+
+                                    <i class="fas fa-check-circle me-1"></i>
+
+                                    Active
+
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">
+
+                                    <i class="fas fa-ban me-1"></i>
+
+                                    Inactive
+
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    <hr />
+
+
+                    <!-- ====================================================
+                         ANNOUNCEMENT CONTENT
+                         ==================================================== -->
+                    <div class="announcement-content"
+                         style="white-space: pre-line;">
+
+                        @announcement.Content
+
+                    </div>
+
+
+                    <hr />
+
+
+                    <!-- ====================================================
+                         ACTION BUTTONS
+                         ==================================================== -->
+                    <div class="d-flex flex-wrap gap-2">
+
+                        <!-- VIEW -->
+                        <a asp-controller="Announcements"
+                           asp-action="Details"
+                           asp-route-id="@announcement.AnnouncementId"
+                           class="btn btn-info btn-sm text-white">
+
+                            <i class="fas fa-eye me-1"></i>
+
+                            View
+
+                        </a>
+
+
+                        <!-- EDIT -->
+                        <a asp-controller="Announcements"
+                           asp-action="Edit"
+                           asp-route-id="@announcement.AnnouncementId"
+                           class="btn btn-warning btn-sm">
+
+                            <i class="fas fa-edit me-1"></i>
+
+                            Edit
+
+                        </a>
+
+
+                        <!-- DELETE -->
+                        <a asp-controller="Announcements"
+                           asp-action="Delete"
+                           asp-route-id="@announcement.AnnouncementId"
+                           class="btn btn-danger btn-sm">
+
+                            <i class="fas fa-trash me-1"></i>
+
+                            Delete
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+    }
+    else
+    {
+        <!-- ============================================================
+             EMPTY STATE
+             No redundant Create Announcement button here.
+             ============================================================ -->
+
+        <div class="card shadow-sm">
+
+            <div class="card-body text-center py-5">
+
+                <!-- Icon -->
+                <i class="fas fa-bullhorn
+                          fa-4x
+                          text-muted
+                          mb-3">
+                </i>
+
+
+                <!-- Message -->
+                <h4 class="fw-bold mb-2">
+
+                    No announcements yet.
+
+                </h4>
+
+
+                <!-- Description -->
+                <p class="text-muted mb-0">
+
+                    Your announcements will appear here once they are created.
+
+                </p>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+
+
+<!-- ================================================================
+     PAGE STYLES
+     ================================================================ -->
+<style>
+
+    /* Announcement cards */
+    .card {
+        border: none;
+        border-radius: 8px;
+    }
+
+
+    /* Announcement content */
+    .announcement-content {
+        font-size: 15px;
+        line-height: 1.7;
+        color: #495057;
+    }
+
+
+    /* Buttons */
+    .btn {
+        border-radius: 5px;
+    }
+
+
+    /* Status badge */
+    .badge {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+
+    /* Empty announcement card */
+    .card-body.py-5 {
+        padding-top: 3rem !important;
+        padding-bottom: 3rem !important;
+    }
+
+
+    /* Responsive adjustments */
+    @@media (max-width: 767px) {
+
+        .announcement-content {
+            font-size: 14px;
+        }
+
+    }
+
+</style>

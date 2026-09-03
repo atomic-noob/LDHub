@@ -16,9 +16,16 @@ public class HomeController : Controller
     }
 
     // ── GET: / — public homepage ──────────────────────────────────
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return View();
+        // Load only ACTIVE announcements
+        // Newest announcement appears first
+        var announcements = await _db.Announcements
+            .Where(a => a.IsActive)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync();
+
+        return View(announcements);
     }
 
     // ── GET: /Home/Login — show login form ────────────────────────
@@ -26,7 +33,30 @@ public class HomeController : Controller
     {
         // If already logged in redirect to dashboard
         var role = HttpContext.Session.GetString("UserRole");
-        if (role != null) return RedirectToAction("Index");
+
+        if (role != null)
+        {
+            return role switch
+            {
+                "Employee" =>
+                    RedirectToAction("Dashboard", "Employee"),
+
+                "ResourcePerson" =>
+                    RedirectToAction("Index", "ResourcePerson"),
+
+                "CourseManager" =>
+                    RedirectToAction("Dashboard", "CourseManager"),
+
+                "Raam" =>
+                    RedirectToAction("Dashboard", "Raam"),
+
+                "Admin" =>
+                    RedirectToAction("Dashboard", "Admin"),
+
+                _ =>
+                    RedirectToAction("Index", "Home")
+            };
+        }
 
         return View(new LoginViewModel());
     }
@@ -37,15 +67,28 @@ public class HomeController : Controller
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (!ModelState.IsValid)
+        {
             return View(model);
+        }
 
-        // Find user by email
+        // Find active user by email
         var user = await _db.Users
             .Include(u => u.UserRoles)
-            .FirstOrDefaultAsync(u => u.Email == model.Email && u.Status == "Active");
+            .FirstOrDefaultAsync(u =>
+                u.Email == model.Email &&
+                u.Status == "Active");
 
-        // Check if user exists and password is correct
-        if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
+        // Check if user exists
+        if (user == null)
+        {
+            ViewBag.Error = "Invalid email or password.";
+            return View(model);
+        }
+
+        // Check password
+        if (!BCrypt.Net.BCrypt.Verify(
+            model.Password,
+            user.Password))
         {
             ViewBag.Error = "Invalid email or password.";
             return View(model);
@@ -58,53 +101,122 @@ public class HomeController : Controller
             return View(model);
         }
 
-        // Set session
-        HttpContext.Session.SetString("UserId",    user.UserId.ToString());
-        HttpContext.Session.SetString("UserName",  $"{user.FirstName} {user.LastName}");
-        HttpContext.Session.SetString("UserPhoto", user.Photo ?? "");
+        // ──────────────────────────────────────────────────────────
+        // SET BASIC SESSION
+        // ──────────────────────────────────────────────────────────
 
-        // Store ALL roles in session for navbar role switcher
-        var roles = user.UserRoles.Select(r => r.Role).ToList();
-        HttpContext.Session.SetString("UserRoles", string.Join(",", roles));
+        HttpContext.Session.SetString(
+            "UserId",
+            user.UserId.ToString());
 
-        // Redirect based on is_external flag
-        // External (outsider SME) → ResourcePerson dashboard
-        if (user.IsExternal && roles.Contains("ResourcePerson"))
+        HttpContext.Session.SetString(
+            "UserName",
+            $"{user.FirstName} {user.LastName}");
+
+        HttpContext.Session.SetString(
+            "UserPhoto",
+            user.Photo ?? "");
+
+
+        // ──────────────────────────────────────────────────────────
+        // STORE ALL USER ROLES
+        // ──────────────────────────────────────────────────────────
+
+        var roles = user.UserRoles
+            .Select(r => r.Role)
+            .ToList();
+
+        HttpContext.Session.SetString(
+            "UserRoles",
+            string.Join(",", roles));
+
+
+        // ──────────────────────────────────────────────────────────
+        // EXTERNAL RESOURCE PERSON
+        // ──────────────────────────────────────────────────────────
+
+        if (user.IsExternal &&
+            roles.Contains("ResourcePerson"))
         {
-            HttpContext.Session.SetString("UserRole", "ResourcePerson");
-            return RedirectToAction("Index", "ResourcePerson");
+            HttpContext.Session.SetString(
+                "UserRole",
+                "ResourcePerson");
+
+            return RedirectToAction(
+                "Index",
+                "ResourcePerson");
         }
 
-        // Internal DENR staff → always Employee dashboard as default
-        // Role switcher in navbar handles switching to CourseManager/RAAM
-        HttpContext.Session.SetString("UserRole", "Employee");
-        return RedirectToAction("Dashboard", "Employee");
+
+        // ──────────────────────────────────────────────────────────
+        // INTERNAL DENR EMPLOYEE
+        // Default dashboard = Employee
+        // ──────────────────────────────────────────────────────────
+
+        HttpContext.Session.SetString(
+            "UserRole",
+            "Employee");
+
+        return RedirectToAction(
+            "Dashboard",
+            "Employee");
     }
 
     // ── POST: /Home/SwitchRole — switch active role ───────────────
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult SwitchRole(string role)
     {
-        var rolesString = HttpContext.Session.GetString("UserRoles");
+        var rolesString =
+            HttpContext.Session.GetString("UserRoles");
+
         if (string.IsNullOrEmpty(rolesString))
+        {
             return RedirectToAction("Login");
+        }
 
-        var roles = rolesString.Split(',').ToList();
+        var roles = rolesString
+            .Split(',')
+            .ToList();
 
-        // Make sure they actually have this role
+        // Make sure user actually has the selected role
         if (!roles.Contains(role))
+        {
             return RedirectToAction("Login");
+        }
 
-        HttpContext.Session.SetString("UserRole", role);
+        // Set active role
+        HttpContext.Session.SetString(
+            "UserRole",
+            role);
 
         // Redirect to correct dashboard
         return role switch
         {
-            "Employee"       => RedirectToAction("Dashboard", "Employee"),
-            "ResourcePerson" => RedirectToAction("Index",     "ResourcePerson"),
-            "CourseManager"  => RedirectToAction("Dashboard", "CourseManager"),
-            "Raam"           => RedirectToAction("Dashboard", "Raam"),
-            _                => RedirectToAction("Login")
+            "Employee" =>
+                RedirectToAction(
+                    "Dashboard",
+                    "Employee"),
+
+            "ResourcePerson" =>
+                RedirectToAction(
+                    "Index",
+                    "ResourcePerson"),
+
+            "CourseManager" =>
+                RedirectToAction(
+                    "Dashboard",
+                    "CourseManager"),
+
+            "Raam" =>
+                RedirectToAction(
+                    "Dashboard",
+                    "Raam"),
+
+            _ =>
+                RedirectToAction(
+                    "Login",
+                    "Home")
         };
     }
 
@@ -112,15 +224,25 @@ public class HomeController : Controller
     public IActionResult Logout()
     {
         HttpContext.Session.Clear();
-        return RedirectToAction("Index");
+
+        return RedirectToAction(
+            "Index",
+            "Home");
     }
 
     // ── Error ─────────────────────────────────────────────────────
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    [ResponseCache(
+        Duration = 0,
+        Location = ResponseCacheLocation.None,
+        NoStore = true)]
     public IActionResult Error()
     {
-        return View(new ErrorViewModel { 
-            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier 
-        });
+        return View(
+            new ErrorViewModel
+            {
+                RequestId =
+                    Activity.Current?.Id ??
+                    HttpContext.TraceIdentifier
+            });
     }
 }

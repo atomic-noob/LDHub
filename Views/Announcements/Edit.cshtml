@@ -1,0 +1,140 @@
+@model LDHub.Models.Announcement
+
+@{
+    ViewData["Title"] = "Edit Announcement";
+}
+
+<div class="container mt-4">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header bg-warning">
+
+                    <h4 class="mb-0">
+
+                        <i class="fas fa-edit me-2"></i>
+
+                        Edit Announcement
+
+                    </h4>
+
+                </div>
+
+
+                <div class="card-body">
+
+                    <form asp-action="Edit"
+                          method="post">
+
+                        @Html.AntiForgeryToken()
+
+
+                        <input asp-for="AnnouncementId"
+                               type="hidden" />
+
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="alert alert-danger">
+                        </div>
+
+
+                        <!-- TITLE -->
+
+                        <div class="mb-3">
+
+                            <label asp-for="Title"
+                                   class="form-label fw-bold">
+
+                                Announcement Title
+
+                            </label>
+
+                            <input asp-for="Title"
+                                   class="form-control" />
+
+                            <span asp-validation-for="Title"
+                                  class="text-danger">
+                            </span>
+
+                        </div>
+
+
+                        <!-- CONTENT -->
+
+                        <div class="mb-3">
+
+                            <label asp-for="Content"
+                                   class="form-label fw-bold">
+
+                                Announcement Content
+
+                            </label>
+
+                            <textarea asp-for="Content"
+                                      class="form-control"
+                                      rows="8"></textarea>
+
+                            <span asp-validation-for="Content"
+                                  class="text-danger">
+                            </span>
+
+                        </div>
+
+
+                        <!-- ACTIVE -->
+
+                        <div class="form-check mb-4">
+
+                            <input asp-for="IsActive"
+                                   class="form-check-input" />
+
+                            <label asp-for="IsActive"
+                                   class="form-check-label">
+
+                                Active Announcement
+
+                            </label>
+
+                        </div>
+
+
+                        <button type="submit"
+                                class="btn btn-warning">
+
+                            <i class="fas fa-save me-1"></i>
+
+                            Update Announcement
+
+                        </button>
+
+
+                        <a asp-action="Index"
+                           class="btn btn-secondary">
+
+                            Cancel
+
+                        </a>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@section Scripts
+{
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
