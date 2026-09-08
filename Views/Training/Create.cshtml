@@ -5,15 +5,23 @@
     ViewData["Title"] = "Create Training";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/select2/css/select2.min.css" />
+    <link rel="stylesheet" href="~/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css" />
+}
+
 <section class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
             <div class="col-sm-6">
                 <h1>Create Training</h1>
             </div>
+
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a asp-action="Index">Trainings</a></li>
+                    <li class="breadcrumb-item">
+                        <a asp-action="Index">Trainings</a>
+                    </li>
                     <li class="breadcrumb-item active">Create</li>
                 </ol>
             </div>
@@ -23,117 +31,363 @@
 
 <section class="content">
     <div class="container-fluid">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-book-open mr-2"></i>Training Information</h3>
-            </div>
-            <div class="card-body">
-                <p><span class="text-danger">*</span> Required</p>
 
-                <form asp-controller="Training" asp-action="Create" method="post" enctype="multipart/form-data">
+        <div class="card card-outline card-success shadow-sm">
+
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-book-open mr-2"></i>
+                    Training Information
+                </h3>
+            </div>
+
+            <div class="card-body">
+
+                <p class="text-muted">
+                    <span class="text-danger">*</span> Required fields
+                </p>
+
+                <form asp-controller="Training"
+                      asp-action="Create"
+                      method="post"
+                      enctype="multipart/form-data">
+
                     @Html.AntiForgeryToken()
 
+                    <!-- Training Title -->
                     <div class="form-group">
-                        <label asp-for="TrainingTitle">Training Title <span class="text-danger">*</span></label>
-                        <input asp-for="TrainingTitle" class="form-control" required />
-                        <span asp-validation-for="TrainingTitle" class="text-danger"></span>
+                        <label asp-for="TrainingTitle">
+                            Training Title
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input asp-for="TrainingTitle"
+                               class="form-control"
+                               placeholder="Enter training title"
+                               required />
+
+                        <span asp-validation-for="TrainingTitle"
+                              class="text-danger"></span>
                     </div>
 
+
+                    <!-- Description -->
                     <div class="form-group">
-                        <label asp-for="Description">Description <span class="text-danger">*</span></label>
-                        <textarea asp-for="Description" class="form-control" rows="3" required></textarea>
-                        <span asp-validation-for="Description" class="text-danger"></span>
+                        <label asp-for="Description">
+                            Description
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <textarea asp-for="Description"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Enter training description"
+                                  required></textarea>
+
+                        <span asp-validation-for="Description"
+                              class="text-danger"></span>
                     </div>
 
+
+                    <!-- Venue -->
                     <div class="form-group">
-                        <label asp-for="Location">Venue</label>
-                        <input asp-for="Location" class="form-control" />
+                        <label asp-for="Location">
+                            Venue
+                        </label>
+
+                        <input asp-for="Location"
+                               class="form-control"
+                               placeholder="Enter training venue" />
                     </div>
 
+
+                    <!-- Date / Hours -->
                     <div class="row">
-                        <div class="col-md-4 form-group">
-                            <label asp-for="StartDate">Start Date <span class="text-danger">*</span></label>
-                            <input asp-for="StartDate" class="form-control" type="date" required />
-                            <span asp-validation-for="StartDate" class="text-danger"></span>
+
+                        <div class="col-md-4">
+
+                            <div class="form-group">
+
+                                <label asp-for="StartDate">
+                                    Start Date
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <input asp-for="StartDate"
+                                       class="form-control"
+                                       type="date"
+                                       required />
+
+                                <span asp-validation-for="StartDate"
+                                      class="text-danger"></span>
+
+                            </div>
+
                         </div>
-                        <div class="col-md-4 form-group">
-                            <label asp-for="EndDate">End Date <span class="text-danger">*</span></label>
-                            <input asp-for="EndDate" class="form-control" type="date" required />
-                            <span asp-validation-for="EndDate" class="text-danger"></span>
+
+
+                        <div class="col-md-4">
+
+                            <div class="form-group">
+
+                                <label asp-for="EndDate">
+                                    End Date
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <input asp-for="EndDate"
+                                       class="form-control"
+                                       type="date"
+                                       required />
+
+                                <span asp-validation-for="EndDate"
+                                      class="text-danger"></span>
+
+                            </div>
+
                         </div>
-                        <div class="col-md-4 form-group">
-                            <label asp-for="TrainingHrs">Training Hours <span class="text-danger">*</span></label>
-                            <input asp-for="TrainingHrs" class="form-control" type="number" min="1" required />
-                            <span asp-validation-for="TrainingHrs" class="text-danger"></span>
+
+
+                        <div class="col-md-4">
+
+                            <div class="form-group">
+
+                                <label asp-for="TrainingHrs">
+                                    Training Hours
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <input asp-for="TrainingHrs"
+                                       class="form-control"
+                                       type="number"
+                                       min="1"
+                                       placeholder="e.g. 16"
+                                       required />
+
+                                <span asp-validation-for="TrainingHrs"
+                                      class="text-danger"></span>
+
+                            </div>
+
                         </div>
+
                     </div>
 
-                   
 
+                    <!-- Region -->
                     <div class="form-group">
-                        <label asp-for="RegionId">Region <span class="text-danger">*</span></label>
-                        <select asp-for="RegionId" class="form-control"
-                                asp-items="@(new SelectList(ViewBag.Regions, "RegionId", "RegionName"))" required>
-                            <option value="">-- Select Region --</option>
+
+                        <label asp-for="RegionId">
+                            Region
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select asp-for="RegionId"
+                                id="RegionId"
+                                class="form-control select2"
+                                asp-items="@(new SelectList(
+                                    ViewBag.Regions,
+                                    "RegionId",
+                                    "RegionName"
+                                ))"
+                                required>
+
+                            <option value="">
+                                -- Select Region --
+                            </option>
+
                         </select>
-                        <span asp-validation-for="RegionId" class="text-danger"></span>
+
+                        <span asp-validation-for="RegionId"
+                              class="text-danger"></span>
+
                     </div>
 
+
+                    <!-- Proficiency -->
                     <div class="form-group">
-                        <label asp-for="ProficiencyId">Proficiency Level <span class="text-danger">*</span></label>
-                        <select asp-for="ProficiencyId" class="form-control"
-                                asp-items="@(ViewBag.Proficiencies as IEnumerable<SelectListItem>)" required>
-                            <option value="">-- Select Proficiency --</option>
+
+                        <label asp-for="ProficiencyId">
+                            Proficiency Level
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select asp-for="ProficiencyId"
+                                id="ProficiencyId"
+                                class="form-control select2"
+                                asp-items="@(ViewBag.Proficiencies as IEnumerable<SelectListItem>)"
+                                required>
+
+                            <option value="">
+                                -- Select Proficiency Level --
+                            </option>
+
                         </select>
-                        <span asp-validation-for="ProficiencyId" class="text-danger"></span>
+
+                        <span asp-validation-for="ProficiencyId"
+                              class="text-danger"></span>
+
                     </div>
-                    @* Competency *@
+
+
+                    <!-- Competency -->
                     <div class="form-group">
-                        <label for="CompetencyId">Competency</label>
-                        <select class="form-control select2" id="CompetencyId" name="CompetencyId">
-                            <option value="">-- Select Competency --</option>
+
+                        <label for="CompetencyId">
+                            Competency
+                        </label>
+
+                        <select class="form-control select2"
+                                id="CompetencyId"
+                                name="CompetencyId">
+
+                            <option value="">
+                                -- Select Competency --
+                            </option>
+
                             @if (ViewBag.Competencies != null)
                             {
                                 foreach (var c in ViewBag.Competencies)
                                 {
-                                    <option value="@c.Id">[@c.CompetencyCode] @c.CompetencyName</option>
+                                    <option value="@c.Id">
+                                        [@c.CompetencyCode] @c.CompetencyName
+                                    </option>
                                 }
                             }
+
                         </select>
+
                     </div>
 
-                    @* Development Act *@
+
+                    <!-- Development Act -->
                     <div class="form-group">
-                        <label>Development Act</label>
-                        <input type="text" class="form-control" name="DevelopmentAct" value="@Model?.DevelopmentAct"
+
+                        <label>
+                            Development Act
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="DevelopmentAct"
+                               value="@Model?.DevelopmentAct"
                                placeholder="e.g. Executive Order No. 292" />
+
                     </div>
 
-                    @* MOVs *@
+
+                    <!-- MOVs -->
                     <div class="form-group">
-                        <label>Means of Verification (MOVs)</label>
-                        <textarea class="form-control" name="MOVs" rows="2"
+
+                        <label>
+                            Means of Verification (MOVs)
+                        </label>
+
+                        <textarea class="form-control"
+                                  name="MOVs"
+                                  rows="2"
                                   placeholder="e.g. Certificate of Completion, Attendance Sheet">@Model?.MOVs</textarea>
+
                     </div>
 
-                    @* Success Indicator *@
+
+                    <!-- Success Indicator -->
                     <div class="form-group">
-                        <label>Success Indicator</label>
-                        <textarea class="form-control" name="SuccessIndicator" rows="2"
+
+                        <label>
+                            Success Indicator
+                        </label>
+
+                        <textarea class="form-control"
+                                  name="SuccessIndicator"
+                                  rows="2"
                                   placeholder="e.g. 80% of participants pass the post-test">@Model?.SuccessIndicator</textarea>
+
                     </div>
 
-                    <div class="row mt-3">
+
+                    <!-- Buttons -->
+                    <div class="row mt-4">
+
                         <div class="col-md-12 text-right">
-                            <a asp-controller="Training" asp-action="Index" class="btn btn-secondary">Back</a>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save mr-1"></i> Save Training
+
+                            <a asp-controller="Training"
+                               asp-action="Index"
+                               class="btn btn-secondary">
+
+                                <i class="fas fa-arrow-left mr-1"></i>
+                                Back
+
+                            </a>
+
+                            <button type="submit"
+                                    class="btn btn-success">
+
+                                <i class="fas fa-save mr-1"></i>
+                                Save Training
+
                             </button>
+
                         </div>
+
                     </div>
 
                 </form>
+
             </div>
         </div>
+
     </div>
 </section>
+
+
+@section Scripts {
+
+    <script src="~/plugins/select2/js/select2.full.min.js"></script>
+
+    <script>
+
+        $(document).ready(function () {
+
+            // Initialize all Select2 dropdowns
+            $('.select2').select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                allowClear: true
+            });
+
+
+            // Region
+            $('#RegionId').select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                placeholder: '-- Select Region --',
+                allowClear: true
+            });
+
+
+            // Proficiency
+            $('#ProficiencyId').select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                placeholder: '-- Select Proficiency Level --',
+                allowClear: true
+            });
+
+
+            // Competency
+            $('#CompetencyId').select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                placeholder: '-- Select Competency --',
+                allowClear: true
+            });
+
+        });
+
+    </script>
+
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

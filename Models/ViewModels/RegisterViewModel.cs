@@ -44,5 +44,8 @@ namespace LDHub.Models.ViewModels
         public int? RegionId { get; set; }
         public int? OfficeId { get; set; }
         public int? DivisionId { get; set; }
+
+        [Display(Name = "Profile Photo")]
+        public IFormFile? Photo { get; set; }
     }
 }

@@ -103,5 +103,7 @@ namespace LDHub.Models
 
         [ForeignKey("DivisionId")]
         public virtual Division? Division { get; set; }
+
+        public string? PhotoPath { get; set; }
     }
 }

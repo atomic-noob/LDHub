@@ -374,6 +374,9 @@ namespace LDHub.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("photo");
 
+                    b.Property<string>("PhotoPath")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Position")
                         .IsRequired()
                         .HasMaxLength(255)
