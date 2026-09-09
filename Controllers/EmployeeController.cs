@@ -401,22 +401,86 @@ ViewBag.CompletedModuleIds = completedModuleIds;
         return RedirectToAction("Profile");
     }
 
-    // ── GET: /Employee/Grade ──────────────────────────────────────
-    public async Task<IActionResult> Grade()
+    // ── GET: /Employee/Grade ─────────────────────────────────────
+// REPLACE the existing Grade action in EmployeeController.cs with this:
+
+public async Task<IActionResult> Grade()
+{
+    if (!IsEmployee()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+
+    var userId = GetUserId();
+
+    // Get all trainings the employee is enrolled in
+    var enrollments = await _db.TrainingParticipants
+        .Include(tp => tp.Training)
+        .Where(tp => tp.UserId == userId)
+        .OrderByDescending(tp => tp.Training.StartDate)
+        .ToListAsync();
+
+    var trainingIds = enrollments.Select(tp => tp.TrainingId).ToList();
+
+    // Get all test attempts
+    var attempts = await _db.ParticipantTestAttempts
+        .Where(a => a.UserId == userId && trainingIds.Contains(a.TrainingId))
+        .ToListAsync();
+
+    // Get all quiz attempts
+    var quizAttempts = await _db.QuizAttempts
+        .Include(qa => qa.Quiz)
+        .Include(qa => qa.Module)
+        .Where(qa => qa.UserId == userId && trainingIds.Contains(qa.TrainingId))
+        .ToListAsync();
+
+    // Get total questions points per training
+    var questions = await _db.Questions
+        .Where(q => trainingIds.Contains(q.TrainingId))
+        .ToListAsync();
+
+    // Build grade rows
+    var gradeRows = enrollments.Select(tp =>
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
-        SetViewBag();
+        var trainingId = tp.TrainingId;
 
-        var userId = GetUserId();
+        var preTest = attempts
+            .Where(a => a.TrainingId == trainingId && a.TestType == "PreTest")
+            .OrderByDescending(a => a.TakenAt)
+            .FirstOrDefault();
 
-        var enrollments = await _db.TrainingParticipants
-            .Include(tp => tp.Training)
-            .Where(tp => tp.UserId == userId)
-            .OrderByDescending(tp => tp.EnrollmentDate)
-            .ToListAsync();
+        var postTests = attempts
+            .Where(a => a.TrainingId == trainingId && a.TestType == "PostTest")
+            .OrderByDescending(a => a.Score)
+            .ToList();
 
-        return View("~/Views/Employee/Grade.cshtml", enrollments);
-    }
+        var bestPost = postTests.FirstOrDefault();
+
+        var totalPoints = questions
+            .Where(q => q.TrainingId == trainingId)
+            .Sum(q => q.Points);
+
+        var trainingQuizAttempts = quizAttempts
+            .Where(qa => qa.TrainingId == trainingId)
+            .ToList();
+
+        return new
+        {
+            Training        = tp.Training,
+            TrainingId      = trainingId,
+            PreTestScore    = preTest?.Score,
+            PostTestScore   = bestPost?.Score,
+            PostTestPassed  = bestPost?.IsPassed ?? false,
+            PostAttempts    = postTests.Count,
+            TotalPoints     = totalPoints,
+            CompletionStatus = tp.CompletionStatus,
+            EnrollmentDate  = tp.EnrollmentDate,
+            QuizAttempts    = trainingQuizAttempts
+        };
+    }).ToList();
+
+    ViewBag.GradeRows = gradeRows;
+
+    return View("~/Views/Employee/Grade.cshtml");
+}
     // ── GET: /Employee/TakeQuiz ───────────────────────────────────
 public async Task<IActionResult> TakeQuiz(int moduleId)
 {
