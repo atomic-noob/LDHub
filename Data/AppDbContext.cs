@@ -22,6 +22,7 @@ namespace LDHub.Data
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
         public DbSet<Competency> Competencies { get; set; }
         public DbSet<ProficiencyLevel> ProficiencyLevels { get; set; }
+        public DbSet<FreeTraining> FreeTrainings { get; set; }
         
         
 

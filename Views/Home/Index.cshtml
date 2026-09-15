@@ -412,6 +412,10 @@
             .ldhub-navbar .nav-links .btn-register { display: none; }
             .hero { background-attachment: scroll; }
         }
+         .free-training-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(75,181,67,.2) !important;
+        }
     </style>
 </head>
 <body>
@@ -604,7 +608,155 @@
             </div>
         </div>
     </section>
+    
+@{
+    var freeTrainings = ViewBag.FreeTrainings as List<LDHub.Models.FreeTraining>
+                        ?? new List<LDHub.Models.FreeTraining>();
+}
 
+@if (freeTrainings.Any())
+{
+    <!-- Free Trainings / Webinars Section -->
+    <section id="free-trainings" style="padding: 80px 0; background: #f4fdf6;">
+        <div class="container">
+
+            <div class="text-center mb-5">
+                <span style="background:linear-gradient(135deg,#9BEC00,#4BB543); color:white; border-radius:20px; padding:6px 20px; font-size:.85rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;">
+                    Open for Everyone
+                </span>
+                <h2 style="font-size:2.2rem; font-weight:800; color:#117554; margin-top:15px; margin-bottom:10px;">
+                    Free Trainings &amp; Webinars
+                </h2>
+                <p style="color:#6c757d; font-size:1.05rem; max-width:600px; margin:0 auto;">
+                    Join our upcoming free training sessions and webinars hosted by the DENR Training and Development Division.
+                </p>
+            </div>
+
+            <div class="row">
+                @foreach (var t in freeTrainings)
+                {
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="free-training-card"
+                             onclick="showTrainingModal(@t.Id)"
+                             style="cursor:pointer; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.08); transition:all .3s; background:white; height:100%;">
+
+                            @* Photo *@
+                            @if (!string.IsNullOrEmpty(t.Photo))
+                            {
+                                <img src="@t.Photo" alt="@t.Title"
+                                     style="width:100%; height:200px; object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <div style="width:100%; height:200px; background:linear-gradient(135deg,#117554,#4BB543); display:flex; align-items:center; justify-content:center;">
+                                    <i class="fas fa-chalkboard fa-4x" style="color:rgba(255,255,255,.4);"></i>
+                                </div>
+                            }
+
+                            @* Card Body *@
+                            <div style="padding:20px;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                                    <span style="background:#e8f5e9; color:#117554; border-radius:20px; padding:3px 12px; font-size:.75rem; font-weight:700;">
+                                        FREE
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(t.Region?.RegionName))
+                                    {
+                                        <span style="color:#6c757d; font-size:.78rem;">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>@t.Region.RegionName
+                                        </span>
+                                    }
+                                </div>
+                                <h5 style="font-weight:700; color:#2d3436; margin-bottom:8px; line-height:1.3;">@t.Title</h5>
+                                @if (!string.IsNullOrEmpty(t.Description))
+                                {
+                                    <p style="color:#6c757d; font-size:.88rem; margin-bottom:12px; line-height:1.5;">
+                                        @(t.Description.Length > 100 ? t.Description.Substring(0, 100) + "..." : t.Description)
+                                    </p>
+                                }
+                                <div style="border-top:1px solid #f0f0f0; padding-top:12px; font-size:.82rem; color:#6c757d;">
+                                    <div class="mb-1">
+                                        <i class="fas fa-calendar mr-2" style="color:#4BB543;"></i>
+                                        @(t.StartDate?.ToString("MMM dd") ?? "TBD") – @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(t.Location))
+                                    {
+                                        <div>
+                                            <i class="fas fa-map-marker-alt mr-2" style="color:#4BB543;"></i>@t.Location
+                                        </div>
+                                    }
+                                </div>
+                                <div style="margin-top:15px;">
+                                    <span style="display:inline-block; background:linear-gradient(135deg,#9BEC00,#4BB543); color:white; border-radius:8px; padding:8px 16px; font-size:.85rem; font-weight:600;">
+                                        <i class="fas fa-info-circle mr-1"></i> View Details
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Modal for this training *@
+                    <div class="modal fade" id="trainingModal_@t.Id" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content" style="border-radius:12px; overflow:hidden;">
+                                <div class="modal-header" style="background:linear-gradient(135deg,#117554,#4BB543); color:white; border:none;">
+                                    <h5 class="modal-title font-weight-bold">
+                                        <i class="fas fa-chalkboard mr-2"></i>@t.Title
+                                    </h5>
+                                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    @if (!string.IsNullOrEmpty(t.Photo))
+                                    {
+                                        <img src="@t.Photo" alt="@t.Title"
+                                             style="width:100%; max-height:300px; object-fit:cover;" />
+                                    }
+                                    <div style="padding:25px;">
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <small class="text-muted d-block">Date</small>
+                                                <strong>
+                                                    @(t.StartDate?.ToString("MMM dd") ?? "TBD") –
+                                                    @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                                </strong>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <small class="text-muted d-block">Location</small>
+                                                <strong>@(t.Location ?? "—")</strong>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <small class="text-muted d-block">Region</small>
+                                                <strong>@(t.Region?.RegionName ?? "All Regions")</strong>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(t.Description))
+                                        {
+                                            <div class="mb-3">
+                                                <small class="text-muted d-block mb-1">About this Training</small>
+                                                <p style="color:#2d3436; line-height:1.7;">@t.Description</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="modal-footer" style="border:none; padding:15px 25px;">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    @if (!string.IsNullOrEmpty(t.RegistrationLink))
+                                    {
+                                        <a href="@t.RegistrationLink" target="_blank"
+                                           class="btn btn-success">
+                                            <i class="fas fa-external-link-alt mr-1"></i> Register Now
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </section>
+
+    }
     @* ── HOW IT WORKS ── *@
     <section class="how-it-works" id="how-it-works">
         <div class="container">
@@ -688,6 +840,12 @@
     <script src="~/plugins/jquery/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    function showTrainingModal(id) {
+        $('#trainingModal_' + id).modal('show');
+    }
+</script>
+    <script>
+       
         // Navbar background on scroll
         window.addEventListener('scroll', function () {
             var navbar = document.getElementById('mainNavbar');

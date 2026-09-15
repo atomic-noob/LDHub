@@ -1,0 +1,172 @@
+@model LDHub.Models.FreeTraining
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Post Free Training";
+}
+
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Post Free Training</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="FreeTrainings" asp-action="Index">Free Trainings</a>
+                    </li>
+                    <li class="breadcrumb-item active">Create</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card shadow-sm">
+            <div class="card-header success-gradient">
+                <h3 class="card-title">
+                    <i class="fas fa-plus mr-2"></i>New Free Training / Webinar
+                </h3>
+            </div>
+            <div class="card-body">
+                <form asp-controller="FreeTrainings" asp-action="Create"
+                      method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        </div>
+                    }
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Title <span class="text-danger">*</span></label>
+                                <input asp-for="Title" class="form-control"
+                                       placeholder="e.g. Webinar on Forest Management" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea asp-for="Description" class="form-control" rows="4"
+                                          placeholder="Describe the training, topics covered, who should attend..."></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Location</label>
+                                        <input asp-for="Location" class="form-control"
+                                               placeholder="e.g. Zoom / DENR Central Office" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Region</label>
+                                        <select asp-for="RegionId" class="form-control">
+                                            <option value="">-- All Regions --</option>
+                                            @if (ViewBag.Regions != null)
+                                            {
+                                                foreach (var r in ViewBag.Regions)
+                                                {
+                                                    <option value="@r.RegionId">@r.RegionName</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Start Date <span class="text-danger">*</span></label>
+                                        <input asp-for="StartDate" type="date" class="form-control" required />
+                                        <small class="text-muted">Weekdays only (Mon-Fri)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>End Date <span class="text-danger">*</span></label>
+                                        <input asp-for="EndDate" type="date" class="form-control" required />
+                                        <small class="text-muted">Card hides after this date</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Registration Link <span class="text-danger">*</span></label>
+                                <input asp-for="RegistrationLink" type="url" class="form-control"
+                                       placeholder="https://forms.google.com/..." required />
+                                <small class="text-muted">External registration form URL (Google Form, Zoom, etc.)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Training Photo</label>
+                                <div class="text-center mb-3">
+                                    <img id="photoPreview" src="#" alt="Preview"
+                                         style="max-width:100%; max-height:200px; border-radius:8px; display:none; border:2px solid #dee2e6;" />
+                                    <div id="noPhotoPlaceholder"
+                                         style="width:100%; height:160px; background:linear-gradient(135deg,#9BEC00,#4BB543); border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                                        <i class="fas fa-image fa-3x text-white" style="opacity:.5;"></i>
+                                    </div>
+                                </div>
+                                <input type="file" name="photo" class="form-control-file"
+                                       accept="image/*" id="photoInput"
+                                       onchange="previewPhoto(this)" />
+                                <small class="text-muted">JPG, PNG, WebP — recommended 16:9 ratio</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12 text-right">
+                            <a asp-controller="FreeTrainings" asp-action="Index"
+                               class="btn btn-secondary mr-2">Cancel</a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save mr-1"></i> Post Training
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+function previewPhoto(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            $('#photoPreview').attr('src', e.target.result).show();
+            $('#noPhotoPlaceholder').hide();
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Block weekends on date inputs
+document.querySelectorAll('input[type="date"]').forEach(function(input) {
+    input.addEventListener('change', function() {
+        var date = new Date(this.value);
+        var day  = date.getUTCDay();
+        if (day === 0 || day === 6) {
+            alert('Please select a weekday (Monday to Friday) only.');
+            this.value = '';
+        }
+    });
+});
+</script>
+}

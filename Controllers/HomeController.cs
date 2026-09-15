@@ -16,18 +16,22 @@ public class HomeController : Controller
     }
 
     // ── GET: / — public homepage ──────────────────────────────────
-    public async Task<IActionResult> Index()
-    {
-        // Load only ACTIVE announcements
-        // Newest announcement appears first
-        var announcements = await _db.Announcements
-            .Where(a => a.IsActive)
-            .OrderByDescending(a => a.CreatedAt)
-            .ToListAsync();
-
-        return View(announcements);
-    }
-
+   public async Task<IActionResult> Index()
+{
+    var now = DateTime.Now;
+ 
+    // Load active free trainings that haven't expired yet
+    var freeTrainings = await _db.FreeTrainings
+        .Include(t => t.Region)
+        .Where(t => t.IsActive && t.EndDate >= now)
+        .OrderBy(t => t.StartDate)
+        .ToListAsync();
+ 
+    ViewBag.FreeTrainings = freeTrainings;
+ 
+    return View();
+}
+ 
     // ── GET: /Home/Login — show login form ────────────────────────
     public IActionResult Login()
     {
