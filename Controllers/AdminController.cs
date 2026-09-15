@@ -75,12 +75,121 @@ public class AdminController : Controller
     }
 
     // ── Dashboard ─────────────────────────────────────────────────
-    public IActionResult Dashboard()
+   public async Task<IActionResult> Dashboard()
+{
+    if (!IsAdmin()) return RedirectToAction("Index");
+    SetViewBag();
+
+    var now = DateTime.Now;
+
+    // ── KPI Stats ──────────────────────────────────────────────
+    var totalEmployees  = await _db.Users
+        .Include(u => u.UserRoles)
+        .Where(u => u.UserRoles.Any(r => r.Role == "Employee") && u.IsExternal == false)
+        .CountAsync();
+
+    var totalTrainings  = await _db.Trainings.CountAsync();
+
+    var activeTrainings = await _db.Trainings
+        .Where(t => t.StartDate <= now && t.EndDate >= now)
+        .CountAsync();
+
+    var completedTrainings = await _db.Trainings
+        .Where(t => t.EndDate < now)
+        .CountAsync();
+
+    var pendingCount = await _db.PendingParticipants
+        .Where(p => p.Status == "Inactive")
+        .CountAsync();
+
+    var totalSME = await _db.Users
+        .Include(u => u.UserRoles)
+        .Where(u => u.UserRoles.Any(r => r.Role == "ResourcePerson") && u.IsExternal == true)
+        .CountAsync();
+
+    var totalUsers = await _db.Users.CountAsync();
+
+    // ── Passing Rate ───────────────────────────────────────────
+    var allAttempts = await _db.ParticipantTestAttempts
+        .Where(a => a.TestType == "PostTest")
+        .ToListAsync();
+
+    var passedCount = allAttempts.Count(a => a.IsPassed);
+    var passingRate = allAttempts.Count > 0
+        ? Math.Round((double)passedCount / allAttempts.Count * 100, 1)
+        : 0;
+
+    // ── Monthly Trainings (Bar Chart) ──────────────────────────
+    var allTrainings = await _db.Trainings
+        .Include(t => t.TrainingParticipants)
+        .Include(t => t.Region)
+        .OrderByDescending(t => t.CreatedAt)
+        .ToListAsync();
+
+    var monthlyTrainings = Enumerable.Range(1, 12)
+        .Select(m => allTrainings.Count(t => t.CreatedAt.Month == m && t.CreatedAt.Year == now.Year))
+        .ToList();
+
+    // ── Training Status (Pie Chart) ────────────────────────────
+    var scheduledCount = allTrainings.Count(t => t.StartDate.HasValue && t.StartDate > now);
+    var ongoingCount   = allTrainings.Count(t => t.StartDate <= now && t.EndDate >= now);
+    var endedCount     = allTrainings.Count(t => t.EndDate.HasValue && t.EndDate < now);
+
+    // ── Participants per Region (Bar Chart) ────────────────────
+    var regions = await _db.Regions.ToListAsync();
+    var participantsByRegion = regions.Select(r => new
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
-        SetViewBag();
-        return View("~/Views/Admin/Dashboard.cshtml");
-    }
+        RegionName = r.RegionName,
+        Count      = _db.Users.Count(u => u.RegionId == r.RegionId
+                        && u.UserRoles.Any(ur => ur.Role == "Employee"))
+    }).OrderByDescending(r => r.Count).Take(10).ToList();
+
+    // ── Employee Registrations per Month (Line Chart) ──────────
+    var allUsers = await _db.Users.ToListAsync();
+    var monthlyRegistrations = Enumerable.Range(1, 12)
+        .Select(m => allUsers.Count(u => u.CreatedAt.Month == m && u.CreatedAt.Year == now.Year))
+        .ToList();
+
+    // ── Pass vs Fail (Pie Chart) ───────────────────────────────
+    var failedCount2 = allAttempts.Count(a => !a.IsPassed);
+
+    // ── Recent Trainings ───────────────────────────────────────
+    var recentTrainings = allTrainings.Take(5).ToList();
+
+    // ── Recent Pending ─────────────────────────────────────────
+    var recentPending = await _db.PendingParticipants
+        .Where(p => p.Status == "Inactive")
+        .OrderByDescending(p => p.CreatedAt)
+        .Take(5)
+        .ToListAsync();
+
+    // ── Pass to ViewBag ────────────────────────────────────────
+    ViewBag.TotalEmployees     = totalEmployees;
+    ViewBag.TotalTrainings     = totalTrainings;
+    ViewBag.ActiveTrainings    = activeTrainings;
+    ViewBag.CompletedTrainings = completedTrainings;
+    ViewBag.PendingCount       = pendingCount;
+    ViewBag.TotalSME           = totalSME;
+    ViewBag.TotalUsers         = totalUsers;
+    ViewBag.PassingRate        = passingRate;
+    ViewBag.PassedCount        = passedCount;
+    ViewBag.FailedCount        = failedCount2;
+    ViewBag.TotalAttempts      = allAttempts.Count;
+
+    // Chart data as JSON
+    ViewBag.MonthlyTrainings      = System.Text.Json.JsonSerializer.Serialize(monthlyTrainings);
+    ViewBag.MonthlyRegistrations  = System.Text.Json.JsonSerializer.Serialize(monthlyRegistrations);
+    ViewBag.RegionLabels          = System.Text.Json.JsonSerializer.Serialize(participantsByRegion.Select(r => r.RegionName).ToList());
+    ViewBag.RegionCounts          = System.Text.Json.JsonSerializer.Serialize(participantsByRegion.Select(r => r.Count).ToList());
+    ViewBag.ScheduledCount        = scheduledCount;
+    ViewBag.OngoingCount          = ongoingCount;
+    ViewBag.EndedCount            = endedCount;
+
+    ViewBag.RecentTrainings = recentTrainings;
+    ViewBag.RecentPending   = recentPending;
+
+    return View("~/Views/Admin/Dashboard.cshtml");
+}
     public IActionResult Hash()
 {
     var hash = BCrypt.Net.BCrypt.HashPassword("Password@123");

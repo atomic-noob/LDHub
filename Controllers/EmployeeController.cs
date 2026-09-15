@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Models.ViewModels;
 
 namespace LDHub.Controllers;
 
@@ -411,7 +412,6 @@ public async Task<IActionResult> Grade()
 
     var userId = GetUserId();
 
-    // Get all trainings the employee is enrolled in
     var enrollments = await _db.TrainingParticipants
         .Include(tp => tp.Training)
         .Where(tp => tp.UserId == userId)
@@ -420,24 +420,20 @@ public async Task<IActionResult> Grade()
 
     var trainingIds = enrollments.Select(tp => tp.TrainingId).ToList();
 
-    // Get all test attempts
     var attempts = await _db.ParticipantTestAttempts
         .Where(a => a.UserId == userId && trainingIds.Contains(a.TrainingId))
         .ToListAsync();
 
-    // Get all quiz attempts
     var quizAttempts = await _db.QuizAttempts
         .Include(qa => qa.Quiz)
         .Include(qa => qa.Module)
         .Where(qa => qa.UserId == userId && trainingIds.Contains(qa.TrainingId))
         .ToListAsync();
 
-    // Get total questions points per training
     var questions = await _db.Questions
         .Where(q => trainingIds.Contains(q.TrainingId))
         .ToListAsync();
 
-    // Build grade rows
     var gradeRows = enrollments.Select(tp =>
     {
         var trainingId = tp.TrainingId;
@@ -452,35 +448,34 @@ public async Task<IActionResult> Grade()
             .OrderByDescending(a => a.Score)
             .ToList();
 
-        var bestPost = postTests.FirstOrDefault();
-
+        var bestPost  = postTests.FirstOrDefault();
         var totalPoints = questions
             .Where(q => q.TrainingId == trainingId)
             .Sum(q => q.Points);
 
-        var trainingQuizAttempts = quizAttempts
-            .Where(qa => qa.TrainingId == trainingId)
-            .ToList();
-
-        return new
+        return new EmployeeGradeViewModel
         {
-            Training        = tp.Training,
-            TrainingId      = trainingId,
-            PreTestScore    = preTest?.Score,
-            PostTestScore   = bestPost?.Score,
-            PostTestPassed  = bestPost?.IsPassed ?? false,
-            PostAttempts    = postTests.Count,
-            TotalPoints     = totalPoints,
+            Training         = tp.Training,
+            TrainingId       = trainingId,
+            PreTestScore     = preTest?.Score,
+            PostTestScore    = bestPost?.Score,
+            PostTestPassed   = bestPost?.IsPassed ?? false,
+            PostAttempts     = postTests.Count,
+            TotalPoints      = totalPoints,
             CompletionStatus = tp.CompletionStatus,
-            EnrollmentDate  = tp.EnrollmentDate,
-            QuizAttempts    = trainingQuizAttempts
+            EnrollmentDate   = tp.EnrollmentDate,
+            QuizAttempts     = quizAttempts
+                .Where(qa => qa.TrainingId == trainingId)
+                .ToList()
         };
     }).ToList();
 
     ViewBag.GradeRows = gradeRows;
-
     return View("~/Views/Employee/Grade.cshtml");
 }
+
+
+
     // ── GET: /Employee/TakeQuiz ───────────────────────────────────
 public async Task<IActionResult> TakeQuiz(int moduleId)
 {
