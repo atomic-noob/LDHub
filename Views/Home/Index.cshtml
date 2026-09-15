@@ -416,6 +416,13 @@
             transform: translateY(-5px);
             box-shadow: 0 8px 30px rgba(75,181,67,.2) !important;
         }
+        /* ── FAQ Section ── */
+.faq-section-divider {
+    height: 4px;
+    background: linear-gradient(135deg, #9BEC00, #4BB543, #117554);
+    border: none;
+    margin: 0;
+}
     </style>
 </head>
 <body>
@@ -831,8 +838,9 @@
     var faqs = ViewBag.Faqs as List<LDHub.Models.Faq> ?? new List<LDHub.Models.Faq>();
 }
 
+<hr class="faq-section-divider" />
 @* ── FAQ SECTION ── *@
-<section id="faq" style="padding: 80px 20px; background: #f8fdf9;">
+<section id="faq" style="padding: 80px 20px; background: #ffffff;">
     <div class="container">
 
         <h2 class="section-title">Frequently Asked Questions</h2>
@@ -873,13 +881,13 @@
                         {
                             <div class="faq-item" data-question="@faq.Question.ToLower()" data-answer="@faq.Answer.ToLower()">
                                 <div class="card mb-2"
-                                     style="border-radius:10px; border:1px solid #e8f5e9; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.05);">
+                                 style="border-radius:10px; border:1px solid #eef2f5; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,.04); border-left: 4px solid #117554;">
 
                                     @* Question header *@
                                     <div class="card-header p-0" style="background:white; border:none;">
                                         <button type="button" 
                                                 class="btn btn-link w-100 text-left d-flex justify-content-between align-items-center faq-toggle"
-                                                style="padding:18px 20px; color:#117554; font-weight:600; font-size:.95rem; text-decoration:none;"
+                                               style="padding:18px 20px; color:#117554; font-weight:600; font-size:.95rem; text-decoration:none; box-shadow:none;"
                                                 onclick="toggleFaq(this, 'faqBody@(faqIdx)')">
                                             <span>
                                                 <i class="fas fa-question-circle mr-2" style="color:#4BB543;"></i>
