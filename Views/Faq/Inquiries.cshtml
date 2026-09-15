@@ -1,0 +1,146 @@
+@model IEnumerable<LDHub.Models.Inquiry>
+@{
+   Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Inquiries";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0"><i class="fas fa-envelope mr-2 text-success"></i>Inquiries</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/Admin/Dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="/Faq/Index">FAQs</a></li>
+                    <li class="breadcrumb-item active">Inquiries</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        <!-- Summary badges -->
+        <div class="row mb-3">
+            <div class="col-auto">
+                <span class="badge badge-pill badge-primary" style="font-size:.9rem; padding:8px 16px;">
+                    Total: @Model.Count()
+                </span>
+            </div>
+            <div class="col-auto">
+                <span class="badge badge-pill badge-warning" style="font-size:.9rem; padding:8px 16px;">
+                    Unread: @Model.Count(i => !i.IsRead)
+                </span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title"><i class="fas fa-inbox mr-2"></i>All Inquiries</h3>
+                <a href="/Faq/Index" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to FAQs
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Message</th>
+                            <th>Submitted</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                    No inquiries yet.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            int i = 1;
+                            foreach (var inq in Model)
+                            {
+                                <tr class="@(!inq.IsRead ? "table-warning" : "")">
+                                    <td>@i</td>
+                                    <td><strong>@inq.Name</strong></td>
+                                    <td>
+                                        <a href="mailto:@inq.Email">@inq.Email</a>
+                                    </td>
+                                    <td>
+                                        <span data-toggle="tooltip" title="@inq.Message">
+                                            @(inq.Message.Length > 80
+                                                ? inq.Message.Substring(0, 80) + "..."
+                                                : inq.Message)
+                                        </span>
+                                    </td>
+                                    <td>@inq.SubmittedAt.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                    <td>
+                                        @if (inq.IsRead)
+                                        {
+                                            <span class="badge badge-success">Read</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-warning">Unread</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!inq.IsRead)
+                                        {
+                                            <form method="post" action="/Faq/MarkRead/@inq.Id"
+                                                  style="display:inline;">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit"
+                                                        class="btn btn-xs btn-outline-success mr-1"
+                                                        title="Mark as read">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        <form method="post" action="/Faq/DeleteInquiry/@inq.Id"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Delete this inquiry?')">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="btn btn-xs btn-outline-danger"
+                                                    title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                i++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<script>
+$(function () { $('[data-toggle="tooltip"]').tooltip(); });
+</script>

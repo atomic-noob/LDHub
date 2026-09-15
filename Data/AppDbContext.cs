@@ -23,6 +23,8 @@ namespace LDHub.Data
         public DbSet<Competency> Competencies { get; set; }
         public DbSet<ProficiencyLevel> ProficiencyLevels { get; set; }
         public DbSet<FreeTraining> FreeTrainings { get; set; }
+        public DbSet<Faq>     Faqs      { get; set; }
+public DbSet<Inquiry> Inquiries { get; set; }
         
         
 

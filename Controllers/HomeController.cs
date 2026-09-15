@@ -16,11 +16,11 @@ public class HomeController : Controller
     }
 
     // ── GET: / — public homepage ──────────────────────────────────
-   public async Task<IActionResult> Index()
+  public async Task<IActionResult> Index()
 {
     var now = DateTime.Now;
  
-    // Load active free trainings that haven't expired yet
+    // Load active free trainings
     var freeTrainings = await _db.FreeTrainings
         .Include(t => t.Region)
         .Where(t => t.IsActive && t.EndDate >= now)
@@ -29,8 +29,18 @@ public class HomeController : Controller
  
     ViewBag.FreeTrainings = freeTrainings;
  
+    // Load active FAQs ordered by display_order
+    var faqs = await _db.Faqs
+        .Where(f => f.IsActive)
+        .OrderBy(f => f.DisplayOrder)
+        .ThenBy(f => f.CreatedAt)
+        .ToListAsync();
+ 
+    ViewBag.Faqs = faqs;
+ 
     return View();
 }
+ 
  
     // ── GET: /Home/Login — show login form ────────────────────────
     public IActionResult Login()

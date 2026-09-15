@@ -153,19 +153,19 @@
                             </a>
                         </li>
                        <li class="nav-item">
-    <a asp-controller="Training" asp-action="TrainingReport"
-       class="nav-link @(controller == "Training" && action == "TrainingReport" ? "active" : "")">
-        <i class="fas fa-file-contract nav-icon"></i>
-        <p>Training Report</p>
-    </a>
-</li>
-                    </ul>
+                    <a asp-controller="Training" asp-action="TrainingReport"
+                    class="nav-link @(controller == "Training" && action == "TrainingReport" ? "active" : "")">
+                        <i class="fas fa-file-contract nav-icon"></i>
+                        <p>Training Report</p>
+                    </a>
+                </li>
+                </ul>
                 </li>
 
-                @* FAQs *@
+               @* FAQs *@
                 <li class="nav-item">
-                    <a asp-controller="Admin" asp-action="Faqs"
-                       class="nav-link @(action == "Faqs" ? "active" : "")">
+                    <a asp-controller="Faq" asp-action="Index"
+                    class="nav-link @(action == "Index" && controller == "Faq" ? "active" : "")">
                         <i class="nav-icon fas fa-question-circle"></i>
                         <p>FAQs</p>
                     </a>

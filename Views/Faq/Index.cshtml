@@ -1,0 +1,129 @@
+@model IEnumerable<LDHub.Models.Faq>
+@{
+   Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage FAQs";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0"><i class="fas fa-question-circle mr-2 text-success"></i>Manage FAQs</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/Admin/Dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item active">FAQs</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title"><i class="fas fa-list mr-2"></i>FAQ List</h3>
+                <div class="d-flex gap-2">
+                    <a href="/Faq/Inquiries" class="btn btn-outline-info btn-sm mr-2">
+                        <i class="fas fa-envelope mr-1"></i>View Inquiries
+                    </a>
+                    <a href="/Faq/Create" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus mr-1"></i>Add FAQ
+                    </a>
+                </div>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th style="width:50px;">#</th>
+                            <th>Question</th>
+                            <th style="width:80px;">Order</th>
+                            <th style="width:80px;">Image</th>
+                            <th style="width:90px;">Status</th>
+                            <th style="width:120px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                    No FAQs yet. <a href="/Faq/Create">Add one now.</a>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            int i = 1;
+                            foreach (var faq in Model)
+                            {
+                                <tr>
+                                    <td>@i</td>
+                                    <td>
+                                        <strong>@faq.Question</strong>
+                                        <div class="text-muted small mt-1">
+                                            @(faq.Answer.Length > 100
+                                                ? faq.Answer.Substring(0, 100) + "..."
+                                                : faq.Answer)
+                                        </div>
+                                    </td>
+                                    <td>@faq.DisplayOrder</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(faq.ImagePath))
+                                        {
+                                            <img src="@faq.ImagePath" alt="FAQ Image"
+                                                 style="width:50px; height:40px; object-fit:cover; border-radius:4px;" />
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">None</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (faq.IsActive)
+                                        {
+                                            <span class="badge badge-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="/Faq/Edit/@faq.Id"
+                                           class="btn btn-sm btn-outline-primary mr-1">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post" action="/Faq/Delete/@faq.Id"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Delete this FAQ?')">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                i++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
