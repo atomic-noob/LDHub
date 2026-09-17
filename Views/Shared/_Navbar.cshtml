@@ -40,9 +40,21 @@
                 <span class="ml-1">@ViewBag.UserName</span>
             </a>
             <div class="dropdown-menu dropdown-menu-right">
-                <a href="#" class="dropdown-item">
-                    <i class="fas fa-user mr-2"></i> My Profile
-                </a>
+              @{
+   var currentRole = Context.Session.GetString("UserRole");
+    var profileUrl  = currentRole switch
+    {
+        "Employee"       => Url.Action("Profile", "Employee"),
+        "CourseManager"  => Url.Action("Profile", "CourseManager"),
+        "ResourcePerson" => Url.Action("Profile", "ResourcePerson"),
+        "Raam"           => Url.Action("Profile", "Raam"),
+        "Admin"          => Url.Action("Profile", "Admin"),
+        _                => "#"
+    };
+}
+<a href="@profileUrl" class="dropdown-item">
+    <i class="fas fa-user mr-2"></i> My Profile
+</a>
                 <div class="dropdown-divider"></div>
                 <a asp-controller="Home" asp-action="Logout" class="dropdown-item text-danger">
                     <i class="fas fa-sign-out-alt mr-2"></i> Logout

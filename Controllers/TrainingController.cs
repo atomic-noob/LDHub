@@ -286,12 +286,19 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
             return RedirectToAction("Index", "Training");
         }
 
-        // Get available employees — RAAM sees only their region
-        IQueryable<User> usersQuery = _db.Users
-            .Include(u => u.UserRoles)
-            .Where(u => u.UserRoles.Any(r => r.Role == "Employee")
-                     && u.IsExternal == false
-                     && u.Status == "Active");
+       // Get IDs already assigned to this training
+            var assignedUserIds = training.TrainingParticipants
+                .Select(tp => tp.UserId)
+                .ToHashSet();
+
+            IQueryable<User> usersQuery = _db.Users
+                .Include(u => u.UserRoles)
+                .Include(u => u.Region)
+                .Where(u => u.UserRoles.Any(r => r.Role == "Employee")
+                        && u.IsExternal == false
+                        && u.Status == "Active"
+                        && u.InTraining == false
+                        && !assignedUserIds.Contains(u.UserId));
 
         if (role == "Raam")
             usersQuery = usersQuery.Where(u => u.RegionId == regionId);
@@ -301,39 +308,46 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
             .ToListAsync();
 
         ViewBag.Training  = training;
-        ViewBag.Users     = users;
-
+       ViewBag.AvailableUsers = users;
+       ViewBag.AssignedParticipants = training.TrainingParticipants.ToList();
         return View("~/Views/Training/AssignParticipant.cshtml");
     }
 
-    // ── POST: /Training/AssignParticipant ──────────────────────
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AssignParticipant(int trainingId, List<int> userIds)
+   [HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> AssignParticipant(int trainingId, List<int> userIds)
+{
+    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+
+    foreach (var userId in userIds)
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+        var exists = await _db.TrainingParticipants
+            .AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId);
 
-        foreach (var userId in userIds)
+        if (!exists)
         {
-            var exists = await _db.TrainingParticipants
-                .AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId);
-
-            if (!exists)
+            _db.TrainingParticipants.Add(new TrainingParticipant
             {
-                _db.TrainingParticipants.Add(new TrainingParticipant
-                {
-                    TrainingId       = trainingId,
-                    UserId           = userId,
-                    EnrollmentDate   = DateTime.UtcNow,
-                    CompletionStatus = "Enrolled"
-                });
+                TrainingId       = trainingId,
+                UserId           = userId,
+                EnrollmentDate   = DateTime.UtcNow,
+                CompletionStatus = "Enrolled"
+            });
+
+            // ── Mark user as in training ──────────────────────
+            var user = await _db.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.InTraining = true;
+                user.UpdatedAt  = DateTime.UtcNow;
             }
         }
-
-        await _db.SaveChangesAsync();
-        TempData["Success"] = "Participants assigned successfully!";
-        return RedirectToAction("Index", "Training");
     }
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Participants assigned successfully!";
+    return RedirectToAction("Index", "Training");
+}
 
   // ── GET: /Training/AssignResourcePerson/{id} ───────────────
 // REPLACE the existing AssignResourcePerson GET action with this:

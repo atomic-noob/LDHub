@@ -124,6 +124,46 @@
                         #pendingLessons-card, #pendingQuizzes-card, #countdown-card { display: none; }
                     </style>
                 }
+                else if (ViewBag.TrainingNotStarted == true)
+                    {
+                        <div class="card shadow-sm" style="border: 2px solid #117554; border-radius: 12px; overflow:hidden;">
+    <div class="card-header text-center text-white"
+         style="background: linear-gradient(135deg, #0a4a32, #117554);">
+        <h4 class="mb-0">
+            <i class="fas fa-graduation-cap mr-2"></i>My Training
+        </h4>
+    </div>
+    <div class="card-body text-center py-5"
+         style="background: linear-gradient(180deg, #f0fff4, #ffffff);">
+
+        <div class="mb-3">
+            <span style="display:inline-flex; align-items:center; justify-content:center;
+                         width:90px; height:90px; border-radius:50%;
+                         background: linear-gradient(135deg, #0a4a32, #117554);
+                         box-shadow: 0 6px 20px rgba(17,117,84,.35);">
+                <i class="fas fa-lock fa-2x text-white"></i>
+            </span>
+        </div>
+
+        <h4 class="font-weight-bold mb-2" style="color:#0a4a32;">
+            Training Not Yet Started
+        </h4>
+        <p class="text-muted mb-1">
+            Your training <strong style="color:#117554;">@enrollment.Training?.TrainingTitle</strong> is locked until the start date.
+        </p>
+        <hr style="max-width:300px; border-color:#c8e6c9;" />
+        <p class="mb-0" style="color:#117554; font-weight:600;">
+            <i class="fas fa-calendar-alt mr-2"></i>
+            Starts on: <strong>@enrollment.Training?.StartDate?.ToString("MMMM d, yyyy")</strong>
+        </p>
+        <small class="text-muted mt-2 d-block">
+            <i class="fas fa-info-circle mr-1"></i>
+            You will be able to access this training on the start date.
+        </small>
+
+    </div>
+</div>
+                    }
                 else
                 {
                     @* ── Congratulations Banner ── *@

@@ -66,12 +66,19 @@ public class EmployeeController : Controller
         }
         if (anyUpdated) await _db.SaveChangesAsync();
 
-        // ── Get current active enrollment ──
-        var currentEnrollment = enrollments
-            .Where(tp => tp.CompletionStatus != "Completed"
-                    && (tp.Training?.EndDate == null || tp.Training.EndDate >= now))
-            .OrderByDescending(tp => tp.Training?.StartDate)
-            .FirstOrDefault();
+       // ── Get current active enrollment (include upcoming ones too) ──
+                var currentEnrollment = enrollments
+                    .Where(tp => tp.CompletionStatus != "Completed"
+                            && (tp.Training?.EndDate == null || tp.Training.EndDate >= now))
+                    .OrderBy(tp => tp.Training?.StartDate)
+                    .FirstOrDefault();
+
+                // ── Flag if training hasn't started yet ──
+                var trainingNotStarted = currentEnrollment != null
+                    && currentEnrollment.Training?.StartDate != null
+                    && currentEnrollment.Training.StartDate > now;
+
+                ViewBag.TrainingNotStarted = trainingNotStarted;
 
         // ── Get modules for current training ──
         var modules = new List<TrainingModule>();
