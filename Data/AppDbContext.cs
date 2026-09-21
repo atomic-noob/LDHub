@@ -39,6 +39,7 @@ public DbSet<QuizChoice> QuizChoices { get; set; }
 public DbSet<ModuleTextContent> ModuleTextContents { get; set; }
 public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
   public DbSet<Announcement> Announcements { get; set; }
+  
 
         // ── Relationships & Constraints ───────────────────────────
         protected override void OnModelCreating(ModelBuilder modelBuilder)

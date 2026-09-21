@@ -1047,6 +1047,11 @@ namespace LDHub.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("DefaultRole")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("default_role");
+
                     b.Property<string>("Designation")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)")

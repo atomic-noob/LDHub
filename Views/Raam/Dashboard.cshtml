@@ -137,7 +137,7 @@
         <div class="row">
 
             @* Recent Trainings *@
-            <div class="col-lg-8">
+            <div class="col-lg-12">
                 <div class="card shadow-sm">
                     <div class="card-header success-gradient">
                         <h3 class="card-title">
@@ -220,77 +220,8 @@
                 </div>
             </div>
 
-            @* Quick Actions *@
-            <div class="col-lg-4">
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header success-gradient">
-                        <h3 class="card-title">
-                            <i class="fas fa-bolt mr-2"></i>Quick Actions
-                        </h3>
-                    </div>
-                    <div class="card-body p-2">
-                        <a asp-controller="Raam" asp-action="PendingParticipants"
-                           class="btn btn-block btn-outline-warning mb-2 text-left">
-                            <i class="fas fa-user-clock mr-2"></i>
-                            Pending Approvals
-                            @if (pendingCount > 0)
-                            {
-                                <span class="badge badge-warning float-right">@pendingCount</span>
-                            }
-                        </a>
-                        <a asp-controller="Raam" asp-action="Training"
-                           class="btn btn-block btn-outline-success mb-2 text-left">
-                            <i class="fas fa-book mr-2"></i> View Trainings
-                        </a>
-                        <a asp-controller="Training" asp-action="Create"
-                           class="btn btn-block btn-outline-primary mb-2 text-left">
-                            <i class="fas fa-plus mr-2"></i> Create Training
-                        </a>
-                        <a asp-controller="Raam" asp-action="ParticipantsList"
-                           class="btn btn-block btn-outline-info mb-2 text-left">
-                            <i class="fas fa-users mr-2"></i> Participants List
-                        </a>
-                        <a asp-controller="Content" asp-action="Modules"
-                           class="btn btn-block btn-outline-secondary mb-2 text-left">
-                            <i class="fas fa-folder mr-2"></i> Modules
-                        </a>
-                        <a asp-controller="Content" asp-action="TestMaker"
-                           class="btn btn-block btn-outline-secondary text-left">
-                            <i class="fas fa-question-circle mr-2"></i> Post and Pre Test
-                        </a>
-                    </div>
-                </div>
-
-                @* Completion stat *@
-                <div class="card shadow-sm">
-                    <div class="card-header success-gradient">
-                        <h3 class="card-title">
-                            <i class="fas fa-chart-pie mr-2"></i>Completion Rate
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        @{
-                            var completionRate = totalParticipants > 0
-                                ? (int)Math.Round((double)completedCount / totalParticipants * 100)
-                                : 0;
-                        }
-                        <div class="d-flex justify-content-between mb-1">
-                            <small class="text-muted">Completed</small>
-                            <small><strong>@completedCount / @totalParticipants</strong></small>
-                        </div>
-                        <div class="progress mb-3" style="height:12px; border-radius:6px;">
-                            <div class="progress-bar bg-success"
-                                 role="progressbar"
-                                 style="width:@completionRate%">
-                            </div>
-                        </div>
-                        <p class="text-center mb-0">
-                            <span class="h4 font-weight-bold text-success">@completionRate%</span>
-                            <small class="text-muted d-block">overall completion rate</small>
-                        </p>
-                    </div>
-                </div>
-            </div>
+          
+         </div>
 
         </div>
     </div>
