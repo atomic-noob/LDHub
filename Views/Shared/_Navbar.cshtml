@@ -42,15 +42,11 @@
             <div class="dropdown-menu dropdown-menu-right">
               @{
    var currentRole = Context.Session.GetString("UserRole");
-    var profileUrl  = currentRole switch
-    {
-        "Employee"       => Url.Action("Profile", "Employee"),
-        "CourseManager"  => Url.Action("Profile", "CourseManager"),
-        "ResourcePerson" => Url.Action("Profile", "ResourcePerson"),
-        "Raam"           => Url.Action("Profile", "Raam"),
-        "Admin"          => Url.Action("Profile", "Admin"),
-        _                => "#"
-    };
+  var profileUrl = currentRole switch
+{
+    "Admin"          => Url.Action("AccountSettings", "Admin"),
+    _                => Url.Action("Profile", "Employee")
+};
 }
 <a href="@profileUrl" class="dropdown-item">
     <i class="fas fa-user mr-2"></i> My Profile

@@ -120,6 +120,10 @@ namespace LDHub.Models
         public string? Organization { get; set; }
         public string? Expertise    { get; set; }
 
+        [Column("default_role")]
+        [MaxLength(50)]
+        public string? DefaultRole { get; set; }
+
 
 
         // One user can be assigned MANY trainings

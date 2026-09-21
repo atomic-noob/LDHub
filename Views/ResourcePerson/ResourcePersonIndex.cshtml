@@ -149,7 +149,7 @@
         <div class="row">
 
             @* Current Training *@
-            <div class="col-lg-8">
+            <div class="col-lg-12">
                 @if (currentTraining != null)
                 {
                     <div class="card shadow-sm mb-4">
@@ -286,34 +286,7 @@
                 </div>
             </div>
 
-            @* Quick Actions *@
-            <div class="col-lg-4">
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header success-gradient">
-                        <h3 class="card-title">
-                            <i class="fas fa-bolt mr-2"></i>Quick Actions
-                        </h3>
-                    </div>
-                    <div class="card-body p-2">
-                        <a asp-controller="Content" asp-action="Modules"
-                           class="btn btn-block btn-outline-success mb-2 text-left">
-                            <i class="fas fa-folder mr-2"></i> Manage Modules
-                        </a>
-                        <a asp-controller="Content" asp-action="TestMaker"
-                           class="btn btn-block btn-outline-primary mb-2 text-left">
-                            <i class="fas fa-question-circle mr-2"></i> Pre/Post Test
-                        </a>
-                        <a asp-controller="ResourcePerson" asp-action="TrainingHistory"
-                           class="btn btn-block btn-outline-info mb-2 text-left">
-                            <i class="fas fa-history mr-2"></i> Training History
-                        </a>
-                        <a asp-controller="Training" asp-action="TrainingReport"
-                           class="btn btn-block btn-outline-secondary text-left">
-                            <i class="fas fa-chart-bar mr-2"></i> Training Report
-                        </a>
-                    </div>
-                </div>
-            </div>
+            
 
         </div>
     </div>

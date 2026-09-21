@@ -75,106 +75,80 @@ public class HomeController : Controller
         return View(new LoginViewModel());
     }
 
-    // ── POST: /Home/Login — process login ─────────────────────────
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(LoginViewModel model)
+    
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Login(LoginViewModel model)
+{
+    if (!ModelState.IsValid)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
-        // Find active user by email
-        var user = await _db.Users
-            .Include(u => u.UserRoles)
-            .FirstOrDefaultAsync(u =>
-                u.Email == model.Email &&
-                u.Status == "Active");
-
-        // Check if user exists
-        if (user == null)
-        {
-            ViewBag.Error = "Invalid email or password.";
-            return View(model);
-        }
-
-        // Check password
-        if (!BCrypt.Net.BCrypt.Verify(
-            model.Password,
-            user.Password))
-        {
-            ViewBag.Error = "Invalid email or password.";
-            return View(model);
-        }
-
-        // Block admin from using this login page
-        if (user.UserRoles.Any(r => r.Role == "Admin"))
-        {
-            ViewBag.Error = "Invalid email or password.";
-            return View(model);
-        }
-
-        // ──────────────────────────────────────────────────────────
-        // SET BASIC SESSION
-        // ──────────────────────────────────────────────────────────
-
-        HttpContext.Session.SetString(
-            "UserId",
-            user.UserId.ToString());
-
-        HttpContext.Session.SetString(
-            "UserName",
-            $"{user.FirstName} {user.LastName}");
-
-        HttpContext.Session.SetString(
-            "UserPhoto",
-            user.Photo ?? "");
-
-
-        // ──────────────────────────────────────────────────────────
-        // STORE ALL USER ROLES
-        // ──────────────────────────────────────────────────────────
-
-        var roles = user.UserRoles
-            .Select(r => r.Role)
-            .ToList();
-
-        HttpContext.Session.SetString(
-            "UserRoles",
-            string.Join(",", roles));
-
-
-        // ──────────────────────────────────────────────────────────
-        // EXTERNAL RESOURCE PERSON
-        // ──────────────────────────────────────────────────────────
-
-        if (user.IsExternal &&
-            roles.Contains("ResourcePerson"))
-        {
-            HttpContext.Session.SetString(
-                "UserRole",
-                "ResourcePerson");
-
-            return RedirectToAction(
-                "Index",
-                "ResourcePerson");
-        }
-
-
-        // ──────────────────────────────────────────────────────────
-        // INTERNAL DENR EMPLOYEE
-        // Default dashboard = Employee
-        // ──────────────────────────────────────────────────────────
-
-        HttpContext.Session.SetString(
-            "UserRole",
-            "Employee");
-
-        return RedirectToAction(
-            "Dashboard",
-            "Employee");
+        return View(model);
     }
+ 
+    // Find active user by email
+    var user = await _db.Users
+        .Include(u => u.UserRoles)
+        .FirstOrDefaultAsync(u =>
+            u.Email == model.Email &&
+            u.Status == "Active");
+ 
+    // Check if user exists
+    if (user == null)
+    {
+        ViewBag.Error = "Invalid email or password.";
+        return View(model);
+    }
+ 
+    // Check password
+    if (!BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
+    {
+        ViewBag.Error = "Invalid email or password.";
+        return View(model);
+    }
+ 
+    // Block admin from using this login page
+    if (user.UserRoles.Any(r => r.Role == "Admin"))
+    {
+        ViewBag.Error = "Invalid email or password.";
+        return View(model);
+    }
+ 
+    // ── SET BASIC SESSION ──────────────────────────────────────
+    HttpContext.Session.SetString("UserId",    user.UserId.ToString());
+    HttpContext.Session.SetString("UserName",  $"{user.FirstName} {user.LastName}");
+    HttpContext.Session.SetString("UserPhoto", user.Photo ?? "");
+ 
+    // ── STORE ALL USER ROLES ───────────────────────────────────
+    var roles = user.UserRoles.Select(r => r.Role).ToList();
+    HttpContext.Session.SetString("UserRoles", string.Join(",", roles));
+    HttpContext.Session.SetString("DefaultRole", user.DefaultRole ?? "");
+ 
+    // ── EXTERNAL RESOURCE PERSON ───────────────────────────────
+    if (user.IsExternal && roles.Contains("ResourcePerson"))
+    {
+        HttpContext.Session.SetString("UserRole", "ResourcePerson");
+        return RedirectToAction("Index", "ResourcePerson");
+    }
+ 
+    // ── DEFAULT ROLE REDIRECT ──────────────────────────────────
+    if (!string.IsNullOrEmpty(user.DefaultRole) && roles.Contains(user.DefaultRole))
+    {
+        HttpContext.Session.SetString("UserRole", user.DefaultRole);
+ 
+        return user.DefaultRole switch
+        {
+            "CourseManager"  => RedirectToAction("Dashboard", "CourseManager"),
+            "Raam"           => RedirectToAction("Dashboard", "Raam"),
+            "ResourcePerson" => RedirectToAction("Index", "ResourcePerson"),
+            _                => RedirectToAction("Dashboard", "Employee")
+        };
+    }
+ 
+    // ── DEFAULT: EMPLOYEE DASHBOARD ───────────────────────────
+    HttpContext.Session.SetString("UserRole", "Employee");
+    return RedirectToAction("Dashboard", "Employee");
+}
+
 
     // ── POST: /Home/SwitchRole — switch active role ───────────────
     [HttpPost]
@@ -259,4 +233,38 @@ public class HomeController : Controller
                     HttpContext.TraceIdentifier
             });
     }
+
+            [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetDefaultRole(string role)
+        {
+            var str = HttpContext.Session.GetString("UserId");
+            if (!int.TryParse(str, out int userId))
+                return RedirectToAction("Login");
+
+            var user = await _db.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.DefaultRole = role;
+                await _db.SaveChangesAsync();
+                TempData["Success"] = $"{role} set as your default role.";
+            }
+
+            return RedirectToAction(HttpContext.Session.GetString("UserRole") switch
+            {
+                "Admin"          => "Dashboard",
+                "CourseManager"  => "Dashboard",
+                "Raam"           => "Dashboard",
+                "ResourcePerson" => "Index",
+                _                => "Dashboard"
+            }, HttpContext.Session.GetString("UserRole") switch
+            {
+                "Admin"          => "Admin",
+                "CourseManager"  => "CourseManager",
+                "Raam"           => "Raam",
+                "ResourcePerson" => "ResourcePerson",
+                _                => "Employee"
+            });
+        }
+
 }

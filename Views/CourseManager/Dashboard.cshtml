@@ -1,24 +1,384 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Course Manager Dashboard";
+
+    var trainings             = ViewBag.Trainings             as List<LDHub.Models.Training> ?? new();
+    var totalTrainings        = ViewBag.TotalTrainings        as int? ?? 0;
+    var ongoingTrainings      = ViewBag.OngoingTrainings      as int? ?? 0;
+    var upcomingTrainings     = ViewBag.UpcomingTrainings     as int? ?? 0;
+    var completedTrainings    = ViewBag.CompletedTrainings    as int? ?? 0;
+    var totalParticipants     = ViewBag.TotalParticipants     as int? ?? 0;
+    var completedParticipants = ViewBag.CompletedParticipants as int? ?? 0;
+    var enrolledParticipants  = ViewBag.EnrolledParticipants  as int? ?? 0;
+    var now                   = DateTime.Now;
+}
+
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+
+        .welcome-banner {
+            background: linear-gradient(135deg,#117554,#4BB543);
+            color:white; border-radius:10px; padding:22px 28px;
+            margin-bottom:25px; box-shadow:0 4px 15px rgba(75,181,67,.3);
+        }
+        .welcome-banner h4 { font-weight:800; margin-bottom:3px; }
+        .welcome-banner p  { opacity:.85; margin-bottom:0; font-size:.92rem; }
+
+        .kpi-card {
+            border-radius:10px; padding:18px 20px; color:white;
+            box-shadow:0 4px 15px rgba(0,0,0,.1); margin-bottom:20px;
+            display:flex; align-items:center; justify-content:space-between;
+        }
+        .kpi-card .num   { font-size:2.2rem; font-weight:800; line-height:1; }
+        .kpi-card .label { font-size:.82rem; opacity:.85; margin-top:4px; }
+        .kpi-card .icon  { font-size:2.8rem; opacity:.25; }
+        .kpi-card.green  { background: linear-gradient(135deg,#4BB543,#117554); }
+        .kpi-card.blue   { background: linear-gradient(135deg,#0984e3,#74b9ff); }
+        .kpi-card.orange { background: linear-gradient(135deg,#e17055,#fdcb6e); }
+        .kpi-card.purple { background: linear-gradient(135deg,#6c5ce7,#a29bfe); }
+        .kpi-card.teal   { background: linear-gradient(135deg,#00b894,#55efc4); }
+        .kpi-card.dark   { background: linear-gradient(135deg,#2d3436,#636e72); }
+
+        .chart-card { border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.08); margin-bottom:20px; }
+
+        .training-status-badge {
+            border-radius:20px; padding:3px 12px;
+            font-size:.75rem; font-weight:700;
+        }
+        .badge-ongoing  { background:#d4edda; color:#155724; }
+        .badge-upcoming { background:#cce5ff; color:#004085; }
+        .badge-ended    { background:#e2e3e5; color:#383d41; }
+    </style>
 }
 
 <div class="content-header">
     <div class="container-fluid">
-        <h1 class="m-0">Course Manager Dashboard</h1>
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Course Manager Dashboard</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item active">Dashboard</li>
+                </ol>
+            </div>
+        </div>
     </div>
 </div>
 
 <section class="content">
     <div class="container-fluid">
-        <div class="card">
-            <div class="card-body">
-                <h5>Welcome, @ViewBag.UserName! 👋</h5>
-                <p class="text-muted">
-                    This is your Course Manager Dashboard.
-                    Trainings and modules will appear here.
-                </p>
+
+        @* ── Welcome Banner ── *@
+        <div class="welcome-banner">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h4><i class="fas fa-chalkboard-teacher mr-2"></i>Welcome, @ViewBag.UserName!</h4>
+                    <p>
+                        <i class="fas fa-calendar mr-1"></i>
+                        @DateTime.Now.ToString("dddd, MMMM dd, yyyy")
+                        &nbsp;|&nbsp; DENR L&amp;D Hub — Course Manager Portal
+                    </p>
+                </div>
+                <i class="fas fa-book fa-3x" style="opacity:.3;"></i>
             </div>
         </div>
+
+        @* ── KPI Cards Row 1 ── *@
+        <div class="row">
+            <div class="col-lg-3 col-md-4 col-6">
+                <div class="kpi-card green">
+                    <div><div class="num">@totalTrainings</div><div class="label">Total Trainings</div></div>
+                    <i class="fas fa-book icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-6">
+                <div class="kpi-card teal">
+                    <div><div class="num">@ongoingTrainings</div><div class="label">Ongoing Trainings</div></div>
+                    <i class="fas fa-spinner icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-6">
+                <div class="kpi-card orange">
+                    <div><div class="num">@upcomingTrainings</div><div class="label">Upcoming Trainings</div></div>
+                    <i class="fas fa-calendar icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-6">
+                <div class="kpi-card dark">
+                    <div><div class="num">@completedTrainings</div><div class="label">Ended Trainings</div></div>
+                    <i class="fas fa-flag-checkered icon"></i>
+                </div>
+            </div>
+        </div>
+
+        @* ── KPI Cards Row 2 ── *@
+        <div class="row">
+            <div class="col-lg-4 col-md-4 col-6">
+                <div class="kpi-card purple">
+                    <div><div class="num">@totalParticipants</div><div class="label">Total Participants</div></div>
+                    <i class="fas fa-users icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-6">
+                <div class="kpi-card blue">
+                    <div><div class="num">@enrolledParticipants</div><div class="label">Currently Enrolled</div></div>
+                    <i class="fas fa-user-check icon"></i>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-6">
+                <div class="kpi-card green">
+                    <div><div class="num">@completedParticipants</div><div class="label">Participants Completed</div></div>
+                    <i class="fas fa-user-graduate icon"></i>
+                </div>
+            </div>
+        </div>
+
+        @* ── Charts Row ── *@
+        <div class="row">
+
+            @* Bar chart — participants per training *@
+            <div class="col-lg-8">
+                <div class="card chart-card">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-bar mr-2"></i>Participants per Training (Top 6)
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="participantsChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            @* Doughnut chart — completion status *@
+            <div class="col-lg-4">
+                <div class="card chart-card">
+                    <div class="card-header success-gradient">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-pie mr-2"></i>Participant Status
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statusChart" height="200"></canvas>
+                        <div class="mt-3 text-center" style="font-size:.82rem;">
+                            <span class="mr-3"><span style="color:#4BB543;">●</span> Completed (@completedParticipants)</span>
+                            <span class="mr-3"><span style="color:#0984e3;">●</span> Enrolled (@enrolledParticipants)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        @* ── Training List ── *@
+        <div class="card shadow-sm mb-4">
+            <div class="card-header success-gradient">
+                <h3 class="card-title">
+                    <i class="fas fa-list mr-2"></i>All Trainings
+                </h3>
+                <div class="card-tools">
+                    <a asp-controller="Training" asp-action="Index" class="btn btn-sm btn-light">
+                        <i class="fas fa-list mr-1"></i>Manage
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Training</th>
+                                <th>Date</th>
+                                <th class="text-center">Participants</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!trainings.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2 d-block" style="opacity:.3;"></i>
+                                        No trainings found.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int i = 1;
+                                foreach (var t in trainings)
+                                {
+                                    string statusClass, statusLabel;
+                                    if (t.StartDate.HasValue && t.StartDate > now)
+                                    { statusClass = "badge-upcoming"; statusLabel = "Upcoming"; }
+                                    else if (t.EndDate.HasValue && t.EndDate < now)
+                                    { statusClass = "badge-ended"; statusLabel = "Ended"; }
+                                    else
+                                    { statusClass = "badge-ongoing"; statusLabel = "Ongoing"; }
+
+                                    <tr>
+                                        <td>@i</td>
+                                        <td>
+                                            <strong>@t.TrainingTitle</strong>
+                                            <small class="text-muted d-block">@t.TrainingCode</small>
+                                        </td>
+                                        <td>
+                                            <small>
+                                                @(t.StartDate?.ToString("MMM dd") ?? "TBD") —
+                                                @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                            </small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-light border">
+                                                @t.TrainingParticipants.Count
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="training-status-badge @statusClass">@statusLabel</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <a asp-controller="Training"
+                                               asp-action="AssignParticipant"
+                                               asp-route-id="@t.TrainingId"
+                                               class="btn btn-xs btn-outline-success"
+                                               title="Participants">
+                                                <i class="fas fa-users"></i>
+                                            </a>
+                                            <a asp-controller="Training"
+                                               asp-action="Modules"
+                                               asp-route-id="@t.TrainingId"
+                                               class="btn btn-xs btn-outline-primary ml-1"
+                                               title="Modules">
+                                                <i class="fas fa-book-open"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    i++;
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @* ── Participant Overview ── *@
+        <div class="card shadow-sm mb-4">
+            <div class="card-header success-gradient">
+                <h3 class="card-title">
+                    <i class="fas fa-users mr-2"></i>Recent Participants
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Participant</th>
+                                <th>Training</th>
+                                <th>Enrolled On</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var allParticipants = trainings
+                                    .SelectMany(t => t.TrainingParticipants)
+                                    .OrderByDescending(tp => tp.EnrollmentDate)
+                                    .Take(10)
+                                    .ToList();
+                            }
+                            @if (!allParticipants.Any())
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        No participants yet.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var tp in allParticipants)
+                                {
+                                    var badgeColor = tp.CompletionStatus switch
+                                    {
+                                        "Completed"   => "badge-success",
+                                        "In Progress" => "badge-warning",
+                                        _             => "badge-info"
+                                    };
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-user-circle mr-2 text-success"></i>
+                                            @tp.User?.FirstName @tp.User?.LastName
+                                        </td>
+                                        <td>@tp.Training?.TrainingTitle</td>
+                                        <td><small>@tp.EnrollmentDate.ToString("MMM d, yyyy")</small></td>
+                                        <td class="text-center">
+                                            <span class="badge @badgeColor">@tp.CompletionStatus</span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 </section>
+
+@section Scripts {
+<script src="~/plugins/chart.js/Chart.min.js"></script>
+<script>
+    var GREEN  = '#4BB543';
+    var BLUE   = '#0984e3';
+    var ORANGE = '#e17055';
+
+    // ── Bar chart: participants per training ──
+    var ptData   = @Html.Raw(ViewBag.ParticipantsPerTraining ?? "[]");
+    var ptLabels = ptData.map(function(d) { return d.Title; });
+    var ptCounts = ptData.map(function(d) { return d.Count; });
+
+    new Chart(document.getElementById('participantsChart'), {
+        type: 'bar',
+        data: {
+            labels: ptLabels,
+            datasets: [{
+                label: 'Participants',
+                data: ptCounts,
+                backgroundColor: GREEN,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+
+    // ── Doughnut chart: completion status ──
+    var sd = @Html.Raw(ViewBag.StatusBreakdown ?? "{}");
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Enrolled', 'In Progress'],
+            datasets: [{
+                data: [sd.Completed, sd.Enrolled, sd.InProgress],
+                backgroundColor: [GREEN, BLUE, ORANGE],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
+    });
+</script>
+}

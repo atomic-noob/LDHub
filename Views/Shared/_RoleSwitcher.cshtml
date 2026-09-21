@@ -1,19 +1,12 @@
-@* _RoleSwitcher.cshtml
-   Shows a dropdown ONLY if the user has more than 1 role
-   Lets internal users switch between Employee, CourseManager, Raam
-*@
-
 @{
-    // UserRoles is stored in session as comma-separated string
-    // e.g. "Employee,CourseManager,Raam"
     var rolesString = Context.Session.GetString("UserRoles") ?? "";
     var userRoles = rolesString.Split(',')
                                .Where(r => !string.IsNullOrEmpty(r))
                                .ToList();
-    var activeRole = Context.Session.GetString("UserRole") ?? "";
+    var activeRole  = Context.Session.GetString("UserRole") ?? "";
+    var defaultRole = Context.Session.GetString("DefaultRole") ?? "";
 }
 
-@* Only show if user has more than 1 role *@
 @if (userRoles.Count > 1)
 {
     <li class="nav-item dropdown">
@@ -26,18 +19,33 @@
             @foreach (var role in userRoles)
             {
                 var isActive = role == activeRole ? "font-weight-bold text-success" : "";
-                <form asp-controller="Home" asp-action="SwitchRole" method="post" class="d-inline">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="role" value="@role" />
-                    <button type="submit" class="dropdown-item @isActive">
-                        <i class="fas fa-user-tag mr-2"></i> @role
-                        @if (role == activeRole)
-                        {
-                            <i class="fas fa-check ml-1 text-success"></i>
-                        }
-                    </button>
-                </form>
+                var isDefault = role == defaultRole;
+                <div class="d-flex align-items-center px-2">
+                    <form asp-controller="Home" asp-action="SwitchRole" method="post" class="flex-grow-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="role" value="@role" />
+                        <button type="submit" class="dropdown-item @isActive px-1">
+                            <i class="fas fa-user-tag mr-2"></i> @role
+                            @if (role == activeRole)
+                            {
+                                <i class="fas fa-check ml-1 text-success"></i>
+                            }
+                        </button>
+                    </form>
+                    <form asp-controller="Home" asp-action="SetDefaultRole" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="role" value="@role" />
+                        <button type="submit" class="btn btn-xs p-1"
+                                title="@(isDefault ? "Default role" : "Set as default")">
+                            <i class="fas fa-star" style="color:@(isDefault ? "#f39c12" : "#dee2e6");"></i>
+                        </button>
+                    </form>
+                </div>
             }
+            <div class="dropdown-divider"></div>
+            <small class="px-3 text-muted">
+                <i class="fas fa-star text-warning mr-1"></i> = default role on login
+            </small>
         </div>
     </li>
 }

@@ -357,10 +357,11 @@ ViewBag.CompletedModuleIds = completedModuleIds;
     // ── GET: /Employee/Profile ────────────────────────────────────
     public async Task<IActionResult> Profile()
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+        var userId = GetUserId();
+         if (userId == 0) return RedirectToAction("Login", "Home");
         SetViewBag();
 
-        var userId = GetUserId();
+        
 
         var user = await _db.Users
             .Include(u => u.Region)
