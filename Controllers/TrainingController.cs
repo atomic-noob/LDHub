@@ -463,14 +463,24 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
         return RedirectToAction("Index", "Training");
     }
   // ── GET: /Training/TrainingReport ─────────────────────────────
+// ── GET: /Training/TrainingReport ─────────────────────────────
 public async Task<IActionResult> TrainingReport(int? trainingId)
 {
     if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
-    // Load regions for dropdown
-    ViewBag.Regions   = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
-    ViewBag.Trainings = await _db.Trainings.OrderByDescending(t => t.CreatedAt).ToListAsync();
+    var role     = GetUserRole();
+    var regionId = await GetRaamRegionId();
+
+    // Load regions for dropdown (kept for compatibility, though the view no longer uses a dropdown)
+    ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+
+    IQueryable<Training> trainingsQuery = _db.Trainings;
+
+    if (role == "Raam")
+        trainingsQuery = trainingsQuery.Where(t => t.RegionId == regionId);
+
+    ViewBag.Trainings = await trainingsQuery.OrderByDescending(t => t.CreatedAt).ToListAsync();
 
     if (trainingId == null) return View("~/Views/Training/TrainingReport.cshtml");
 
@@ -481,13 +491,19 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
 
     if (training == null) return View("~/Views/Training/TrainingReport.cshtml");
 
+    // ── Block RAAM from viewing a report for a training outside their region ──
+    if (role == "Raam" && training.RegionId != regionId)
+    {
+        TempData["Error"] = "You do not have access to this training's report.";
+        return RedirectToAction("TrainingReport");
+    }
+
     var rows = new List<ReportRow>();
 
     foreach (var tp in training.TrainingParticipants)
     {
         if (tp.User == null) continue;
 
-        // Get pre-test score
         var preAttempt = await _db.ParticipantTestAttempts
             .Where(e => e.UserId == tp.UserId 
                      && e.TrainingId == trainingId 
@@ -495,7 +511,6 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
             .OrderByDescending(e => e.TakenAt)
             .FirstOrDefaultAsync();
 
-        // Get post-test score
         var postAttempt = await _db.ParticipantTestAttempts
             .Where(e => e.UserId == tp.UserId 
                      && e.TrainingId == trainingId 
@@ -518,8 +533,6 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
                               && e.TestType == "PostTest")
         });
     }
-    
-
 
     var vm = new TrainingReportViewModel
     {
@@ -545,7 +558,6 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
     vm.LearningGain = vm.PostTestAvg - vm.PreTestAvg;
     vm.TotalPoints  = rows.Sum(r => r.PostScore ?? 0);
 
-    // ── Paired T-Test ──────────────────────────────────────────
     var pairs = rows
         .Where(r => r.PreScore.HasValue && r.PostScore.HasValue)
         .Select(r => (Pre: (double)r.PreScore!.Value, Post: (double)r.PostScore!.Value))
@@ -553,13 +565,6 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
 
     if (pairs.Count >= 2)
     {
-        var differences = pairs.Select(p => p.Post - p.Pre).ToList();
-        var meanDiff    = differences.Average();
-        var variance    = differences.Sum(d => Math.Pow(d - meanDiff, 2)) / (pairs.Count - 1);
-        var stdDev      = Math.Sqrt(variance);
-        var stdError    = stdDev / Math.Sqrt(pairs.Count);
-        var tStat       = stdError > 0 ? meanDiff / stdError : 0;
-        // Paired T-Test
         var pairedPre  = new List<double>();
         var pairedPost = new List<double>();
 
@@ -574,10 +579,8 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
 
         vm.TTest = LDHub.Services.TTestService.ComputePairedTTest(
             pairedPre, pairedPost, training.TrainingTitle);
+    }
 
-            
-            }
-
-            return View("~/Views/Training/TrainingReport.cshtml", vm);
-        }
+    return View("~/Views/Training/TrainingReport.cshtml", vm);
+}
 }

@@ -1,0 +1,207 @@
+@model LDHub.Models.EvaluationResponse
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Training Evaluation";
+    var training  = ViewBag.Training  as LDHub.Models.Training;
+    var questions = ViewBag.Questions as List<LDHub.Models.EvaluationQuestion>
+                    ?? new List<LDHub.Models.EvaluationQuestion>();
+}
+
+@section Styles {
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+        .question-card {
+            border-radius: 10px; border: 1px solid #e8f5e9;
+            padding: 20px; margin-bottom: 15px; background: white;
+            box-shadow: 0 2px 8px rgba(17,117,84,.06);
+        }
+        .question-card .q-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: linear-gradient(135deg,#4BB543,#117554);
+            color: white; font-weight: 800; font-size: .85rem;
+            margin-right: 10px; flex-shrink: 0;
+        }
+        .rating-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .rating-label {
+            display: flex; flex-direction: column; align-items: center;
+            cursor: pointer;
+        }
+        .rating-label input[type="radio"] { display: none; }
+        .rating-label .rating-btn {
+            width: 45px; height: 45px; border-radius: 50%;
+            border: 2px solid #dee2e6; display: flex;
+            align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem; color: #6c757d;
+            transition: all .2s; background: white;
+        }
+        .rating-label input[type="radio"]:checked + .rating-btn {
+            background: linear-gradient(135deg,#4BB543,#117554);
+            border-color: #117554; color: white;
+            box-shadow: 0 3px 10px rgba(17,117,84,.3);
+        }
+        .rating-label .rating-desc { font-size: .7rem; color: #6c757d; margin-top: 4px; }
+        .required-star { color: #dc3545; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Training Evaluation</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item active">Evaluation</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @* Training Info Banner *@
+        <div class="card shadow-sm mb-4">
+            <div class="card-header success-gradient">
+                <h3 class="card-title">
+                    <i class="fas fa-clipboard-list mr-2"></i>@training?.TrainingTitle
+                </h3>
+            </div>
+            <div class="card-body py-2">
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-muted">Training Code</small>
+                        <strong class="d-block">@training?.TrainingCode</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Date</small>
+                        <strong class="d-block">
+                            @(training?.StartDate?.ToString("MMM dd") ?? "TBD") –
+                            @(training?.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                        </strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Location</small>
+                        <strong class="d-block">@(training?.Location ?? "—")</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!questions.Any())
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-clipboard fa-3x mb-3" style="color:#c8e6c9;opacity:.6;"></i>
+                    <h5 class="text-muted">No evaluation questions set up yet.</h5>
+                    <p class="text-muted small">Please contact your Course Manager.</p>
+                    <a asp-controller="Employee" asp-action="Dashboard" class="btn btn-success mt-2">
+                        <i class="fas fa-home mr-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <form asp-controller="Evaluation" asp-action="Submit" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="TrainingId" value="@training?.TrainingId" />
+
+                @{ int qNum = 1; }
+                @foreach (var q in questions)
+                {
+                    <div class="question-card">
+                        <div class="d-flex align-items-start">
+                            <span class="q-num">@qNum</span>
+                            <div class="flex-grow-1">
+                                <strong>
+                                    @q.QuestionText
+                                    @if (q.IsRequired)
+                                    {
+                                        <span class="required-star">*</span>
+                                    }
+                                </strong>
+
+                                @if (q.QuestionType == "rating")
+                                {
+                                    <div class="rating-group">
+                                        @foreach (var r in new[] { (1,"Poor"), (2,"Fair"), (3,"Good"), (4,"Very Good"), (5,"Excellent") })
+                                        {
+                                            <label class="rating-label">
+                                                <input type="radio" name="rating_@q.Id"
+                                                       value="@r.Item1"
+                                                       @(q.IsRequired ? "required" : "") />
+                                                <span class="rating-btn">@r.Item1</span>
+                                                <span class="rating-desc">@r.Item2</span>
+                                            </label>
+                                        }
+                                    </div>
+                                    <input type="hidden" name="question_ids" value="@q.Id" />
+                                }
+                                else if (q.QuestionType == "text")
+                                {
+                                    <textarea name="text_@q.Id" class="form-control mt-2"
+                                              rows="3" placeholder="Your answer..."
+                                              @(q.IsRequired ? "required" : "")></textarea>
+                                    <input type="hidden" name="question_ids" value="@q.Id" />
+                                }
+                                else if (q.QuestionType == "multiple_choice")
+                                {
+                                    <div class="mt-2">
+                                        @if (!string.IsNullOrEmpty(q.ChoiceA))
+                                        {
+                                            <div class="custom-control custom-radio mb-1">
+                                                <input type="radio" class="custom-control-input"
+                                                       id="q@(q.Id)_a" name="mc_@q.Id" value="@q.ChoiceA"
+                                                       @(q.IsRequired ? "required" : "") />
+                                                <label class="custom-control-label" for="q@(q.Id)_a">@q.ChoiceA</label>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(q.ChoiceB))
+                                        {
+                                            <div class="custom-control custom-radio mb-1">
+                                                <input type="radio" class="custom-control-input"
+                                                       id="q@(q.Id)_b" name="mc_@q.Id" value="@q.ChoiceB" />
+                                                <label class="custom-control-label" for="q@(q.Id)_b">@q.ChoiceB</label>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(q.ChoiceC))
+                                        {
+                                            <div class="custom-control custom-radio mb-1">
+                                                <input type="radio" class="custom-control-input"
+                                                       id="q@(q.Id)_c" name="mc_@q.Id" value="@q.ChoiceC" />
+                                                <label class="custom-control-label" for="q@(q.Id)_c">@q.ChoiceC</label>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(q.ChoiceD))
+                                        {
+                                            <div class="custom-control custom-radio mb-1">
+                                                <input type="radio" class="custom-control-input"
+                                                       id="q@(q.Id)_d" name="mc_@q.Id" value="@q.ChoiceD" />
+                                                <label class="custom-control-label" for="q@(q.Id)_d">@q.ChoiceD</label>
+                                            </div>
+                                        }
+                                    </div>
+                                    <input type="hidden" name="question_ids" value="@q.Id" />
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    qNum++;
+                }
+
+                <div class="text-right mt-3 mb-4">
+                    <a asp-controller="Employee" asp-action="Dashboard"
+                       class="btn btn-secondary mr-2">Cancel</a>
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fas fa-paper-plane mr-1"></i> Submit Evaluation
+                    </button>
+                </div>
+            </form>
+        }
+
+    </div>
+</section>

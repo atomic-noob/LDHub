@@ -267,6 +267,109 @@ public class RaamController : Controller
         TempData["Success"] = $"{user.FirstName} {user.LastName} is now {user.Status.ToLower()}.";
         return RedirectToAction("ParticipantsList");
     }
+    // ── POST: Edit employee ─────────────────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> EmployeeEdit(User model)
+{
+    if (!IsRaam()) return RedirectToAction("Login", "Home");
+
+    var regionId = await GetRaamRegionId();
+    var user = await _db.Users.FindAsync(model.UserId);
+
+    if (user == null)
+    {
+        TempData["Error"] = "Employee not found.";
+        return RedirectToAction("ParticipantsList");
+    }
+
+    // Block editing employees outside RAAM's own region
+    if (user.RegionId != regionId)
+    {
+        TempData["Error"] = "You do not have access to this employee.";
+        return RedirectToAction("ParticipantsList");
+    }
+
+    user.FirstName     = model.FirstName;
+    user.MiddleName    = model.MiddleName;
+    user.LastName      = model.LastName;
+    user.ContactNumber = model.ContactNumber;
+    user.Position      = model.Position;
+    user.Designation   = model.Designation;
+    user.SalaryGrade   = model.SalaryGrade;
+    user.UpdatedAt     = DateTime.UtcNow;
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = $"{user.FirstName} {user.LastName} updated successfully!";
+    return RedirectToAction("ParticipantsList");
+}
+
+// ── POST: Assign role ────────────────────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> AssignRole(int userId, string role)
+{
+    if (!IsRaam()) return RedirectToAction("Login", "Home");
+
+    var regionId = await GetRaamRegionId();
+    var user = await _db.Users.FindAsync(userId);
+
+    if (user == null || user.RegionId != regionId)
+    {
+        TempData["Error"] = "You do not have access to this employee.";
+        return RedirectToAction("ParticipantsList");
+    }
+
+    var alreadyHasRole = await _db.UserRoles
+        .AnyAsync(r => r.UserId == userId && r.Role == role);
+
+    if (!alreadyHasRole && !string.IsNullOrEmpty(role))
+    {
+        _db.UserRoles.Add(new UserRole
+        {
+            UserId     = userId,
+            Role       = role,
+            AssignedAt = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"Role '{role}' assigned successfully!";
+    }
+    else
+    {
+        TempData["Error"] = "Role already assigned or invalid.";
+    }
+
+    return RedirectToAction("ParticipantsList");
+}
+
+// ── POST: Remove role ────────────────────────────────────────
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> RemoveRole(int userId, string role)
+{
+    if (!IsRaam()) return RedirectToAction("Login", "Home");
+
+    var regionId = await GetRaamRegionId();
+    var user = await _db.Users.FindAsync(userId);
+
+    if (user == null || user.RegionId != regionId)
+    {
+        TempData["Error"] = "You do not have access to this employee.";
+        return RedirectToAction("ParticipantsList");
+    }
+
+    var userRole = await _db.UserRoles
+        .FirstOrDefaultAsync(r => r.UserId == userId && r.Role == role);
+
+    if (userRole != null)
+    {
+        _db.UserRoles.Remove(userRole);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"Role '{role}' removed successfully!";
+    }
+
+    return RedirectToAction("ParticipantsList");
+}
 
     // ════════════════════════════════════════════════════════════
     //  LOCATIONS

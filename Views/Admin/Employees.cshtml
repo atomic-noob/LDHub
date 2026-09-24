@@ -301,13 +301,13 @@
             });
             
             // ── Role filter ──
-            $('#roleFilter').on('change', function () {
-                var role = $(this).val();
-                $('#employeesTable').DataTable()
-                    .column(5) // adjust column index where roles are shown
-                    .search(role ? role : '', true, false)
-                    .draw();
-            });
+     $('#roleFilter').on('change', function () {
+    var role = $(this).val();
+    $('#employeesTable').DataTable()
+        .column(6) // was 5 (Office) — corrected to 6 (Roles)
+        .search(role ? role : '', true, false)
+        .draw();
+});
     
 </script>
 }

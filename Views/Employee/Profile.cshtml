@@ -275,10 +275,19 @@
                                         <p class="text-muted" style="font-size:.82rem;">
                                             Completed: @tp.Training?.EndDate?.ToString("MMM dd, yyyy")
                                         </p>
-                                        <button class="btn btn-success btn-sm" disabled>
-                                            <i class="fas fa-download mr-1"></i> Download
-                                            <small>(Coming Soon)</small>
-                                        </button>
+                                       @if (!string.IsNullOrEmpty(tp.Training?.CertificatePath))
+{
+    <a href="@tp.Training.CertificatePath" target="_blank"
+       class="btn btn-success btn-sm">
+        <i class="fas fa-file-pdf mr-1"></i> View Certificate
+    </a>
+}
+else
+{
+    <span class="badge badge-warning">
+        <i class="fas fa-clock mr-1"></i> Not yet uploaded
+    </span>
+}
                                     </div>
                                 </div>
                             </div>

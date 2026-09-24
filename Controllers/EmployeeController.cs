@@ -131,6 +131,21 @@ ViewBag.CompletedModuleIds = completedModuleIds;
             postTestAttempts = postAttempts.Count;
             postTestPassed   = postAttempts.Any(a => a.IsPassed);
         }
+        // ── Check evaluation status ──
+bool evalDone = false;
+bool hasEvalQuestions = false;
+if (currentEnrollment != null)
+{
+    evalDone = await _db.EvaluationResponses
+        .AnyAsync(r => r.UserId == userId 
+                    && r.TrainingId == currentEnrollment.TrainingId);
+
+    hasEvalQuestions = await _db.EvaluationQuestions
+        .AnyAsync(q => q.TrainingId == currentEnrollment.TrainingId);
+}
+
+ViewBag.EvalDone         = evalDone;
+ViewBag.HasEvalQuestions = hasEvalQuestions;
 
         ViewBag.TotalEnrolled   = enrollments.Count;
         ViewBag.TotalCompleted  = enrollments.Count(tp => tp.CompletionStatus == "Completed");
@@ -221,6 +236,18 @@ ViewBag.CompletedModuleIds = completedModuleIds;
             TempData["Error"] = "Please complete the pre-test first.";
             return RedirectToAction("Dashboard");
         }
+        // Check if evaluation is completed
+var evaluationDone = await _db.EvaluationResponses
+    .AnyAsync(r => r.UserId == userId && r.TrainingId == trainingId);
+
+var hasQuestions = await _db.EvaluationQuestions
+    .AnyAsync(q => q.TrainingId == trainingId);
+
+if (hasQuestions && !evaluationDone)
+{
+    TempData["Error"] = "Please complete the training evaluation before taking the Post-Test.";
+    return RedirectToAction("Dashboard");
+}
 
         var training = await _db.Trainings.FindAsync(trainingId);
         if (training == null) return NotFound();
