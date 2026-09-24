@@ -5,6 +5,11 @@
     var selectedTraining = ViewBag.SelectedTraining as LDHub.Models.Training;
     var questions = ViewBag.Questions as List<LDHub.Models.Question>;
     var trainingId = ViewBag.TrainingId as int?;
+    var nowTM = DateTime.Now;
+    var ongoingCountTM  = trainings?.Count(t => t.StartDate.HasValue && t.EndDate.HasValue && nowTM >= t.StartDate && nowTM <= t.EndDate) ?? 0;
+    var upcomingCountTM = trainings?.Count(t => t.StartDate.HasValue && nowTM < t.StartDate) ?? 0;
+    var endedCountTM    = trainings?.Count(t => t.EndDate.HasValue && nowTM > t.EndDate) ?? 0;
+
 }
 
 @section Styles {
@@ -46,6 +51,45 @@
                 background: none !important;
             }
         }
+
+        .training-card-item {
+            border-radius: 12px;
+            border: 2px solid #dee2e6;
+            background: white;
+            padding: 16px 18px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all .25s;
+            text-decoration: none;
+            display: block;
+            color: inherit;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        }
+        .training-card-item:hover {
+            border-color: #4BB543;
+            box-shadow: 0 6px 20px rgba(75,181,67,.2);
+            transform: translateY(-2px);
+            color: inherit;
+            text-decoration: none;
+        }
+        .training-card-item.selected {
+            border-color: #117554;
+            background: #f4fdf6;
+        }
+        .filter-btn {
+            border-radius: 20px; padding: 5px 16px;
+            font-size: .83rem; margin-right: 6px; margin-bottom: 8px;
+            border: 2px solid transparent; transition: all .2s; cursor: pointer;
+            background: transparent;
+        }
+        .filter-btn-all      { border-color: #6c757d; color: #6c757d; }
+        .filter-btn-all.active      { background: #6c757d !important; color: white !important; }
+        .filter-btn-ongoing   { border-color: #4BB543; color: #4BB543; }
+        .filter-btn-ongoing.active  { background: #4BB543 !important; color: white !important; }
+        .filter-btn-upcoming  { border-color: #0984e3; color: #0984e3; }
+        .filter-btn-upcoming.active { background: #0984e3 !important; color: white !important; }
+        .filter-btn-ended     { border-color: #adb5bd; color: #adb5bd; }
+        .filter-btn-ended.active    { background: #adb5bd !important; color: white !important; }
     </style>
 }
 
@@ -73,32 +117,90 @@
             </div>
         }
 
-        <!-- Training Filter -->
-        <div class="card card-outline card-info mb-3">
-            <div class="card-header"><h3 class="card-title">Select Training</h3></div>
-            <div class="card-body">
-                <form method="get" id="filterForm">
-                                <select class="form-control" name="trainingId"
-                        onchange="this.form.submit()"
-                        style="min-width:400px; display:inline-block;">
-                    <option value="">-- Select Training --</option>
+      @if (trainingId == null)
+{
+    <!-- Training Selection -->
+    <div class="card card-outline card-info mb-3">
+        <div class="card-header"><h3 class="card-title">Select Training</h3></div>
+        <div class="card-body">
+
+            <div class="row mb-3 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="text" id="trainingSearch" class="form-control"
+                               placeholder="Search training..." />
+                        <div class="input-group-append">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        </div>
+                    </div>
+                </div>
+               <div class="col-md-7">
+    <button class="filter-btn filter-btn-all active" data-filter="all">
+        All <span class="badge badge-secondary ml-1">@(trainings?.Count ?? 0)</span>
+    </button>
+    <button class="filter-btn filter-btn-ongoing" data-filter="Ongoing">
+        Ongoing <span class="badge badge-success ml-1">@ongoingCountTM</span>
+    </button>
+    <button class="filter-btn filter-btn-upcoming" data-filter="Scheduled">
+        Scheduled <span class="badge badge-info ml-1">@upcomingCountTM</span>
+    </button>
+    <button class="filter-btn filter-btn-ended" data-filter="Ended">
+        Ended <span class="badge badge-secondary ml-1">@endedCountTM</span>
+    </button>
+</div>
+            </div>
+
+          
+            @if (trainings == null || !trainings.Any())
+            {
+                <p class="text-muted text-center py-3">No trainings available.</p>
+            }
+            else
+            {
+                <div class="row" id="trainingCardsTM">
                     @foreach (var t in trainings)
                     {
-                      <option value="@t.TrainingId"
-                            selected="@(trainingId == t.TrainingId ? "selected" : null)">
-                        @t.TrainingTitle —
-                        @(t.StartDate?.ToString("MMM dd") ?? "N/A")
-                        to
-                        @(t.EndDate?.ToString("MMM dd, yyyy") ?? "N/A")
-                    </option>
-                    }
-                </select>
-                                </form>
-                            </div>
-                        </div>
+                        var tStatus  = "Scheduled";
+                        var badgeCss = "badge-info";
+                        if (t.StartDate.HasValue && t.EndDate.HasValue)
+                        {
+                            if (nowTM >= t.StartDate && nowTM <= t.EndDate)
+                            { tStatus = "Ongoing"; badgeCss = "badge-success"; }
+                            else if (nowTM > t.EndDate)
+                            { tStatus = "Ended"; badgeCss = "badge-secondary"; }
+                        }
 
-        @if (trainingId != null && selectedTraining != null)
-        {
+                        <div class="col-md-6 col-lg-4 training-card-col"
+                             data-status="@tStatus"
+                             data-title="@t.TrainingTitle.ToLower()">
+                            <a href="@Url.Action("TestMaker", "Content", new { trainingId = t.TrainingId })"
+                               class="training-card-item">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h6 class="font-weight-bold mb-0" style="font-size:.95rem; line-height:1.3;">
+                                        @t.TrainingTitle
+                                    </h6>
+                                    <span class="badge @badgeCss ml-2">@tStatus</span>
+                                </div>
+                                <small class="text-muted d-block">
+                                    @(t.StartDate?.ToString("MMM dd") ?? "TBD") –
+                                    @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                </small>
+                            </a>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+       @if (trainingId != null && selectedTraining != null)
+{
+    <div class="mb-3">
+        <a asp-controller="Content" asp-action="TestMaker" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left mr-1"></i> Change Training
+        </a>
+    </div>
             <!-- Tabs -->
             <ul class="nav nav-tabs mb-4" id="testMakerTabs">
                 <li class="nav-item">
@@ -683,11 +785,7 @@
             );
         });
 
-        // Auto-submit filter form when training changes
-        $('select[name="trainingId"]').on('change', function () {
-            localStorage.removeItem('testMakerActiveTab');
-            $('#filterForm').submit();
-        });
+       
 
         // Toggle add form fields
         window.toggleFields = function (prefix) {
@@ -750,6 +848,22 @@
                 $('#edit_mc_answer').val($(this).data('answer'));
             }
         });
+        // ── Training card filter/search ──
+$('.filter-btn').on('click', function () {
+    $('.filter-btn').removeClass('active');
+    $(this).addClass('active');
+    var filter = $(this).data('filter');
+    $('.training-card-col').each(function () {
+        $(this).toggle(filter === 'all' || $(this).data('status') === filter);
+    });
+});
+
+$('#trainingSearch').on('keyup', function () {
+    var val = $(this).val().toLowerCase();
+    $('.training-card-col').each(function () {
+        $(this).toggle($(this).data('title').indexOf(val) > -1);
+    });
+});
 
     });
 

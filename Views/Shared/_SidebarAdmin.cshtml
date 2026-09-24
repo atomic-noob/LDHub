@@ -6,10 +6,11 @@
 
     bool isManageUsers = controller == "Admin" && (action == "Employees" || action == "PendingEmployees" || action == "ResourcePersons");
     bool isLocations = controller == "Admin" && (action == "Regions" || action == "Offices" || action == "Divisions");
-    bool isReports = controller == "Admin" && (action == "ReportUsers" || action == "ReportIdp" || action == "ReportTraining");
+    bool isReports = controller == "Training" && action == "TrainingReport" 
+                  || controller == "Admin" && (action == "ReportUsers" || action == "ReportIdp");
 }
 
-<aside class="main-sidebar sidebar-dark-success elevation-4">
+<aside class="main-sidebar sidebar-light-success elevation-4">
 
     <a href="#" class="brand-link">
         <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" class="brand-image img-circle elevation-3"
@@ -59,12 +60,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
-    <a asp-controller="Admin" asp-action="AccountSettings"
-       class="nav-link @(action == "AccountSettings" ? "active" : "")">
-        <i class="nav-icon fas fa-user-shield"></i>
-        <p>Account Settings</p>
-    </a>
-</li>
+                            <a asp-controller="Admin" asp-action="AccountSettings"
+                            class="nav-link @(action == "AccountSettings" ? "active" : "")">
+                                <i class="nav-icon fas fa-user-shield"></i>
+                                <p>Account Settings</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
@@ -76,21 +77,21 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a asp-controller="Admin" asp-action="Regions"
+                            <a asp-controller="Location" asp-action="Regions"
                                class="nav-link @(action == "Regions" ? "active" : "")">
                                 <i class="fas fa-globe-asia nav-icon"></i>
                                 <p>Manage Regions</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a asp-controller="Admin" asp-action="Offices"
+                            <a asp-controller="Location" asp-action="Offices"
                                class="nav-link @(action == "Offices" ? "active" : "")">
                                 <i class="fas fa-building nav-icon"></i>
                                 <p>Manage Offices</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a asp-controller="Admin" asp-action="Divisions"
+                            <a asp-controller="Location" asp-action="Divisions"
                                class="nav-link @(action == "Divisions" ? "active" : "")">
                                 <i class="fas fa-sitemap nav-icon"></i>
                                 <p>Manage Divisions</p>
@@ -102,7 +103,7 @@
                 @* Trainings *@
                 <li class="nav-item">
                     <a asp-controller="Training" asp-action="Index"
-                       class="nav-link @(controller == "Training" ? "active" : "")">
+                      class="nav-link @(controller == "Training" && action == "Index" ? "active" : "")">
                         <i class="nav-icon fas fa-book"></i>
                         <p>Trainings</p>
                     </a>
@@ -152,13 +153,13 @@
                                 <p>IDP Report</p>
                             </a>
                         </li>
-                       <li class="nav-item">
-                    <a asp-controller="Training" asp-action="TrainingReport"
-                    class="nav-link @(controller == "Training" && action == "TrainingReport" ? "active" : "")">
-                        <i class="fas fa-file-contract nav-icon"></i>
-                        <p>Training Report</p>
-                    </a>
-                </li>
+                        <li class="nav-item">
+                        <a asp-controller="Training" asp-action="TrainingReport"
+                                class="nav-link @(controller == "Training" && action == "TrainingReport" ? "active" : "")">
+                                <i class="nav-icon fas fa-book"></i>
+                                <p>Training Reports</p>
+                            </a>
+                        </li>
                 </ul>
                 </li>
 

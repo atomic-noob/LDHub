@@ -25,6 +25,10 @@ namespace LDHub.Data
         public DbSet<FreeTraining> FreeTrainings { get; set; }
         public DbSet<Faq>     Faqs      { get; set; }
 public DbSet<Inquiry> Inquiries { get; set; }
+// evaluation
+public DbSet<EvaluationQuestion> EvaluationQuestions { get; set; }
+public DbSet<EvaluationResponse> EvaluationResponses { get; set; }
+public DbSet<EvaluationAnswer> EvaluationAnswers { get; set; }
         
         
 

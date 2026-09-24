@@ -120,6 +120,108 @@ namespace LDHub.Migrations
                     b.ToTable("division");
                 });
 
+            modelBuilder.Entity("LDHub.Models.EvaluationAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AnswerText")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("EvaluationQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EvaluationResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RatingValue")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EvaluationQuestionId");
+
+                    b.HasIndex("EvaluationResponseId");
+
+                    b.ToTable("EvaluationAnswers");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ChoiceA")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ChoiceB")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ChoiceC")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ChoiceD")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("QuestionText")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("QuestionType")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TrainingId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainingId");
+
+                    b.ToTable("EvaluationQuestions");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationResponse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("TrainingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainingId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EvaluationResponses");
+                });
+
             modelBuilder.Entity("LDHub.Models.Faq", b =>
                 {
                     b.Property<int>("Id")
@@ -819,6 +921,11 @@ namespace LDHub.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("TrainingId"));
 
+                    b.Property<string>("CertificatePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("certificate_path");
+
                     b.Property<int?>("CompetencyId")
                         .HasColumnType("int")
                         .HasColumnName("competency_id");
@@ -1197,6 +1304,55 @@ namespace LDHub.Migrations
                     b.Navigation("Office");
                 });
 
+            modelBuilder.Entity("LDHub.Models.EvaluationAnswer", b =>
+                {
+                    b.HasOne("LDHub.Models.EvaluationQuestion", "EvaluationQuestion")
+                        .WithMany()
+                        .HasForeignKey("EvaluationQuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LDHub.Models.EvaluationResponse", "EvaluationResponse")
+                        .WithMany("Answers")
+                        .HasForeignKey("EvaluationResponseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EvaluationQuestion");
+
+                    b.Navigation("EvaluationResponse");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationQuestion", b =>
+                {
+                    b.HasOne("LDHub.Models.Training", "Training")
+                        .WithMany()
+                        .HasForeignKey("TrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Training");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationResponse", b =>
+                {
+                    b.HasOne("LDHub.Models.Training", "Training")
+                        .WithMany()
+                        .HasForeignKey("TrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LDHub.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Training");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LDHub.Models.FreeTraining", b =>
                 {
                     b.HasOne("LDHub.Models.Region", "Region")
@@ -1489,6 +1645,11 @@ namespace LDHub.Migrations
             modelBuilder.Entity("LDHub.Models.Division", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationResponse", b =>
+                {
+                    b.Navigation("Answers");
                 });
 
             modelBuilder.Entity("LDHub.Models.ModuleTextContent", b =>

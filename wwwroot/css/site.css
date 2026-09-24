@@ -29,3 +29,101 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+.main-sidebar.sidebar-light-success .nav-sidebar > .nav-item > .nav-link.active,
+.main-sidebar.sidebar-light-success .nav-sidebar > .nav-item > .nav-link:hover {
+  background: linear-gradient(135deg, #117554, #4BB543);
+  color: #ffffff;
+  border-color: transparent;
+}
+.main-sidebar.sidebar-light-success .nav-sidebar > .nav-item > .nav-link.active .nav-icon,
+.main-sidebar.sidebar-light-success .nav-sidebar > .nav-item > .nav-link:hover .nav-icon {
+  color: #ffffff;
+}
+.main-sidebar.sidebar-light-success .brand-link {
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* ============================
+   GLOBAL DASHBOARD THEME
+   (Admin / Course Manager / Employee)
+   ============================ */
+
+body { background: #f4fdf6; }
+.content-wrapper { background: linear-gradient(180deg, #ffffff 0%, #f4fff7 100%); }
+
+/* Welcome banner */
+.welcome-banner {
+    background: linear-gradient(135deg, #117554, #4BB543);
+    color: white; border-radius: 10px; padding: 22px 28px;
+    margin-bottom: 25px; box-shadow: 0 4px 15px rgba(75,181,67,.3);
+}
+.welcome-banner h4 { font-weight: 800; margin-bottom: 3px; }
+.welcome-banner p  { opacity: .85; margin-bottom: 0; font-size: .92rem; }
+
+/* KPI cards — white bg, green left border */
+.kpi-card {
+    background: #ffffff;
+    border-radius: 10px; padding: 18px 20px;
+    box-shadow: 0 4px 16px rgba(17,117,84,0.10), 0 1px 4px rgba(75,181,67,0.08);
+    margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-left: 4px solid #4BB543;
+    transition: box-shadow 0.25s, transform 0.25s;
+    color: inherit;
+}
+.kpi-card:hover {
+    box-shadow: 0 8px 24px rgba(17,117,84,0.15), 0 2px 8px rgba(75,181,67,0.12);
+    transform: translateY(-2px);
+}
+.kpi-card .num   { font-size: 2.2rem; font-weight: 800; line-height: 1; color: #1b3a2d; }
+.kpi-card .label { font-size: .82rem; color: #6c757d; margin-top: 4px; }
+.kpi-card .icon  { font-size: 2.8rem; color: #4BB543; opacity: .2; }
+
+/* Card / modal headers — plain white, black text */
+.chart-card { border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.08); margin-bottom: 20px; }
+.success-gradient {
+    background: #ffffff;
+    color: #000000;
+    border-bottom: 1px solid #dee2e6;
+}
+.modal-header.success-gradient .close { color: #000000; opacity: .6; }
+
+/* Alerts — replace Bootstrap yellow warning with green tint */
+.alert-warning {
+    background-color: #f4fdf6 !important;
+    border-color: #4BB543 !important;
+    color: #117554 !important;
+}
+.alert-warning .badge-warning {
+    background-color: #4BB543 !important;
+    color: #ffffff !important;
+}
+
+/* Training status badges (course manager training list) */
+.training-status-badge {
+    border-radius: 20px; padding: 3px 12px;
+    font-size: .75rem; font-weight: 700;
+}
+.badge-ongoing  { background: #d4edda; color: #155724; }
+.badge-upcoming { background: #cce5ff; color: #004085; }
+.badge-ended    { background: #e2e3e5; color: #383d41; }
+
+/* Fixes leftover Bootstrap template blue */
+.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
+    background-color: transparent;
+}
+.main-sidebar.sidebar-light-success .nav-sidebar > .nav-item > .nav-link.active,
+.main-sidebar.sidebar-light-success .nav-sidebar > .nav-item > .nav-link:hover,
+.main-sidebar.sidebar-light-success .nav-treeview .nav-link.active,
+.main-sidebar.sidebar-light-success .nav-treeview .nav-link:hover {
+  background: linear-gradient(135deg, #117554, #4BB543);
+  color: #ffffff;
+  border-color: transparent;
+}
+.main-sidebar.sidebar-light-success .nav-sidebar > .nav-item > .nav-link.active .nav-icon,
+.main-sidebar.sidebar-light-success .nav-sidebar > .nav-item > .nav-link:hover .nav-icon,
+.main-sidebar.sidebar-light-success .nav-treeview .nav-link.active .nav-icon,
+.main-sidebar.sidebar-light-success .nav-treeview .nav-link:hover .nav-icon {
+  color: #ffffff;
+}

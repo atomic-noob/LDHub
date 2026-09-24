@@ -3,8 +3,21 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Quiz Builder";
-    var quiz = Model.Quiz;
+    var quiz      = Model.Quiz;
     var questions = quiz?.Questions?.ToList() ?? new List<LDHub.Models.QuizQuestion>();
+    var attempts  = ViewBag.QuizAttempts as List<LDHub.Models.QuizAttempt> ?? new List<LDHub.Models.QuizAttempt>();
+}
+
+@section Styles {
+<style>
+    .nav-tabs .nav-link          { color: #117554; font-weight: 600; border-radius: 8px 8px 0 0; }
+    .nav-tabs .nav-link.active   { background: linear-gradient(135deg,#117554,#4BB543); color:#fff; border-color: transparent; }
+    .nav-tabs .nav-link:hover:not(.active) { background: #f0fff4; }
+    .tab-content { background: #fff; border: 1px solid #e8f5e9; border-top: none; border-radius: 0 0 10px 10px; padding: 20px; }
+    .question-card { border-left: 4px solid #4BB543; border-radius: 8px; margin-bottom: 12px; }
+    .grade-pass   { color: #117554; font-weight: 700; }
+    .grade-fail   { color: #dc3545; font-weight: 700; }
+</style>
 }
 
 <section class="content-header">
@@ -13,7 +26,8 @@
             <div class="col-sm-6">
                 <h1><i class="fas fa-question-circle mr-2"></i>Quiz Builder</h1>
                 <small class="text-muted">
-                    @Model.Training?.TrainingTitle — @Model.ModuleName : <strong>@Model.ModuleDescription</strong>
+                    @Model.Training?.TrainingTitle — @Model.ModuleName :
+                    <strong>@Model.ModuleDescription</strong>
                 </small>
             </div>
             <div class="col-sm-6">
@@ -34,17 +48,22 @@
 
         @if (TempData["Success"] != null)
         {
-            <div class="alert alert-success">@TempData["Success"]</div>
+            <div class="alert alert-success alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                @TempData["Success"]
+            </div>
         }
         @if (TempData["Error"] != null)
         {
-            <div class="alert alert-danger">@TempData["Error"]</div>
+            <div class="alert alert-danger alert-dismissible">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                @TempData["Error"]
+            </div>
         }
 
-        <!-- Quiz Settings -->
         @if (quiz == null)
         {
-            <div class="card card-outline card-warning">
+            <div class="card">
                 <div class="card-body text-center py-5">
                     <i class="fas fa-plus-circle fa-3x text-warning mb-3 d-block"></i>
                     <h4>No Quiz Yet</h4>
@@ -57,47 +76,68 @@
         }
         else
         {
-            <!-- Quiz Info Card -->
-            <div class="card card-outline card-warning mb-4">
-                <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-cog mr-1"></i> Quiz Settings</h3>
-                    <div class="card-tools">
-                        <button class="btn btn-sm btn-outline-warning"
-                                data-toggle="modal" data-target="#quizSettingsModal">
-                            <i class="fas fa-edit mr-1"></i> Edit Settings
-                        </button>
+            <!-- ── Tabs ── -->
+            <ul class="nav nav-tabs" id="quizTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-toggle="tab" href="#tabSettings">
+                        <i class="fas fa-cog mr-1"></i> Quiz Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="tab" href="#tabQuestions">
+                        <i class="fas fa-list mr-1"></i> Questions
+                        <span class="badge badge-success ml-1">@questions.Count</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="tab" href="#tabGrades">
+                        <i class="fas fa-chart-bar mr-1"></i> Participant Grades
+                        <span class="badge badge-success ml-1">@attempts.Count</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="quizTabContent">
+
+                <!-- ── Tab 1: Quiz Settings ── -->
+                <div class="tab-pane fade show active" id="tabSettings">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Quiz Title</dt>
+                                <dd class="col-sm-8">@quiz.QuizTitle</dd>
+                                <dt class="col-sm-4">Passing Score</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge badge-success">@quiz.PassingScore%</span>
+                                </dd>
+                                <dt class="col-sm-4">Total Questions</dt>
+                                <dd class="col-sm-8">@questions.Count</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <button class="btn btn-outline-success"
+                                    data-toggle="modal" data-target="#quizSettingsModal">
+                                <i class="fas fa-edit mr-1"></i> Edit Settings
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-3">Quiz Title</dt>
-                        <dd class="col-sm-9">@quiz.QuizTitle</dd>
-                        <dt class="col-sm-3">Passing Score</dt>
-                        <dd class="col-sm-9">@quiz.PassingScore%</dd>
-                        <dt class="col-sm-3">Questions</dt>
-                        <dd class="col-sm-9">@questions.Count</dd>
-                    </dl>
-                </div>
-            </div>
 
-            <!-- Questions -->
-            <div class="card card-outline card-info">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-list mr-1"></i> Questions
-                        <span class="badge badge-info ml-2">@questions.Count</span>
-                    </h3>
-                    <div class="card-tools">
-                        <button class="btn btn-sm btn-info"
+                <!-- ── Tab 2: Questions ── -->
+                <div class="tab-pane fade" id="tabQuestions">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 font-weight-bold" style="color:#117554;">
+                            <i class="fas fa-list mr-1"></i> Questions
+                        </h5>
+                        <button class="btn btn-success btn-sm"
                                 data-toggle="modal" data-target="#addQuestionModal">
                             <i class="fas fa-plus mr-1"></i> Add Question
                         </button>
                     </div>
-                </div>
-                <div class="card-body">
+
                     @if (!questions.Any())
                     {
-                        <div class="text-center text-muted py-4">
+                        <div class="text-center text-muted py-5">
                             <i class="fas fa-inbox fa-2x mb-2 d-block" style="opacity:.3"></i>
                             <p>No questions yet. Click <strong>Add Question</strong> to begin.</p>
                         </div>
@@ -107,7 +147,7 @@
                         @for (int i = 0; i < questions.Count; i++)
                         {
                             var q = questions[i];
-                            <div class="card mb-3" style="border-left: 4px solid #17a2b8;">
+                            <div class="card question-card">
                                 <div class="card-body pb-2">
                                     <div class="d-flex justify-content-between">
                                         <div class="flex-grow-1">
@@ -133,12 +173,11 @@
                                             </ul>
                                         </div>
                                         <div class="ml-3">
-                                            <form asp-controller="Content" asp-action="DeleteQuestion"
-                                                  method="post">
+                                            <form asp-controller="Content" asp-action="DeleteQuestion" method="post">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="questionId" value="@q.QuestionId" />
                                                 <input type="hidden" name="moduleId" value="@Model.ModuleId" />
-                                                <button type="submit" class="btn btn-sm btn-danger"
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
                                                         onclick="return confirm('Delete this question?')">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -150,13 +189,116 @@
                         }
                     }
                 </div>
+
+                <!-- ── Tab 3: Participant Grades ── -->
+                <div class="tab-pane fade" id="tabGrades">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 font-weight-bold" style="color:#117554;">
+                            <i class="fas fa-chart-bar mr-1"></i> Participant Quiz Grades
+                        </h5>
+                        @if (attempts.Any())
+                        {
+                            <div class="d-flex" style="gap:10px;">
+                                <div class="text-center px-3 py-1 rounded"
+                                     style="background:#f0fff4; border:1px solid #c8e6c9;">
+                                    <div style="font-size:1.4rem; font-weight:800; color:#117554;">
+                                        @attempts.Count(a => a.IsPassed)
+                                    </div>
+                                    <div style="font-size:.72rem; color:#6c757d;">Passed</div>
+                                </div>
+                                <div class="text-center px-3 py-1 rounded"
+                                     style="background:#fff5f5; border:1px solid #f5c6cb;">
+                                    <div style="font-size:1.4rem; font-weight:800; color:#dc3545;">
+                                        @attempts.Count(a => !a.IsPassed)
+                                    </div>
+                                    <div style="font-size:.72rem; color:#6c757d;">Failed</div>
+                                </div>
+                                <div class="text-center px-3 py-1 rounded"
+                                     style="background:#f0fff4; border:1px solid #c8e6c9;">
+                                    <div style="font-size:1.4rem; font-weight:800; color:#117554;">
+                                        @(attempts.Any() ? Math.Round(attempts.Average(a => a.ScorePercentage), 1) : 0)%
+                                    </div>
+                                    <div style="font-size:.72rem; color:#6c757d;">Avg Score</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!attempts.Any())
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-inbox fa-2x mb-2 d-block" style="opacity:.3"></i>
+                            <p>No participants have taken this quiz yet.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Participant</th>
+                                        <th class="text-center">Score</th>
+                                        <th class="text-center">Percentage</th>
+                                        <th class="text-center">Status</th>
+                                        <th class="text-center">Date Taken</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int idx = 1; }
+                                    @foreach (var a in attempts.OrderByDescending(a => a.TakenAt))
+                                    {
+                                        <tr>
+                                            <td>@idx</td>
+                                            <td>
+                                                <i class="fas fa-user-circle mr-2 text-success"></i>
+                                                @a.User?.FirstName @a.User?.LastName
+                                                <small class="text-muted d-block">@a.User?.Email</small>
+                                            </td>
+                                            <td class="text-center">
+                                                <strong>@a.CorrectCount / @a.TotalQuestions</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <strong class="@(a.IsPassed ? "grade-pass" : "grade-fail")">
+                                                    @a.ScorePercentage%
+                                                </strong>
+                                            </td>
+                                            <td class="text-center">
+                                                @if (a.IsPassed)
+                                                {
+                                                    <span class="badge badge-success">
+                                                        <i class="fas fa-check mr-1"></i>Passed
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-danger">
+                                                        <i class="fas fa-times mr-1"></i>Failed
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <small>@a.TakenAt.ToString("MMM d, yyyy h:mm tt")</small>
+                                            </td>
+                                        </tr>
+                                        idx++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
             </div>
         }
 
-        <a asp-controller="Content" asp-action="Modules"
-           asp-route-trainingId="@Model.TrainingId" class="btn btn-secondary">
-            <i class="fas fa-arrow-left mr-1"></i> Back to Modules
-        </a>
+        <div class="mt-3">
+            <a asp-controller="Content" asp-action="Modules"
+               asp-route-trainingId="@Model.TrainingId" class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Modules
+            </a>
+        </div>
 
     </div>
 </section>
@@ -167,7 +309,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-cog mr-1"></i>
+                    <i class="fas fa-cog mr-1 text-success"></i>
                     @(quiz == null ? "Create Quiz" : "Edit Quiz Settings")
                 </h5>
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
@@ -175,7 +317,7 @@
             <form asp-controller="Content" asp-action="SaveQuizSettings" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="moduleId" value="@Model.ModuleId" />
-                <input type="hidden" name="quizId" value="@(quiz?.QuizId ?? 0)" />
+                <input type="hidden" name="quizId"   value="@(quiz?.QuizId ?? 0)" />
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Quiz Title <span class="text-danger">*</span></label>
@@ -185,14 +327,14 @@
                     <div class="form-group">
                         <label>Passing Score (%) <span class="text-danger">*</span></label>
                         <input type="number" class="form-control" name="passingScore"
-                               value="@(quiz?.PassingScore ?? 70)" min="1" max="100"
-                               style="max-width:150px;" required />
+                               value="@(quiz?.PassingScore ?? 70)"
+                               min="1" max="100" style="max-width:150px;" required />
                         <small class="text-muted">e.g. 70 = 70% passing score</small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning">
+                    <button type="submit" class="btn btn-success">
                         <i class="fas fa-save mr-1"></i>
                         @(quiz == null ? "Create Quiz" : "Save Changes")
                     </button>
@@ -207,20 +349,24 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-plus-circle mr-1"></i> Add Question</h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle mr-1 text-success"></i> Add Question
+                </h5>
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <form asp-controller="Content" asp-action="AddQuestion" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="moduleId" value="@Model.ModuleId" />
-                <input type="hidden" name="quizId" value="@(quiz?.QuizId ?? 0)" />
+                <input type="hidden" name="quizId"   value="@(quiz?.QuizId ?? 0)" />
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Question Text <span class="text-danger">*</span></label>
                         <textarea class="form-control" name="questionText" rows="3" required></textarea>
                     </div>
                     <label>Answer Choices <span class="text-danger">*</span></label>
-                    <small class="text-muted d-block mb-2">Select the radio button next to the correct answer.</small>
+                    <small class="text-muted d-block mb-2">
+                        Select the radio button next to the correct answer.
+                    </small>
                     <div id="choicesContainer">
                         @for (int i = 0; i < 4; i++)
                         {
@@ -229,7 +375,8 @@
                                        class="mr-2" @(i == 0 ? "checked" : "") required />
                                 <input type="text" class="form-control" name="choices"
                                        placeholder="Choice @(i + 1)" required />
-                                <button type="button" class="btn btn-sm btn-outline-danger ml-2 remove-choice">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger ml-2 remove-choice">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
@@ -241,7 +388,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-info">
+                    <button type="submit" class="btn btn-success">
                         <i class="fas fa-save mr-1"></i> Save Question
                     </button>
                 </div>

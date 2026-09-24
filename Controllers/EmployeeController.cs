@@ -545,33 +545,36 @@ public async Task<IActionResult> SubmitQuiz(int moduleId, int quizId,
     bool passed         = scorePercentage >= quiz.PassingScore;
  
     // ── Save to database ──
-    var existing = await _db.QuizAttempts
-        .FirstOrDefaultAsync(qa => qa.UserId == userId && qa.ModuleId == moduleId);
- 
-    if (existing != null)
+   var existing = await _db.QuizAttempts
+    .FirstOrDefaultAsync(qa => qa.UserId == userId && qa.ModuleId == moduleId);
+
+if (existing != null)
+{
+    // Only update if new score is better
+    if (scorePercentage >= existing.ScorePercentage)
     {
-        // Overwrite previous attempt (quiz can only be taken once per module anyway)
         existing.CorrectCount    = correct;
         existing.TotalQuestions  = total;
         existing.ScorePercentage = scorePercentage;
         existing.IsPassed        = passed;
         existing.TakenAt         = DateTime.UtcNow;
     }
-    else
+}
+else
+{
+    _db.QuizAttempts.Add(new QuizAttempt
     {
-        _db.QuizAttempts.Add(new QuizAttempt
-        {
-            UserId          = userId,
-            ModuleId        = moduleId,
-            QuizId          = quizId,
-            TrainingId      = trainingId,
-            CorrectCount    = correct,
-            TotalQuestions  = total,
-            ScorePercentage = scorePercentage,
-            IsPassed        = passed,
-            TakenAt         = DateTime.UtcNow
-        });
-    }
+        UserId          = userId,
+        ModuleId        = moduleId,
+        QuizId          = quizId,
+        TrainingId      = trainingId,
+        CorrectCount    = correct,
+        TotalQuestions  = total,
+        ScorePercentage = scorePercentage,
+        IsPassed        = passed,
+        TakenAt         = DateTime.UtcNow
+    });
+}
  
    await _db.SaveChangesAsync();
 

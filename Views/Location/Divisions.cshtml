@@ -18,7 +18,7 @@
             </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="@(ViewBag.ActiveRole == "Raam" ? "Raam" : "Admin")" asp-action="Dashboard">Dashboard</a></li>
                     <li class="breadcrumb-item active">Divisions</li>
                 </ol>
             </div>
@@ -246,7 +246,7 @@
             $select.empty().append('<option value="">-- Select Office --</option>');
             if (!regionId) { $select.select2({ theme: 'bootstrap4' }); return; }
 
-            $.get('/Admin/GetOfficesByRegion', { regionId: regionId }, function (data) {
+            $.get('/Location/GetOfficesByRegion', { regionId: regionId }, function (data) {
                 data.forEach(function (o) {
                     $select.append('<option value="' + o.officeId + '">' + o.officeName + '</option>');
                 });
@@ -280,7 +280,7 @@
 
                 if (!regionId) { $fo.prop('disabled', true); return; }
 
-                $.get('/Admin/GetOfficesByRegion', { regionId: regionId }, function (data) {
+                $.get('/Location/GetOfficesByRegion', { regionId: regionId }, function (data) {
                     data.forEach(function (o) {
                         $fo.append('<option value="' + o.officeId + '">' + o.officeName + '</option>');
                     });

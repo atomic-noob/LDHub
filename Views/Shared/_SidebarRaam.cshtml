@@ -1,43 +1,58 @@
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool isParticipants = controller == "Raam" && (action == "PendingParticipants" || action == "ParticipantsList");
+    bool isLocations    = controller == "Location" && (action == "Offices" || action == "Divisions");
+    bool isTrainingTools = (controller == "Content" && (action == "Modules" || action == "TestMaker"))
+                        || (controller == "Training" && action == "TrainingReport")
+                        || (controller == "Evaluation" && action == "Index");
+}
+
+<aside class="main-sidebar sidebar-light-success elevation-4">
     <a href="#" class="brand-link">
         <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo"
              class="brand-image img-circle elevation-3" style="opacity:.8">
         <span class="brand-text font-weight-light">L&amp;D Hub</span>
     </a>
     <div class="sidebar">
-      
+
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column"
                 data-widget="treeview" role="menu" data-accordion="false">
 
                 <li class="nav-item">
-                    <a asp-controller="Raam" asp-action="Dashboard" class="nav-link">
+                    <a asp-controller="Raam" asp-action="Dashboard"
+                       class="nav-link @(controller == "Raam" && action == "Dashboard" ? "active" : "")">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a asp-controller="Raam" asp-action="Training" class="nav-link">
+                    <a asp-controller="Raam" asp-action="Training"
+                       class="nav-link @(controller == "Raam" && action == "Training" ? "active" : "")">
                         <i class="nav-icon fas fa-graduation-cap"></i>
                         <p>Training</p>
                     </a>
                 </li>
 
                 @* Participants dropdown *@
-                <li class="nav-item has-treeview">
-                    <a href="#" class="nav-link">
+                <li class="nav-item has-treeview @(isParticipants ? "menu-open" : "")">
+                    <a href="#" class="nav-link @(isParticipants ? "active" : "")">
                         <i class="nav-icon fas fa-users"></i>
                         <p>Participants <i class="right fas fa-angle-left"></i></p>
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a asp-controller="Raam" asp-action="PendingParticipants" class="nav-link">
+                            <a asp-controller="Raam" asp-action="PendingParticipants"
+                               class="nav-link @(action == "PendingParticipants" ? "active" : "")">
                                 <i class="nav-icon fas fa-user-clock"></i>
                                 <p>Pending Participants</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a asp-controller="Raam" asp-action="ParticipantsList" class="nav-link">
+                            <a asp-controller="Raam" asp-action="ParticipantsList"
+                               class="nav-link @(action == "ParticipantsList" ? "active" : "")">
                                 <i class="nav-icon fas fa-list"></i>
                                 <p>Participants List</p>
                             </a>
@@ -46,20 +61,22 @@
                 </li>
 
                 @* Locations dropdown *@
-                <li class="nav-item has-treeview">
-                    <a href="#" class="nav-link">
+                <li class="nav-item has-treeview @(isLocations ? "menu-open" : "")">
+                    <a href="#" class="nav-link @(isLocations ? "active" : "")">
                         <i class="nav-icon fas fa-map-marker-alt"></i>
                         <p>Locations <i class="right fas fa-angle-left"></i></p>
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a asp-controller="Location" asp-action="Offices" class="nav-link">
+                            <a asp-controller="Location" asp-action="Offices"
+                               class="nav-link @(action == "Offices" ? "active" : "")">
                                 <i class="fas fa-building nav-icon"></i>
                                 <p>Manage Offices</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a asp-controller="Location" asp-action="Divisions" class="nav-link">
+                            <a asp-controller="Location" asp-action="Divisions"
+                               class="nav-link @(action == "Divisions" ? "active" : "")">
                                 <i class="fas fa-sitemap nav-icon"></i>
                                 <p>Manage Divisions</p>
                             </a>
@@ -68,51 +85,59 @@
                 </li>
 
                 @* Training Tools dropdown *@
-                <li class="nav-item has-treeview">
-                    <a href="#" class="nav-link">
+                <li class="nav-item has-treeview @(isTrainingTools ? "menu-open" : "")">
+                    <a href="#" class="nav-link @(isTrainingTools ? "active" : "")">
                         <i class="nav-icon fas fa-tools"></i>
                         <p>Training Tools <i class="right fas fa-angle-left"></i></p>
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a asp-controller="Content" asp-action="Modules" class="nav-link">
+                            <a asp-controller="Content" asp-action="Modules"
+                               class="nav-link @(controller == "Content" && action == "Modules" ? "active" : "")">
                                 <i class="nav-icon fas fa-folder-open"></i>
                                 <p>Modules</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a asp-controller="Content" asp-action="TestMaker" class="nav-link">
+                            <a asp-controller="Content" asp-action="TestMaker"
+                               class="nav-link @(controller == "Content" && action == "TestMaker" ? "active" : "")">
                                 <i class="nav-icon fas fa-question-circle"></i>
                                 <p>Post and Pre Test</p>
                             </a>
                         </li>
-                       <li class="nav-item">
-                            <a asp-controller="Training" asp-action="TrainingReport" class="nav-link">
+                        <li class="nav-item">
+                            <a asp-controller="Training" asp-action="TrainingReport"
+                               class="nav-link @(controller == "Training" && action == "TrainingReport" ? "active" : "")">
                                 <i class="nav-icon fas fa-chart-line"></i>
                                 <p>Training Report</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a asp-controller="Raam" asp-action="AutoPdf" class="nav-link">
-                                <i class="nav-icon fas fa-file-pdf"></i>
-                                <p>Auto PDF</p>
+                            <a asp-controller="Evaluation" asp-action="Index"
+                               class="nav-link @(controller == "Evaluation" && action == "Index" ? "active" : "")">
+                                <i class="nav-icon fas fa-clipboard-check"></i>
+                                <p>Evaluation</p>
                             </a>
                         </li>
                     </ul>
                 </li>
 
-                    <li class="nav-item">
-                            <a asp-controller="Employee" asp-action="Profile" class="nav-link">
-                                <i class="nav-icon fas fa-user"></i>
-                                <p>My Profile</p>
-                            </a>
-                        </li>
-                            <li class="nav-item">
-    <a asp-controller="Certificate" asp-action="Index" class="nav-link">
-        <i class="nav-icon fas fa-certificate"></i>
-        <p>Certificates</p>
-    </a>
-</li>
+              
+                <li class="nav-item">
+                    <a asp-controller="Certificate" asp-action="Index"
+                       class="nav-link @(controller == "Certificate" && action == "Index" ? "active" : "")">
+                        <i class="nav-icon fas fa-certificate"></i>
+                        <p>Certificates</p>
+                    </a>
+                </li>
+                
+  <li class="nav-item">
+                    <a asp-controller="Employee" asp-action="Profile"
+                       class="nav-link @(controller == "Employee" && action == "Profile" ? "active" : "")">
+                        <i class="nav-icon fas fa-user"></i>
+                        <p>My Profile</p>
+                    </a>
+                </li>
 
             </ul>
         </nav>

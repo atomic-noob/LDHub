@@ -317,29 +317,33 @@ public class ContentController : Controller
     //  QUIZ BUILDER
     // ════════════════════════════════════════════════════════════
 
-    public async Task<IActionResult> QuizBuilder(int moduleId)
-    {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
-        SetViewBag();
-
-        var module = await _db.TrainingModules
-            .Include(m => m.Training)
-            .Include(m => m.Quiz)
-                .ThenInclude(q => q.Questions)
-                    .ThenInclude(q => q.Choices)
-            .FirstOrDefaultAsync(m => m.ModuleId == moduleId);
-
-        if (module == null) return NotFound();
-
-        if (!await CanAccessTraining(module.TrainingId))
-        {
-            TempData["Error"] = "You do not have access to this training.";
-            return RedirectToAction("Modules");
-        }
-
-        return View("~/Views/Content/QuizBuilder.cshtml", module);
-    }
-
+   
+public async Task<IActionResult> QuizBuilder(int moduleId)
+{
+    // keep your existing auth check here e.g.:
+    // if (!CanManageModules()) return RedirectToAction("Login", "Home");
+    // SetViewBag();
+ 
+    var module = await _db.TrainingModules
+        .Include(m => m.Training)
+        .Include(m => m.Quiz)
+            .ThenInclude(q => q.Questions)
+                .ThenInclude(q => q.Choices)
+        .FirstOrDefaultAsync(m => m.ModuleId == moduleId);
+ 
+    if (module == null) return NotFound();
+ 
+    // ── Load quiz attempts for this module with user info ──
+    var quizAttempts = await _db.QuizAttempts
+        .Include(a => a.User)
+        .Where(a => a.ModuleId == moduleId)
+        .OrderByDescending(a => a.TakenAt)
+        .ToListAsync();
+ 
+    ViewBag.QuizAttempts = quizAttempts;
+ 
+    return View("~/Views/Content/QuizBuilder.cshtml", module);
+}
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveQuizSettings(
