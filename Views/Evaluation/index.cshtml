@@ -149,16 +149,21 @@
             </div>
 
             <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        Evaluation Questions — <strong>@selectedTraining.TrainingTitle</strong>
-                    </h3>
-                    <div class="card-tools">
-                        <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#addQModal">
-                            <i class="fas fa-plus mr-1"></i> Add Question
-                        </button>
-                    </div>
-                </div>
+               <div class="card-header">
+    <h3 class="card-title">
+        Evaluation Questions — <strong>@selectedTraining.TrainingTitle</strong>
+    </h3>
+    <div class="card-tools">
+        <a asp-controller="Evaluation" asp-action="Results"
+           asp-route-trainingId="@trainingId"
+           class="btn btn-sm btn-info mr-1">
+            <i class="fas fa-chart-bar mr-1"></i> View Results
+        </a>
+        <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#addQModal">
+            <i class="fas fa-plus mr-1"></i> Add Question
+        </button>
+    </div>
+</div>
                 <div class="card-body">
                     @if (questions == null || !questions.Any())
                     {

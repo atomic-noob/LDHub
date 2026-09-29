@@ -427,22 +427,6 @@
                             }
                             @* ── Step 3: Post-Test ── *@
 
-                         
-    @{
-    var evalDone         = ViewBag.EvalDone         as bool? ?? false;
-    var hasEvalQuestions = ViewBag.HasEvalQuestions  as bool? ?? false;
-}
-                                @if (hasEvalQuestions && !evalDone)
-                                {
-                                    <div class="alert alert-info py-2 mb-2">
-                                        <i class="fas fa-clipboard-list mr-2"></i>
-                                        Please complete the <strong>Training Evaluation</strong> before taking the Post-Test.
-                                        <a href="@Url.Action("Take", "Evaluation", new { trainingId = enrollment.TrainingId })"
-                                        class="btn btn-info btn-sm ml-2">
-                                            <i class="fas fa-clipboard-list mr-1"></i> Take Evaluation
-                                        </a>
-                                    </div>
-                                }
 
 @if (preTestTaken)
 {

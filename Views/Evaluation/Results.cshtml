@@ -1,0 +1,394 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Evaluation Results";
+    var training  = ViewBag.Training  as LDHub.Models.Training;
+    var responses = ViewBag.Responses as List<LDHub.Models.EvaluationResponse>
+                    ?? new List<LDHub.Models.EvaluationResponse>();
+    var questions = ViewBag.Questions as List<LDHub.Models.EvaluationQuestion>
+                    ?? new List<LDHub.Models.EvaluationQuestion>();
+    int? trainingId = ViewBag.TrainingId;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+
+        /* Question section */
+        .q-section {
+            background: white; border-radius: 10px;
+            border: 1px solid #e8f5e9; padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(17,117,84,.06);
+        }
+        .q-section .q-header {
+            display: flex; align-items: center;
+            margin-bottom: 15px; gap: 12px;
+        }
+        .q-section .q-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 50%;
+            background: linear-gradient(135deg,#4BB543,#117554);
+            color: white; font-weight: 800; font-size: .85rem; flex-shrink: 0;
+        }
+        .q-section .q-type-badge {
+            font-size: .72rem; padding: 3px 10px; border-radius: 20px;
+            font-weight: 700;
+        }
+
+        /* Rating distribution */
+        .rating-dist { display: flex; flex-direction: column; gap: 6px; }
+        .rating-row { display: flex; align-items: center; gap: 10px; }
+        .rating-row .star-label {
+            width: 60px; font-size: .82rem; color: #6c757d; flex-shrink: 0;
+        }
+        .rating-row .bar-wrap {
+            flex: 1; background: #f0f0f0; border-radius: 20px; height: 18px; overflow: hidden;
+        }
+        .rating-row .bar-fill {
+            height: 100%; border-radius: 20px;
+            background: linear-gradient(90deg,#9BEC00,#4BB543);
+            transition: width .5s ease;
+        }
+        .rating-row .count-label {
+            width: 40px; font-size: .8rem; color: #6c757d;
+            text-align: right; flex-shrink: 0;
+        }
+
+        /* Average rating display */
+        .avg-display {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 15px;
+            border-right: 1px solid #e8f5e9;
+        }
+        .avg-display .big-num { font-size: 3rem; font-weight: 900; color: #117554; line-height: 1; }
+        .avg-display .stars   { color: #f39c12; font-size: 1.2rem; letter-spacing: 2px; }
+        .avg-display .resp-count { font-size: .78rem; color: #6c757d; margin-top: 4px; }
+
+        /* Text answers */
+        .text-answer-item {
+            background: #f8fdf8; border-left: 3px solid #4BB543;
+            border-radius: 0 6px 6px 0; padding: 8px 12px;
+            margin-bottom: 8px; font-size: .88rem; color: #2d2d2d;
+        }
+        .text-answer-item .respondent {
+            font-size: .75rem; color: #6c757d; margin-bottom: 3px;
+        }
+
+        /* MC choice bar */
+        .mc-choice-row { margin-bottom: 8px; }
+        .mc-choice-row .choice-label {
+            font-size: .85rem; margin-bottom: 3px; color: #2d2d2d;
+        }
+        .mc-choice-row .bar-wrap {
+            background: #f0f0f0; border-radius: 20px; height: 22px;
+            overflow: hidden; position: relative;
+        }
+        .mc-choice-row .bar-fill {
+            height: 100%; border-radius: 20px;
+            background: linear-gradient(90deg,#9BEC00,#117554);
+        }
+        .mc-choice-row .bar-label {
+            position: absolute; right: 8px; top: 50%;
+            transform: translateY(-50%); font-size: .78rem;
+            font-weight: 700; color: #117554;
+        }
+
+        /* Individual responses toggle */
+        .responses-toggle {
+            cursor: pointer; user-select: none;
+            color: #117554; font-weight: 600; font-size: .9rem;
+        }
+        .responses-toggle:hover { text-decoration: underline; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Evaluation Results</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Evaluation" asp-action="Index">Evaluation</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Evaluation" asp-action="Index"
+                           asp-route-trainingId="@trainingId">Questions</a>
+                    </li>
+                    <li class="breadcrumb-item active">Results</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @* Back button + Training Banner *@
+        <div class="mb-3">
+            <a asp-controller="Evaluation" asp-action="Index"
+               asp-route-trainingId="@trainingId"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Questions
+            </a>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header success-gradient">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    @training?.TrainingTitle
+                </h3>
+                <div class="card-tools">
+                    <span class="badge badge-light text-dark mr-2">
+                        <i class="fas fa-users mr-1"></i>@responses.Count response(s)
+                    </span>
+                    <span class="badge badge-light text-dark">
+                        <i class="fas fa-question mr-1"></i>@questions.Count question(s)
+                    </span>
+                </div>
+            </div>
+            <div class="card-body py-2">
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-muted">Date</small>
+                        <strong class="d-block" style="font-size:.88rem;">
+                            @(training?.StartDate?.ToString("MMM dd") ?? "TBD") –
+                            @(training?.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                        </strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Location</small>
+                        <strong class="d-block" style="font-size:.88rem;">@(training?.Location ?? "—")</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Region</small>
+                        <strong class="d-block" style="font-size:.88rem;">@(training?.Region?.RegionName ?? "—")</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!responses.Any())
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-inbox fa-3x mb-3" style="color:#c8e6c9;opacity:.6;"></i>
+                    <h5 class="text-muted">No evaluation responses yet.</h5>
+                </div>
+            </div>
+        }
+        else
+        {
+            @* ── Per Question Breakdown ── *@
+         var qNum = 1; 
+            @foreach (var q in questions)
+            {
+                var typeBadgeClass = q.QuestionType switch
+                {
+                    "rating"          => "badge-warning",
+                    "multiple_choice" => "badge-info",
+                    _                 => "badge-secondary"
+                };
+                var typeLabel = q.QuestionType switch
+                {
+                    "rating"          => "Rating (1–5)",
+                    "multiple_choice" => "Multiple Choice",
+                    _                 => "Open Text"
+                };
+
+                <div class="q-section">
+                    <div class="q-header">
+                        <span class="q-num">@qNum</span>
+                        <div class="flex-grow-1">
+                            <strong style="font-size:.95rem;">@q.QuestionText</strong>
+                        </div>
+                        <span class="badge q-type-badge @typeBadgeClass">@typeLabel</span>
+                    </div>
+
+                    @if (q.QuestionType == "rating")
+                    {
+                        var allRatings = responses
+                            .SelectMany(r => r.Answers)
+                            .Where(a => a.EvaluationQuestionId == q.Id && a.RatingValue.HasValue)
+                            .Select(a => a.RatingValue!.Value)
+                            .ToList();
+
+                        var avg        = allRatings.Any() ? Math.Round(allRatings.Average(), 2) : 0;
+                        var totalCount = allRatings.Count;
+                        var stars      = string.Concat(Enumerable.Range(1,5).Select(s => s <= (int)Math.Round(avg) ? "★" : "☆"));
+
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="avg-display">
+                                    <div class="big-num">@avg</div>
+                                    <div class="stars">@stars</div>
+                                    <div class="resp-count">@totalCount response(s)</div>
+                                    <small class="text-muted" style="font-size:.72rem;">out of 5</small>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="rating-dist">
+                                    @foreach (var star in new[] { 5,4,3,2,1 })
+                                    {
+                                        var cnt  = allRatings.Count(r => r == star);
+                                        var pct  = totalCount > 0 ? (double)cnt / totalCount * 100 : 0;
+                                        var starStr = string.Concat(Enumerable.Repeat("★", star));
+                                        <div class="rating-row">
+                                            <span class="star-label" style="color:#f39c12;">@starStr</span>
+                                            <div class="bar-wrap">
+                                                <div class="bar-fill" style="width:@pct.ToString("0")%;"></div>
+                                            </div>
+                                            <span class="count-label">@cnt</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (q.QuestionType == "multiple_choice")
+                    {
+                        var allAnswers = responses
+                            .SelectMany(r => r.Answers)
+                            .Where(a => a.EvaluationQuestionId == q.Id && !string.IsNullOrEmpty(a.AnswerText))
+                            .Select(a => a.AnswerText!)
+                            .ToList();
+
+                        var totalMC = allAnswers.Count;
+                        var choices = new[] { q.ChoiceA, q.ChoiceB, q.ChoiceC, q.ChoiceD }
+                            .Where(c => !string.IsNullOrEmpty(c)).ToList();
+
+                        foreach (var choice in choices)
+                        {
+                            var cnt = allAnswers.Count(a => a == choice);
+                            var pct = totalMC > 0 ? (double)cnt / totalMC * 100 : 0;
+                            <div class="mc-choice-row">
+                                <div class="choice-label">@choice <small class="text-muted">(@cnt)</small></div>
+                                <div class="bar-wrap">
+                                    <div class="bar-fill" style="width:@pct.ToString("0")%;"></div>
+                                    <span class="bar-label">@pct.ToString("0")%</span>
+                                </div>
+                            </div>
+                        }
+
+                        if (totalMC == 0)
+                        {
+                            <p class="text-muted small mb-0">No answers yet.</p>
+                        }
+                    }
+                    else
+                    {
+                        @* Text answers *@
+                        var textAnswers = responses
+                            .Select(r => new {
+                                Name   = $"{r.User?.FirstName} {r.User?.LastName}",
+                                Answer = r.Answers.FirstOrDefault(a => a.EvaluationQuestionId == q.Id)?.AnswerText
+                            })
+                            .Where(x => !string.IsNullOrEmpty(x.Answer))
+                            .ToList();
+
+                        if (!textAnswers.Any())
+                        {
+                            <p class="text-muted small mb-0">No text responses yet.</p>
+                        }
+                        else
+                        {
+                            foreach (var ta in textAnswers)
+                            {
+                                <div class="text-answer-item">
+                                    <div class="respondent">
+                                        <i class="fas fa-user mr-1"></i>@ta.Name
+                                    </div>
+                                    @ta.Answer
+                                </div>
+                            }
+                        }
+                    }
+                </div>
+                qNum++;
+            }
+
+            @* ── Individual Responses Table (Collapsible) ── *@
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="cursor:pointer;"
+                     onclick="$('#individualTable').slideToggle(); $(this).find('.toggle-icon').toggleClass('fa-chevron-down fa-chevron-up');">
+                    <h3 class="card-title">
+                        <i class="fas fa-list mr-2 text-success"></i>
+                        Individual Responses
+                        <small class="text-muted font-weight-normal ml-2">(click to expand)</small>
+                    </h3>
+                    <div class="card-tools">
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                </div>
+                <div id="individualTable" style="display:none;">
+                    <div class="card-body p-0" style="overflow-x:auto;">
+                        <table id="resultsTable" class="table table-bordered table-hover mb-0">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Employee</th>
+                                    <th>Submitted</th>
+                                    @foreach (var q in questions)
+                                    {
+                                        <th style="min-width:120px; font-size:.78rem;">@q.QuestionText</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ int ri = 1; }
+                                @foreach (var r in responses)
+                                {
+                                    <tr>
+                                        <td>@ri</td>
+                                        <td>
+                                            <strong style="font-size:.85rem;">@r.User?.FirstName @r.User?.LastName</strong>
+                                            <small class="text-muted d-block">@r.User?.Email</small>
+                                        </td>
+                                        <td><small>@r.SubmittedAt.ToString("MMM dd, yyyy hh:mm tt")</small></td>
+                                        @foreach (var q in questions)
+                                        {
+                                            var ans = r.Answers.FirstOrDefault(a => a.EvaluationQuestionId == q.Id);
+                                            <td style="font-size:.82rem;">
+                                                @if (ans == null)
+                                                {
+                                                    <span class="text-muted">—</span>
+                                                }
+                                                else if (q.QuestionType == "rating" && ans.RatingValue.HasValue)
+                                                {
+                                                    <span style="color:#f39c12;">
+                                                        @string.Concat(Enumerable.Range(1,5).Select(s => s <= ans.RatingValue ? "★" : "☆"))
+                                                    </span>
+                                                    <small class="text-muted ml-1">(@ans.RatingValue/5)</small>
+                                                }
+                                                else
+                                                {
+                                                    @ans.AnswerText
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                    ri++;
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+<script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script>
+$(function () {
+    $('#resultsTable').DataTable({ responsive: true, autoWidth: false, order: [[2, 'desc']] });
+});
+</script>
+}

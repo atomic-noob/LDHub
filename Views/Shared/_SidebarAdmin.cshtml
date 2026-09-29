@@ -5,7 +5,7 @@
     var action = ViewContext.RouteData.Values["action"]?.ToString();
 
     bool isManageUsers = controller == "Admin" && (action == "Employees" || action == "PendingEmployees" || action == "ResourcePersons");
-    bool isLocations = controller == "Admin" && (action == "Regions" || action == "Offices" || action == "Divisions");
+bool isLocations = controller == "Location" && (action == "Regions" || action == "Offices" || action == "Divisions");
     bool isReports = controller == "Training" && action == "TrainingReport" 
                   || controller == "Admin" && (action == "ReportUsers" || action == "ReportIdp");
 }
@@ -111,7 +111,8 @@
 
                 @* Free Trainings *@
               <li class="nav-item">
-                    <a asp-controller="FreeTrainings" asp-action="Index" class="nav-link">
+                  <a asp-controller="FreeTrainings" asp-action="Index" 
+   class="nav-link @(controller == "FreeTrainings" ? "active" : "")">
                         <i class="nav-icon fas fa-chalkboard"></i>
                         <p>Free Trainings</p>
                     </a>
@@ -119,9 +120,8 @@
 
                 @* Announcements *@
                 <li class="nav-item">
-                     <a asp-controller="Announcements"
-                    asp-action="Index"
-                    class="nav-link">
+                   <a asp-controller="Announcements" asp-action="Index"
+   class="nav-link @(controller == "Announcements" ? "active" : "")">
 
                         <i class="nav-icon fas fa-bullhorn"></i>
 
@@ -172,7 +172,8 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                <a asp-controller="Certificate" asp-action="Index" class="nav-link">
+                <a asp-controller="Certificate" asp-action="Index"
+   class="nav-link @(controller == "Certificate" ? "active" : "")">
                     <i class="nav-icon fas fa-certificate"></i>
                     <p>Certificates</p>
                 </a>

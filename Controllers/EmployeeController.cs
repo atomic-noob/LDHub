@@ -245,8 +245,8 @@ var hasQuestions = await _db.EvaluationQuestions
 
 if (hasQuestions && !evaluationDone)
 {
-    TempData["Error"] = "Please complete the training evaluation before taking the Post-Test.";
-    return RedirectToAction("Dashboard");
+    TempData["Info"] = "Please complete the evaluation first before taking the Post-Test.";
+    return RedirectToAction("Take", "Evaluation", new { trainingId });
 }
 
         var training = await _db.Trainings.FindAsync(trainingId);

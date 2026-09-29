@@ -4,23 +4,13 @@
     ViewData["Title"] = "Manage Offices";
     var regions = ViewBag.Regions as List<LDHub.Models.Region> ?? new List<LDHub.Models.Region>();
 }
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="~/plugins/datatables-responsive/css/responsive.bootstrap4.min.css" />
+}
 
 <div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">Manage Offices</h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item">
-                      <a asp-controller="@(ViewBag.ActiveRole == "Raam" ? "Raam" : "Admin")" asp-action="Dashboard">Dashboard</a>
-                    </li>
-                    <li class="breadcrumb-item active">Offices</li>
-                </ol>
-            </div>
-        </div>
-    </div>
+
 </div>
 
 <section class="content">
@@ -43,23 +33,24 @@
         }
 
         <div class="card">
-            <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addOfficeModal">
-                    <i class="fas fa-plus mr-1"></i> Add New
-                </button>
-                <div class="ml-auto d-flex align-items-center" style="gap:8px;">
-                    <label class="mb-0 font-weight-bold text-nowrap">Filter by Region:</label>
-                    <select id="regionFilter" class="form-control form-control-sm " style="min-width:200px;">
-                        <option value="">All Regions</option>
-                        @foreach (var r in regions)
-                        {
-                            <option value="@r.RegionId">@r.RegionName</option>
-                        }
-                    </select>
+              <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                    <button type="button" class="btn btn-success"
+                            data-toggle="modal" data-target="#addOfficeModal">
+                        <i class="fas fa-plus mr-1"></i> Add New
+                    </button>
+                   <div class="ml-auto d-flex align-items-center" style="gap:8px;">
+    <label class="mb-0 font-weight-bold text-nowrap">Filter by Region:</label>
+                        <select id="regionFilter" class="form-control form-control-sm" style="min-width:180px;">
+                            <option value="">All Regions</option>
+                            @foreach (var r in regions)
+                            {
+                                <option value="@r.RegionId">@r.RegionName</option>
+                            }
+                        </select>
+                    </div>
                 </div>
-            </div>
             <div class="card-body">
-                <table id="officesTable" class="table table-bordered table-striped">
+               <table id="officesTable" class="table table-hover">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -78,7 +69,7 @@
                                 <td>@(office.OfficeCode ?? "—")</td>
                                 <td>@(office.Region?.RegionName ?? "—")</td>
                                 <td>
-                                    <button type="button" class="btn btn-warning btn-sm editOfficeBtn"
+                                   <button type="button" class="btn btn-success btn-sm editOfficeBtn"
                                             data-id="@office.OfficeId" data-name="@office.OfficeName"
                                             data-code="@office.OfficeCode" data-region-id="@office.RegionId">
                                         <i class="fas fa-edit"></i> Edit
@@ -160,7 +151,7 @@
                         <input type="text" name="OfficeCode" class="form-control"
                                placeholder="Enter office code (optional)" />
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm">
+                    <button type="submit" class="btn btn-success  btn-sm">
                         <i class="fas fa-save mr-1"></i> Save Office
                     </button>
                 </form>
@@ -168,7 +159,7 @@
                 @* Existing offices list *@
                 <div id="existingOfficesWrap" style="display:none;">
                     <hr />
-                    <label class="font-weight-bold text-info">
+                    <label class="font-weight-bold text-success">
                         <i class="fas fa-info-circle mr-1"></i> Existing Offices in this Region:
                     </label>
                     <div id="existingOfficesList" class="mt-1"
@@ -217,7 +208,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning">
+                    <button type="submit" class="btn btn-success ">
                         <i class="fas fa-save mr-1"></i> Update
                     </button>
                 </div>
@@ -234,6 +225,10 @@
 </form>
 
 @section Scripts {
+    <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="~/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="~/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
     <script>
         const PRESETS = [
             { name: 'CENRO', code: 'CENRO' },
@@ -253,16 +248,13 @@
         // ── Select2 ──
         $('.select2bs4').select2({ theme: 'bootstrap4' });
 
-        // ── Filter by Region ──
-        $('#regionFilter').select2({ theme: 'bootstrap4' })
-            .on('select2:select select2:unselect', function () {
-                const name = $(this).val()
-                    ? $(this).find('option:selected').text().trim() : '';
-                $('#officesTable').DataTable().column(3)
-                    .search(name ? '^' + $.fn.dataTable.util.escapeRegex(name) + '$' : '', true, false)
-                    .draw();
-            });
-
+      $('#regionFilter').on('change', function () {
+    const val = $(this).val();
+    const name = val ? $(this).find('option:selected').text().trim() : '';
+    $('#officesTable').DataTable().column(3)
+        .search(name ? '^' + $.fn.dataTable.util.escapeRegex(name) + '$' : '', true, false)
+        .draw();
+});
         // ── Add modal: Region selected ──
        $('#add_region_id').select2({ theme: 'bootstrap4' })
     .on('select2:select select2:unselect', function () {
@@ -286,7 +278,7 @@
                         const exists = existingNames.includes(p.name.toUpperCase().trim());
                         $presets.append(
                             '<div class="col-6 col-md-3 mb-2">' +
-                            '<div class="card mb-0 border-' + (exists ? 'success' : 'primary') + '">' +
+                           '<div class="card mb-0 border-' + (exists ? 'success' : 'success') + '">' +
                             '<div class="card-body py-2 px-3 d-flex align-items-center" style="gap:8px;">' +
                             '<input type="checkbox" class="preset-checkbox" ' +
                             'data-name="' + p.name + '" data-code="' + p.code + '" ' +

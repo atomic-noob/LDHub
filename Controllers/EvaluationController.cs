@@ -242,8 +242,8 @@ public async Task<IActionResult> Submit(int trainingId, IFormCollection form)
 
     await _db.SaveChangesAsync();
 
-    TempData["Success"] = "Evaluation submitted successfully! You may now take the Post-Test.";
-    return RedirectToAction("Dashboard", "Employee");
+  TempData["Success"] = "Evaluation submitted! Taking you to the Post-Test now.";
+return RedirectToAction("PostTest", "Employee", new { trainingId });
 }
 
 // ── HELPER: Check if evaluation is completed ───────────────
@@ -254,4 +254,36 @@ public static async Task<bool> HasCompletedEvaluation(
     return await db.EvaluationResponses
         .AnyAsync(r => r.UserId == userId && r.TrainingId == trainingId);
 }
+
+// ── GET: /Evaluation/Results ───────────────────────────────
+public async Task<IActionResult> Results(int trainingId)
+{
+    if (!CanAccess()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+
+    var training = await _db.Trainings.FindAsync(trainingId);
+    if (training == null) return NotFound();
+
+    var responses = await _db.EvaluationResponses
+        .Include(r => r.User)
+        .Include(r => r.Answers)
+            .ThenInclude(a => a.EvaluationQuestion)
+        .Where(r => r.TrainingId == trainingId)
+        .OrderByDescending(r => r.SubmittedAt)
+        .ToListAsync();
+
+    var questions = await _db.EvaluationQuestions
+        .Where(q => q.TrainingId == trainingId)
+        .OrderBy(q => q.SortOrder)
+        .ToListAsync();
+
+    ViewBag.Training  = training;
+    ViewBag.Responses = responses;
+    ViewBag.Questions = questions;
+    ViewBag.TrainingId = trainingId;
+
+    return View("~/Views/Evaluation/Results.cshtml");
+}
+
+
 }
