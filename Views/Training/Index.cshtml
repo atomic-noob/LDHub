@@ -1,876 +1,400 @@
 @model IEnumerable<LDHub.Models.Training>
-
 @{
-    Layout =
-        "~/Views/Shared/_Layout.cshtml";
-
-    ViewData["Title"] =
-        "Trainings";
+  Layout = "~/Views/Shared/_Layout.cshtml";
+  ViewData["Title"] = "Trainings";
+}
+@section Styles
+{
+  <!-- AdminLTE 3 plugin assets; load these only once per page. -->
+  <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+  <link rel="stylesheet" href="~/plugins/datatables-responsive/css/responsive.bootstrap4.min.css" />
+  <link rel="stylesheet" href="~/plugins/datatables-buttons/css/buttons.bootstrap4.min.css" />
 }
 
-
-<!-- ============================================================
-     CONTENT HEADER
-============================================================ -->
-
 <section class="content-header">
-
-    <div class="container-fluid">
-
-        <div class="row
-                    mb-2
-                    align-items-center">
-
-
-            <div class="col-sm-6">
-
-                <h1 class="m-0">
-
-                    <i class="fas
-                              fa-graduation-cap
-                              mr-2
-                              text-success">
-                    </i>
-
-                    Training Management
-
-                </h1>
-
-            </div>
-
-
-            <div class="col-sm-6">
-
-                <ol class="breadcrumb
-                           float-sm-right
-                           mb-0">
-
-                    <li class="breadcrumb-item">
-
-                        <a asp-controller="Home"
-                           asp-action="Index">
-
-                            Home
-
-                        </a>
-
-                    </li>
-
-
-                    <li class="breadcrumb-item active">
-
-                        Trainings
-
-                    </li>
-
-                </ol>
-
-            </div>
-
-        </div>
-
+  <div class="container-fluid">
+    <div class="row mb-2 align-items-center">
+      <div class="col-sm-6">
+        <h1 class="m-0">
+          <i class="fas fa-graduation-cap mr-2 text-success">
+          </i>
+          Training Management
+        </h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right mb-0">
+          <li class="breadcrumb-item">
+            <a asp-controller="Home"
+             asp-action="Index">
+              Home
+            </a>
+          </li>
+          <li class="breadcrumb-item active">
+            Trainings
+          </li>
+        </ol>
+      </div>
     </div>
-
+  </div>
 </section>
-
-
-<!-- ============================================================
-     MAIN CONTENT
-============================================================ -->
-
 <section class="content">
-
-    <div class="container-fluid">
-
-
-        <!-- ====================================================
-             SUCCESS MESSAGE
-        ===================================================== -->
-
-        @if (TempData["Success"] != null)
-        {
-            <div id="successAlert"
-                 class="alert
-                        alert-success
-                        alert-dismissible
-                        fade
-                        show
-                        shadow-sm"
-                 role="alert">
-
-                <div class="d-flex
-                            align-items-center">
-
-
-                    <div class="mr-3">
-
-                        <i class="fas
-                                  fa-check-circle
-                                  fa-lg">
-                        </i>
-
-                    </div>
-
-
-                    <div class="flex-grow-1">
-
-                        <strong>
-                            Success!
-                        </strong>
-
-
-                        <span class="ml-1">
-
-                            @TempData["Success"]
-
-                        </span>
-
-                    </div>
-
-
-                    <button type="button"
-                            class="close"
-                            data-dismiss="alert"
-                            aria-label="Close">
-
-                        <span aria-hidden="true">
-
-                            &times;
-
-                        </span>
-
-                    </button>
-
-                </div>
-
-            </div>
-        }
-
-
-        <!-- ====================================================
-             ERROR MESSAGE
-        ===================================================== -->
-
-        @if (TempData["Error"] != null)
-        {
-            <div id="errorAlert"
-                 class="alert
-                        alert-danger
-                        alert-dismissible
-                        fade
-                        show
-                        shadow-sm"
-                 role="alert">
-
-                <div class="d-flex
-                            align-items-center">
-
-
-                    <div class="mr-3">
-
-                        <i class="fas
-                                  fa-exclamation-circle
-                                  fa-lg">
-                        </i>
-
-                    </div>
-
-
-                    <div class="flex-grow-1">
-
-                        <strong>
-                            Error!
-                        </strong>
-
-
-                        <span class="ml-1">
-
-                            @TempData["Error"]
-
-                        </span>
-
-                    </div>
-
-
-                    <button type="button"
-                            class="close"
-                            data-dismiss="alert"
-                            aria-label="Close">
-
-                        <span aria-hidden="true">
-
-                            &times;
-
-                        </span>
-
-                    </button>
-
-                </div>
-
-            </div>
-        }
-
-
-        <!-- ====================================================
-             TRAININGS CARD
-        ===================================================== -->
-
-        <div class="card shadow-sm">
-
-
-            <!-- =============================================
-                 CARD HEADER
-            ============================================== -->
-
-            <div class="card-header bg-white">
-
-                <div class="d-flex
-                            justify-content-between
-                            align-items-center">
-
-
-                    <h3 class="card-title
-                               font-weight-bold
-                               mb-0">
-
-                        <i class="fas
-                                  fa-list
-                                  mr-2
-                                  text-success">
-                        </i>
-
-                        List of Trainings
-
-                    </h3>
-
-
-                    <a asp-controller="Training"
-                       asp-action="Create"
-                       class="btn
-                              btn-success
-                              btn-sm">
-
-                        <i class="fas
-                                  fa-plus
-                                  mr-1">
-                        </i>
-
-                        New Training
-
-                    </a>
-
-                </div>
-
-            </div>
-
-
-            <!-- =============================================
-                 CARD BODY
-            ============================================== -->
-
-            <div class="card-body p-0">
-
-                <div class="table-responsive">
-
-                    <table class="table
-                                  table-bordered
-                                  table-hover
-                                  table-striped
-                                  mb-0">
-
-
-                        <thead class="thead-dark">
-
-                            <tr>
-
-                                <th class="text-center">
-                                    #
-                                </th>
-
-
-                                <th>
-                                    Training Code
-                                </th>
-
-
-                                <th>
-                                    Training Title
-                                </th>
-
-
-                                <th>
-                                    Location
-                                </th>
-
-
-                                <th class="text-center">
-                                    Start Date
-                                </th>
-
-
-                                <th class="text-center">
-                                    End Date
-                                </th>
-
-
-                                <th class="text-center">
-                                    Training Hrs
-                                </th>
-
-
-                                <th class="text-center">
-                                    Status
-                                </th>
-
-
-                                <th class="text-center">
-                                    Actions
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody>
-
-
-                            @if (
-                                Model != null
-                                &&
-                                Model.Any()
-                            )
-                            {
-                                var rowNumber = 1;
-
-
-                                foreach (var item in Model)
-                                {
-                                    var status =
-                                        "Scheduled";
-
-
-                                    var badgeClass =
-                                        "badge-success";
-
-
-                                    var statusIcon =
-                                        "fa-calendar-alt";
-
-
-                                    if (
-                                        DateTime.Now
-                                        >=
-                                        item.StartDate
-                                        &&
-                                        DateTime.Now
-                                        <=
-                                        item.EndDate
-                                    )
-                                    {
-                                        status =
-                                            "Ongoing";
-
-
-                                        badgeClass =
-                                            "badge-primary";
-
-
-                                        statusIcon =
-                                            "fa-play-circle";
-                                    }
-                                    else if (
-                                        DateTime.Now
-                                        >
-                                        item.EndDate
-                                    )
-                                    {
-                                        status =
-                                            "Ended";
-
-
-                                        badgeClass =
-                                            "badge-danger";
-
-
-                                        statusIcon =
-                                            "fa-check-circle";
-                                    }
-
-
-                                    <tr>
-
-
-                                        <!-- ROW NUMBER -->
-
-                                        <td class="text-center
-                                                   align-middle">
-
-                                            @rowNumber
-
-                                        </td>
-
-
-                                        <!-- TRAINING CODE -->
-
-                                        <td class="align-middle">
-
-                                            <span class="font-weight-bold
-                                                         text-success">
-
-                                                @item.TrainingCode
-
-                                            </span>
-
-                                        </td>
-
-
-                                        <!-- TITLE -->
-
-                                        <td class="align-middle">
-
-                                            <strong>
-
-                                                @item.TrainingTitle
-
-                                            </strong>
-
-                                        </td>
-
-
-                                        <!-- LOCATION -->
-
-                                        <td class="align-middle">
-
-
-                                            @if (
-                                                !string.IsNullOrWhiteSpace(
-                                                    item.Location
-                                                )
-                                            )
-                                            {
-                                                <i class="fas
-                                                          fa-map-marker-alt
-                                                          text-danger
-                                                          mr-1">
-                                                </i>
-
-                                                @item.Location
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">
-
-                                                    N/A
-
-                                                </span>
-                                            }
-
-                                        </td>
-
-
-                                        <!-- START DATE -->
-
-                                        <td class="text-center
-                                                   align-middle
-                                                   text-nowrap">
-
-
-                                            @if (
-                                                item.StartDate.HasValue
-                                            )
-                                            {
-                                                <i class="far
-                                                          fa-calendar-alt
-                                                          text-muted
-                                                          mr-1">
-                                                </i>
-
-
-                                                @(item.StartDate.Value.ToString(
-                                                    "MMM dd, yyyy"
-                                                ))
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">
-
-                                                    TBD
-
-                                                </span>
-                                            }
-
-                                        </td>
-
-
-                                        <!-- END DATE -->
-
-                                        <td class="text-center
-                                                   align-middle
-                                                   text-nowrap">
-
-
-                                            @if (
-                                                item.EndDate.HasValue
-                                            )
-                                            {
-                                                <i class="far
-                                                          fa-calendar-check
-                                                          text-muted
-                                                          mr-1">
-                                                </i>
-
-
-                                                @(item.EndDate.Value.ToString(
-                                                    "MMM dd, yyyy"
-                                                ))
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">
-
-                                                    TBD
-
-                                                </span>
-                                            }
-
-                                        </td>
-
-
-                                        <!-- TRAINING HOURS -->
-
-                                        <td class="text-center
-                                                   align-middle">
-
-                                            <span class="badge
-                                                         badge-light
-                                                         border
-                                                         px-2
-                                                         py-1">
-
-                                                <i class="far
-                                                          fa-clock
-                                                          mr-1">
-                                                </i>
-
-                                                @item.TrainingHrs hrs
-
-                                            </span>
-
-                                        </td>
-
-
-                                        <!-- STATUS -->
-
-                                        <td class="text-center
-                                                   align-middle">
-
-                                            <span class="badge
-                                                         @badgeClass
-                                                         px-2
-                                                         py-2">
-
-                                                <i class="fas
-                                                          @statusIcon
-                                                          mr-1">
-                                                </i>
-
-                                                @status
-
-                                            </span>
-
-                                        </td>
-
-
-                                        <!-- ACTIONS -->
-
-                                        <td class="text-center
-                                                   align-middle">
-
-                                            <div class="dropdown">
-
-
-                                                <button class="btn
-                                                               btn-outline-secondary
-                                                               btn-sm
-                                                               dropdown-toggle"
-                                                        type="button"
-                                                        id="trainingActions-@item.TrainingId"
-                                                        data-toggle="dropdown"
-                                                        aria-haspopup="true"
-                                                        aria-expanded="false">
-
-                                                    <i class="fas
-                                                              fa-cog
-                                                              mr-1">
-                                                    </i>
-
-                                                    Actions
-
-                                                </button>
-
-
-                                                <div class="dropdown-menu
-                                                            dropdown-menu-right
-                                                            shadow"
-                                                     aria-labelledby="trainingActions-@item.TrainingId">
-
-
-                                                    <!-- DETAILS -->
-
-                                                    <a class="dropdown-item"
-                                                       asp-controller="Training"
-                                                       asp-action="Details"
-                                                       asp-route-id="@item.TrainingId">
-
-                                                        <i class="fas
-                                                                  fa-eye
-                                                                  text-info
-                                                                  mr-2">
-                                                        </i>
-
-                                                        View Details
-
-                                                    </a>
-
-
-                                                    <!-- EDIT -->
-
-                                                    <a class="dropdown-item"
-                                                       asp-controller="Training"
-                                                       asp-action="Edit"
-                                                       asp-route-id="@item.TrainingId">
-
-                                                        <i class="fas
-                                                                  fa-edit
-                                                                  text-warning
-                                                                  mr-2">
-                                                        </i>
-
-                                                        Edit Training
-
-                                                    </a>
-
-
-                                                    <div class="dropdown-divider">
-                                                    </div>
-
-
-                                                    <!-- PARTICIPANT -->
-
-                                                    <a class="dropdown-item"
-                                                       asp-controller="Training"
-                                                       asp-action="AssignParticipant"
-                                                       asp-route-id="@item.TrainingId">
-
-                                                        <i class="fas
-                                                                  fa-user-plus
-                                                                  text-success
-                                                                  mr-2">
-                                                        </i>
-
-                                                        Assign Participant
-
-                                                    </a>
-
-
-                                                    <!-- RESOURCE PERSON -->
-
-                                                    <a class="dropdown-item"
-                                                       asp-controller="Training"
-                                                       asp-action="AssignResourcePerson"
-                                                       asp-route-id="@item.TrainingId">
-
-                                                        <i class="fas
-                                                                  fa-chalkboard-teacher
-                                                                  text-primary
-                                                                  mr-2">
-                                                        </i>
-
-                                                        Assign Resource Person
-
-                                                    </a>
-
-                                                </div>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
-
-
-                                    rowNumber++;
-                                }
-                            }
-                            else
-                            {
-                                <tr>
-
-                                    <td colspan="9"
-                                        class="text-center
-                                               text-muted
-                                               py-5">
-
-                                        <i class="fas
-                                                  fa-graduation-cap
-                                                  fa-3x
-                                                  mb-3
-                                                  text-secondary">
-                                        </i>
-
-
-                                        <h5 class="font-weight-bold">
-
-                                            No Trainings Found
-
-                                        </h5>
-
-
-                                        <p class="mb-3">
-
-                                            There are currently
-                                            no training records
-                                            available.
-
-                                        </p>
-
-
-                                        <a asp-controller="Training"
-                                           asp-action="Create"
-                                           class="btn
-                                                  btn-success
-                                                  btn-sm">
-
-                                            <i class="fas
-                                                      fa-plus
-                                                      mr-1">
-                                            </i>
-
-                                            Create Training
-
-                                        </a>
-
-                                    </td>
-
-                                </tr>
-                            }
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
-
-            <!-- =============================================
-                 CARD FOOTER
-            ============================================== -->
-
-            @if (
-                Model != null
-                &&
-                Model.Any()
-            )
-            {
-                <div class="card-footer bg-white">
-
-                    <small class="text-muted">
-
-                        <i class="fas
-                                  fa-info-circle
-                                  mr-1">
-                        </i>
-
-                        Total Trainings:
-
-                        <strong>
-
-                            @Model.Count()
-
-                        </strong>
-
-                    </small>
-
-                </div>
-            }
-
+  <div class="container-fluid">
+    @if (TempData["Success"] != null)
+    {
+      <div id="successAlert"
+        class="alert alert-success alert-dismissible fade show shadow-sm"
+        role="alert">
+        <div class="d-flex align-items-center">
+          <div class="mr-3">
+            <i class="fas fa-check-circle fa-lg">
+            </i>
+          </div>
+          <div class="flex-grow-1">
+            <strong>
+              Success!
+            </strong>
+            <span class="ml-1">
+              @TempData["Success"]
+            </span>
+          </div>
+          <button type="button"
+              class="close"
+              data-dismiss="alert"
+              aria-label="Close">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
         </div>
-
+      </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+      <div id="errorAlert"
+        class="alert alert-danger alert-dismissible fade show shadow-sm"
+        role="alert">
+        <div class="d-flex align-items-center">
+          <div class="mr-3">
+            <i class="fas fa-exclamation-circle fa-lg">
+            </i>
+          </div>
+          <div class="flex-grow-1">
+            <strong>
+              Error!
+            </strong>
+            <span class="ml-1">
+              @TempData["Error"]
+            </span>
+          </div>
+          <button type="button"
+              class="close"
+              data-dismiss="alert"
+              aria-label="Close">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+      </div>
+    }
+    <div class="card card-outline card-success shadow-sm">
+      <div class="card-header bg-white">
+        <div class="d-flex flex-wrap justify-content-between align-items-center">
+          <h3 class="card-title font-weight-bold mb-0">
+            <i class="fas fa-list mr-2 text-success">
+            </i>
+            List of Trainings
+          </h3>
+          <a asp-controller="Training"
+           asp-action="Create"
+           class="btn btn-success btn-sm">
+            <i class="fas fa-plus mr-1">
+            </i>
+            New Training
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div>
+          <table id="trainingsTable" class="table table-bordered table-hover table-striped dt-responsive w-100">
+            <thead class="bg-light">
+              <tr>
+                <th scope="col" class="text-center">
+                  #
+                </th>
+                <th scope="col">
+                  Training Code
+                </th>
+                <th scope="col">
+                  Training Title
+                </th>
+                <th scope="col">
+                  Location
+                </th>
+                <th scope="col" class="text-center">
+                  Start Date
+                </th>
+                <th scope="col" class="text-center">
+                  End Date
+                </th>
+                <th scope="col" class="text-center">
+                  Training Hrs
+                </th>
+                <th scope="col" class="text-center">
+                  Status
+                </th>
+                <th scope="col" class="text-center">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (Model != null && Model.Any())
+              {
+                var rowNumber = 1;
+                foreach (var item in Model)
+                {
+                  var status = "Scheduled";
+                  var badgeClass = "badge-success";
+                  var statusIcon = "fa-calendar-alt";
+                  if (DateTime.Now >= item.StartDate && DateTime.Now <= item.EndDate)
+                  {
+                    status = "Ongoing";
+                    badgeClass = "badge-primary";
+                    statusIcon = "fa-play-circle";
+                  }
+                  else if (DateTime.Now > item.EndDate)
+                  {
+                    status = "Ended";
+                    badgeClass = "badge-danger";
+                    statusIcon = "fa-check-circle";
+                  }
+                  <tr>
+                    <td class="text-center align-middle">
+                      @rowNumber
+                    </td>
+                    <td class="align-middle">
+                      <span class="font-weight-bold text-success">
+                        @item.TrainingCode
+                      </span>
+                    </td>
+                    <td class="align-middle">
+                      <strong>
+                        @item.TrainingTitle
+                      </strong>
+                    </td>
+                    <td class="align-middle">
+                      @if (!string.IsNullOrWhiteSpace(item.Location))
+                      {
+                        <i class="fas fa-map-marker-alt text-danger mr-1">
+                        </i>
+                        @item.Location
+                      }
+                      else
+                      {
+                        <span class="text-muted">
+                          N/A
+                        </span>
+                      }
+                    </td>
+                    <td class="text-center align-middle text-nowrap" data-order="@(item.StartDate?.ToString("yyyyMMdd") ?? "0")">
+                      @if (item.StartDate.HasValue)
+                      {
+                        <i class="far fa-calendar-alt text-muted mr-1">
+                        </i>
+                        @(item.StartDate.Value.ToString("MMM dd, yyyy"))
+                      }
+                      else
+                      {
+                        <span class="text-muted">
+                          TBD
+                        </span>
+                      }
+                    </td>
+                    <td class="text-center align-middle text-nowrap" data-order="@(item.EndDate?.ToString("yyyyMMdd") ?? "0")">
+                      @if (item.EndDate.HasValue)
+                      {
+                        <i class="far fa-calendar-check text-muted mr-1">
+                        </i>
+                        @(item.EndDate.Value.ToString("MMM dd, yyyy"))
+                      }
+                      else
+                      {
+                        <span class="text-muted">
+                          TBD
+                        </span>
+                      }
+                    </td>
+                    <td class="text-center align-middle" data-order="@item.TrainingHrs">
+                      <span class="badge badge-light border px-2 py-1">
+                        <i class="far fa-clock mr-1">
+                        </i>
+                        @item.TrainingHrs hrs
+                      </span>
+                    </td>
+                    <td class="text-center align-middle" data-search="@status">
+                      <span class="badge @badgeClass px-2 py-2">
+                        <i class="fas @statusIcon mr-1">
+                        </i>
+                        @status
+                      </span>
+                    </td>
+                    <td class="text-center align-middle">
+                      <div class="btn-group" role="group" aria-label="Training actions">
+                        <a class="btn btn-outline-info btn-sm"
+                         asp-controller="Training" asp-action="Details"
+                         asp-route-id="@item.TrainingId" title="View Details">
+                          <i class="fas fa-eye" aria-hidden="true"></i>
+                          <span class="sr-only">View Details</span>
+                        </a>
+                        <a class="btn btn-outline-warning btn-sm"
+                         asp-controller="Training" asp-action="Edit"
+                         asp-route-id="@item.TrainingId" title="Edit Training">
+                          <i class="fas fa-edit" aria-hidden="true"></i>
+                          <span class="sr-only">Edit Training</span>
+                        </a>
+                        <a class="btn btn-outline-success btn-sm"
+                         asp-controller="Training" asp-action="AssignParticipant"
+                         asp-route-id="@item.TrainingId" title="Assign Participant">
+                          <i class="fas fa-user-plus" aria-hidden="true"></i>
+                          <span class="sr-only">Assign Participant</span>
+                        </a>
+                        <a class="btn btn-outline-primary btn-sm"
+                         asp-controller="Training" asp-action="AssignResourcePerson"
+                         asp-route-id="@item.TrainingId" title="Assign Resource Person">
+                          <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
+                          <span class="sr-only">Assign Resource Person</span>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  rowNumber++;
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      @if (Model != null && Model.Any())
+      {
+        <div class="card-footer bg-white">
+          <small class="text-muted">
+            <i class="fas fa-info-circle mr-1">
+            </i>
+            Total Trainings:
+            <strong>
+              @Model.Count()
+            </strong>
+          </small>
+        </div>
+      }
     </div>
-
+  </div>
 </section>
-
-
-<!-- ============================================================
-     JAVASCRIPT
-============================================================ -->
-
 @section Scripts
 {
-    <script>
+  @* _Layout must load jQuery, Bootstrap 4 bundle, and AdminLTE before this section.
+     If the layout already loads these DataTables files, keep them in ONE place.
+     Use the matching DataTables 1.x / Buttons 2.x / Responsive 2.x assets
+     from your AdminLTE 3 distribution. *@
+  <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+  <script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+  <script src="~/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+  <script src="~/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+  <script src="~/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+  <script src="~/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+  <script src="~/plugins/jszip/jszip.min.js"></script>
+  <script src="~/plugins/pdfmake/pdfmake.min.js"></script>
+  <script src="~/plugins/pdfmake/vfs_fonts.js"></script>
+  <script src="~/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+  <script src="~/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+  <script src="~/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
-        $(document).ready(function () {
+  <script>
+    $(function () {
+      // Export training data across all filtered pages, excluding row numbers/actions.
+      // Use explicit columns so narrow screens do not remove data from exports.
+      var exportOptions = {
+        columns: [1, 2, 3, 4, 5, 6, 7],
+        modifier: { search: 'applied', order: 'applied', page: 'all' },
+        stripHtml: true,
+        stripNewlines: true,
+        trim: true
+      };
 
-
-            // ==================================================
-            // SUCCESS ALERT
-            // Auto close after 5 seconds
-            // ==================================================
-
-            if ($('#successAlert').length) {
-
-                setTimeout(
-                    function () {
-
-                        $('#successAlert')
-                            .fadeOut(
-                                500,
-                                function () {
-
-                                    $(this)
-                                        .alert('close');
-
-                                }
-                            );
-
-                    },
-                    5000
-                );
-
+      var table = $('#trainingsTable').DataTable({
+        responsive: true,
+        autoWidth: false,
+        paging: true,
+        lengthChange: true,
+        searching: true,
+        ordering: true,
+        info: true,
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
+        order: [],
+        pagingType: 'full_numbers',
+        dom:
+          '<"row mb-2"<"col-12"B>>' +
+          '<"row align-items-center"<"col-md-6"l><"col-md-6"f>>' +
+          '<"row"<"col-12"tr>>' +
+          '<"row align-items-center"<"col-md-5"i><"col-md-7"p>>',
+        columnDefs: [
+          { targets: [0, 8], orderable: false, searchable: false },
+          { targets: [4, 5, 6], type: 'num' },
+          { targets: 2, responsivePriority: 1 },
+          { targets: 8, responsivePriority: 2 },
+          { targets: 7, responsivePriority: 3 }
+        ],
+        language: {
+          search: 'Search:',
+          searchPlaceholder: 'Search trainings...',
+          lengthMenu: 'Show _MENU_ trainings',
+          info: 'Showing _START_ to _END_ of _TOTAL_ trainings',
+          infoEmpty: 'Showing 0 trainings',
+          infoFiltered: '(filtered from _MAX_ total trainings)',
+          emptyTable: 'No trainings found. Use New Training to create a record.',
+          zeroRecords: 'No matching trainings found.',
+          paginate: { first: 'First', previous: 'Previous', next: 'Next', last: 'Last' }
+        },
+        buttons: [
+          { extend: 'copyHtml5', text: 'Copy', title: 'Training Report', exportOptions: exportOptions },
+          { extend: 'csvHtml5', text: 'CSV', filename: 'Trainings', bom: true, exportOptions: exportOptions },
+          { extend: 'excelHtml5', text: 'Excel', title: 'Training Report', filename: 'Trainings', exportOptions: exportOptions },
+          {
+            extend: 'pdfHtml5', text: 'PDF', title: 'Training Report', filename: 'Trainings',
+            orientation: 'landscape', pageSize: 'A4', exportOptions: exportOptions,
+            customize: function (doc) {
+              doc.defaultStyle.fontSize = 9;
+              doc.styles.tableHeader.fontSize = 10;
             }
-
-
-            // ==================================================
-            // ERROR ALERT
-            // Auto close after 7 seconds
-            // ==================================================
-
-            if ($('#errorAlert').length) {
-
-                setTimeout(
-                    function () {
-
-                        $('#errorAlert')
-                            .fadeOut(
-                                500,
-                                function () {
-
-                                    $(this)
-                                        .alert('close');
-
-                                }
-                            );
-
-                    },
-                    7000
-                );
-
+          },
+          { extend: 'print', text: 'Print', title: 'Training Report', exportOptions: exportOptions },
+          { extend: 'colvis', text: 'Columns', columns: [1, 2, 3, 4, 5, 6, 7] },
+          {
+            text: 'Reset',
+            action: function (event, dt) {
+              dt.search('').columns().search('');
+              dt.columns().visible(true, false);
+              dt.order([]).page.len(10).draw();
+              dt.columns.adjust().responsive.recalc();
             }
+          }
+        ]
+      });
 
-        });
+      table.buttons().container().addClass('d-flex flex-wrap');
+      table.buttons().nodes().addClass('btn-sm mb-1');
 
-    </script>
+      function closeAlert(selector, delay) {
+        if ($(selector).length) {
+          setTimeout(function () {
+            $(selector).alert('close');
+          }, delay);
+        }
+      }
+      closeAlert('#successAlert', 5000);
+      closeAlert('#errorAlert', 7000);
+    });
+  </script>
 }
