@@ -120,6 +120,262 @@ namespace LDHub.Migrations
                     b.ToTable("division");
                 });
 
+            modelBuilder.Entity("LDHub.Models.EvaluationAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AnswerText")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("EvaluationQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EvaluationResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RatingValue")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EvaluationQuestionId");
+
+                    b.HasIndex("EvaluationResponseId");
+
+                    b.ToTable("EvaluationAnswers");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ChoiceA")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ChoiceB")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ChoiceC")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ChoiceD")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("QuestionText")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("QuestionType")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TrainingId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainingId");
+
+                    b.ToTable("EvaluationQuestions");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationResponse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("TrainingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainingId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EvaluationResponses");
+                });
+
+            modelBuilder.Entity("LDHub.Models.Faq", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("answer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("display_order");
+
+                    b.Property<string>("ImagePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("image_path");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("question");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("faqs");
+                });
+
+            modelBuilder.Entity("LDHub.Models.FreeTraining", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("longtext")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("end_date");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("location");
+
+                    b.Property<string>("Photo")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("photo");
+
+                    b.Property<int?>("RegionId")
+                        .HasColumnType("int")
+                        .HasColumnName("region_id");
+
+                    b.Property<string>("RegistrationLink")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("registration_link");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("start_date");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegionId");
+
+                    b.ToTable("free_trainings");
+                });
+
+            modelBuilder.Entity("LDHub.Models.Inquiry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("email");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_read");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("submitted_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("inquiries");
+                });
+
             modelBuilder.Entity("LDHub.Models.ModuleProgress", b =>
                 {
                     b.Property<int>("Id")
@@ -665,6 +921,11 @@ namespace LDHub.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("TrainingId"));
 
+                    b.Property<string>("CertificatePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("certificate_path");
+
                     b.Property<int?>("CompetencyId")
                         .HasColumnType("int")
                         .HasColumnName("competency_id");
@@ -893,6 +1154,11 @@ namespace LDHub.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("DefaultRole")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("default_role");
+
                     b.Property<string>("Designation")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)")
@@ -1036,6 +1302,64 @@ namespace LDHub.Migrations
                         .IsRequired();
 
                     b.Navigation("Office");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationAnswer", b =>
+                {
+                    b.HasOne("LDHub.Models.EvaluationQuestion", "EvaluationQuestion")
+                        .WithMany()
+                        .HasForeignKey("EvaluationQuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LDHub.Models.EvaluationResponse", "EvaluationResponse")
+                        .WithMany("Answers")
+                        .HasForeignKey("EvaluationResponseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EvaluationQuestion");
+
+                    b.Navigation("EvaluationResponse");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationQuestion", b =>
+                {
+                    b.HasOne("LDHub.Models.Training", "Training")
+                        .WithMany()
+                        .HasForeignKey("TrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Training");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationResponse", b =>
+                {
+                    b.HasOne("LDHub.Models.Training", "Training")
+                        .WithMany()
+                        .HasForeignKey("TrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LDHub.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Training");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LDHub.Models.FreeTraining", b =>
+                {
+                    b.HasOne("LDHub.Models.Region", "Region")
+                        .WithMany()
+                        .HasForeignKey("RegionId");
+
+                    b.Navigation("Region");
                 });
 
             modelBuilder.Entity("LDHub.Models.ModuleProgress", b =>
@@ -1321,6 +1645,11 @@ namespace LDHub.Migrations
             modelBuilder.Entity("LDHub.Models.Division", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("LDHub.Models.EvaluationResponse", b =>
+                {
+                    b.Navigation("Answers");
                 });
 
             modelBuilder.Entity("LDHub.Models.ModuleTextContent", b =>

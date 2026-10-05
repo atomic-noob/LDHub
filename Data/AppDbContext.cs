@@ -22,6 +22,13 @@ namespace LDHub.Data
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
         public DbSet<Competency> Competencies { get; set; }
         public DbSet<ProficiencyLevel> ProficiencyLevels { get; set; }
+        public DbSet<FreeTraining> FreeTrainings { get; set; }
+        public DbSet<Faq>     Faqs      { get; set; }
+public DbSet<Inquiry> Inquiries { get; set; }
+// evaluation
+public DbSet<EvaluationQuestion> EvaluationQuestions { get; set; }
+public DbSet<EvaluationResponse> EvaluationResponses { get; set; }
+public DbSet<EvaluationAnswer> EvaluationAnswers { get; set; }
         
         
 
@@ -36,6 +43,7 @@ public DbSet<QuizChoice> QuizChoices { get; set; }
 public DbSet<ModuleTextContent> ModuleTextContents { get; set; }
 public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
   public DbSet<Announcement> Announcements { get; set; }
+  
 
         // ── Relationships & Constraints ───────────────────────────
         protected override void OnModelCreating(ModelBuilder modelBuilder)

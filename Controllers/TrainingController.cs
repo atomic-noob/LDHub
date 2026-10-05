@@ -286,12 +286,19 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
             return RedirectToAction("Index", "Training");
         }
 
-        // Get available employees — RAAM sees only their region
-        IQueryable<User> usersQuery = _db.Users
-            .Include(u => u.UserRoles)
-            .Where(u => u.UserRoles.Any(r => r.Role == "Employee")
-                     && u.IsExternal == false
-                     && u.Status == "Active");
+       // Get IDs already assigned to this training
+            var assignedUserIds = training.TrainingParticipants
+                .Select(tp => tp.UserId)
+                .ToHashSet();
+
+            IQueryable<User> usersQuery = _db.Users
+                .Include(u => u.UserRoles)
+                .Include(u => u.Region)
+                .Where(u => u.UserRoles.Any(r => r.Role == "Employee")
+                        && u.IsExternal == false
+                        && u.Status == "Active"
+                        && u.InTraining == false
+                        && !assignedUserIds.Contains(u.UserId));
 
         if (role == "Raam")
             usersQuery = usersQuery.Where(u => u.RegionId == regionId);
@@ -301,39 +308,46 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
             .ToListAsync();
 
         ViewBag.Training  = training;
-        ViewBag.Users     = users;
-
+       ViewBag.AvailableUsers = users;
+       ViewBag.AssignedParticipants = training.TrainingParticipants.ToList();
         return View("~/Views/Training/AssignParticipant.cshtml");
     }
 
-    // ── POST: /Training/AssignParticipant ──────────────────────
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AssignParticipant(int trainingId, List<int> userIds)
+   [HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> AssignParticipant(int trainingId, List<int> userIds)
+{
+    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+
+    foreach (var userId in userIds)
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
+        var exists = await _db.TrainingParticipants
+            .AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId);
 
-        foreach (var userId in userIds)
+        if (!exists)
         {
-            var exists = await _db.TrainingParticipants
-                .AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId);
-
-            if (!exists)
+            _db.TrainingParticipants.Add(new TrainingParticipant
             {
-                _db.TrainingParticipants.Add(new TrainingParticipant
-                {
-                    TrainingId       = trainingId,
-                    UserId           = userId,
-                    EnrollmentDate   = DateTime.UtcNow,
-                    CompletionStatus = "Enrolled"
-                });
+                TrainingId       = trainingId,
+                UserId           = userId,
+                EnrollmentDate   = DateTime.UtcNow,
+                CompletionStatus = "Enrolled"
+            });
+
+            // ── Mark user as in training ──────────────────────
+            var user = await _db.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.InTraining = true;
+                user.UpdatedAt  = DateTime.UtcNow;
             }
         }
-
-        await _db.SaveChangesAsync();
-        TempData["Success"] = "Participants assigned successfully!";
-        return RedirectToAction("Index", "Training");
     }
+
+    await _db.SaveChangesAsync();
+    TempData["Success"] = "Participants assigned successfully!";
+    return RedirectToAction("Index", "Training");
+}
 
   // ── GET: /Training/AssignResourcePerson/{id} ───────────────
 // REPLACE the existing AssignResourcePerson GET action with this:
@@ -449,14 +463,24 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
         return RedirectToAction("Index", "Training");
     }
   // ── GET: /Training/TrainingReport ─────────────────────────────
+// ── GET: /Training/TrainingReport ─────────────────────────────
 public async Task<IActionResult> TrainingReport(int? trainingId)
 {
     if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
-    // Load regions for dropdown
-    ViewBag.Regions   = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
-    ViewBag.Trainings = await _db.Trainings.OrderByDescending(t => t.CreatedAt).ToListAsync();
+    var role     = GetUserRole();
+    var regionId = await GetRaamRegionId();
+
+    // Load regions for dropdown (kept for compatibility, though the view no longer uses a dropdown)
+    ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+
+    IQueryable<Training> trainingsQuery = _db.Trainings;
+
+    if (role == "Raam")
+        trainingsQuery = trainingsQuery.Where(t => t.RegionId == regionId);
+
+    ViewBag.Trainings = await trainingsQuery.OrderByDescending(t => t.CreatedAt).ToListAsync();
 
     if (trainingId == null) return View("~/Views/Training/TrainingReport.cshtml");
 
@@ -467,13 +491,19 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
 
     if (training == null) return View("~/Views/Training/TrainingReport.cshtml");
 
+    // ── Block RAAM from viewing a report for a training outside their region ──
+    if (role == "Raam" && training.RegionId != regionId)
+    {
+        TempData["Error"] = "You do not have access to this training's report.";
+        return RedirectToAction("TrainingReport");
+    }
+
     var rows = new List<ReportRow>();
 
     foreach (var tp in training.TrainingParticipants)
     {
         if (tp.User == null) continue;
 
-        // Get pre-test score
         var preAttempt = await _db.ParticipantTestAttempts
             .Where(e => e.UserId == tp.UserId 
                      && e.TrainingId == trainingId 
@@ -481,7 +511,6 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
             .OrderByDescending(e => e.TakenAt)
             .FirstOrDefaultAsync();
 
-        // Get post-test score
         var postAttempt = await _db.ParticipantTestAttempts
             .Where(e => e.UserId == tp.UserId 
                      && e.TrainingId == trainingId 
@@ -504,8 +533,6 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
                               && e.TestType == "PostTest")
         });
     }
-    
-
 
     var vm = new TrainingReportViewModel
     {
@@ -531,7 +558,6 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
     vm.LearningGain = vm.PostTestAvg - vm.PreTestAvg;
     vm.TotalPoints  = rows.Sum(r => r.PostScore ?? 0);
 
-    // ── Paired T-Test ──────────────────────────────────────────
     var pairs = rows
         .Where(r => r.PreScore.HasValue && r.PostScore.HasValue)
         .Select(r => (Pre: (double)r.PreScore!.Value, Post: (double)r.PostScore!.Value))
@@ -539,13 +565,6 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
 
     if (pairs.Count >= 2)
     {
-        var differences = pairs.Select(p => p.Post - p.Pre).ToList();
-        var meanDiff    = differences.Average();
-        var variance    = differences.Sum(d => Math.Pow(d - meanDiff, 2)) / (pairs.Count - 1);
-        var stdDev      = Math.Sqrt(variance);
-        var stdError    = stdDev / Math.Sqrt(pairs.Count);
-        var tStat       = stdError > 0 ? meanDiff / stdError : 0;
-        // Paired T-Test
         var pairedPre  = new List<double>();
         var pairedPost = new List<double>();
 
@@ -560,10 +579,8 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
 
         vm.TTest = LDHub.Services.TTestService.ComputePairedTTest(
             pairedPre, pairedPost, training.TrainingTitle);
+    }
 
-            
-            }
-
-            return View("~/Views/Training/TrainingReport.cshtml", vm);
-        }
+    return View("~/Views/Training/TrainingReport.cshtml", vm);
+}
 }

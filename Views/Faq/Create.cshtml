@@ -1,0 +1,117 @@
+@model LDHub.Models.Faq
+@{
+   Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Add FAQ";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0"><i class="fas fa-plus-circle mr-2 text-success"></i>Add FAQ</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/Admin/Dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="/Faq/Index">FAQs</a></li>
+                    <li class="breadcrumb-item active">Add</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-question-circle mr-2"></i>New FAQ</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/Faq/Create" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    <div class="form-group">
+                        <label for="Question">Question <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Question" name="Question"
+                               value="@Model.Question" placeholder="e.g. How do I register?" required />
+                        <span asp-validation-for="Question" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Answer">Answer <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="Answer" name="Answer"
+                                  rows="5" placeholder="Provide a clear and detailed answer..."
+                                  required>@Model.Answer</textarea>
+                        <span asp-validation-for="Answer" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="imageFile">Supporting Image <span class="text-muted small">(optional)</span></label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="imageFile"
+                                   name="imageFile" accept="image/*"
+                                   onchange="previewImage(this)" />
+                            <label class="custom-file-label" for="imageFile">Choose image...</label>
+                        </div>
+                        <small class="text-muted">Recommended: PNG or JPG, max 2MB. Use this to add a screenshot or diagram.</small>
+                        <div class="mt-2" id="imagePreviewWrap" style="display:none;">
+                            <img id="imagePreview" src="#" alt="Preview"
+                                 style="max-height:180px; border-radius:8px; border:1px solid #dee2e6;" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="DisplayOrder">Display Order</label>
+                                <input type="number" class="form-control" id="DisplayOrder"
+                                       name="DisplayOrder" value="@Model.DisplayOrder" min="0" />
+                                <small class="text-muted">Lower number = shown first.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <div class="custom-control custom-switch mt-2">
+                                    <input type="checkbox" class="custom-control-input"
+                                           id="IsActive" name="IsActive" value="true"
+                                           @(Model.IsActive ? "checked" : "") />
+                                    <label class="custom-control-label" for="IsActive">Active (visible on homepage)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success mr-2">
+                            <i class="fas fa-save mr-1"></i>Save FAQ
+                        </button>
+                        <a href="/Faq/Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left mr-1"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+function previewImage(input) {
+    const wrap = document.getElementById('imagePreviewWrap');
+    const preview = document.getElementById('imagePreview');
+    const label = document.querySelector('.custom-file-label');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            wrap.style.display = 'block';
+            label.textContent = input.files[0].name;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>

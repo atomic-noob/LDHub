@@ -1,0 +1,203 @@
+@model List<LDHub.Models.FreeTraining>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Free Trainings";
+    var now = DateTime.Now;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+        .training-photo {
+            width: 60px; height: 60px; object-fit: cover;
+            border-radius: 8px; border: 2px solid #dee2e6;
+        }
+        .no-photo {
+            width: 60px; height: 60px; border-radius: 8px;
+            background: linear-gradient(135deg,#9BEC00,#4BB543);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.5rem;
+        }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Free Trainings / Webinars</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item active">Free Trainings</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle mr-2"></i>@TempData["Error"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-header success-gradient">
+                <h3 class="card-title">
+                    <i class="fas fa-chalkboard mr-2"></i>Free Trainings List
+                </h3>
+                <div class="card-tools">
+                    <a asp-controller="FreeTrainings" asp-action="Create"
+                       class="btn btn-light btn-sm">
+                        <i class="fas fa-plus mr-1"></i> Add Free Training
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!Model.Any())
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-3x mb-3" style="opacity:.3;"></i>
+                        <h5>No free trainings posted yet.</h5>
+                        <a asp-controller="FreeTrainings" asp-action="Create"
+                           class="btn btn-success mt-2">
+                            <i class="fas fa-plus mr-1"></i> Post First Training
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <table id="freeTrainingsTable" class="table table-bordered table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Photo</th>
+                                <th>Title</th>
+                                <th>Region</th>
+                                <th>Date</th>
+                                <th>Registration Link</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in Model)
+                            {
+                                var isExpired = t.EndDate.HasValue && t.EndDate < now;
+                                var isActive  = t.IsActive && !isExpired;
+
+                                <tr>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(t.Photo))
+                                        {
+                                            <img src="@t.Photo" class="training-photo" />
+                                        }
+                                        else
+                                        {
+                                            <div class="no-photo">
+                                                <i class="fas fa-chalkboard"></i>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong>@t.Title</strong>
+                                        @if (!string.IsNullOrEmpty(t.Location))
+                                        {
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-map-marker-alt mr-1"></i>@t.Location
+                                            </small>
+                                        }
+                                    </td>
+                                    <td>@(t.Region?.RegionName ?? "—")</td>
+                                    <td>
+                                        <small>
+                                            @(t.StartDate?.ToString("MMM dd, yyyy") ?? "TBD") —
+                                            @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(t.RegistrationLink))
+                                        {
+                                            <a href="@t.RegistrationLink" target="_blank"
+                                               class="btn btn-xs btn-outline-primary">
+                                                <i class="fas fa-external-link-alt mr-1"></i> Link
+                                            </a>
+                                        }
+                                        else { <span class="text-muted">—</span> }
+                                    </td>
+                                    <td>
+                                        @if (isExpired)
+                                        {
+                                            <span class="badge badge-secondary">Expired</span>
+                                        }
+                                        else if (isActive)
+                                        {
+                                            <span class="badge badge-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-warning">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a asp-controller="FreeTrainings" asp-action="Edit"
+                                           asp-route-id="@t.Id"
+                                           class="btn btn-xs btn-info">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+
+                                        <form asp-controller="FreeTrainings"
+                                              asp-action="ToggleActive"
+                                              method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@t.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-xs @(t.IsActive ? "btn-warning" : "btn-success")"
+                                                    title="@(t.IsActive ? "Deactivate" : "Activate")">
+                                                <i class="fas fa-@(t.IsActive ? "eye-slash" : "eye")"></i>
+                                            </button>
+                                        </form>
+
+                                        <form asp-controller="FreeTrainings"
+                                              asp-action="Delete"
+                                              method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@t.Id" />
+                                            <button type="submit" class="btn btn-xs btn-danger"
+                                                    onclick="return confirm('Delete this training?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script>
+$(function () {
+    $('#freeTrainingsTable').DataTable({ responsive: true, autoWidth: false, order: [[3, 'desc']] });
+});
+</script>
+}

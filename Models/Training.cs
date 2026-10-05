@@ -19,8 +19,12 @@ namespace LDHub.Models
         [Required]
         [Column("training_title")]
         [MaxLength(255)]
-        public string TrainingTitle { get; set; } = string.Empty;
 
+        public string TrainingTitle { get; set; } = string.Empty;
+        [Column("certificate_path")]
+        [MaxLength(500)]
+
+        public string? CertificatePath { get; set; }
         [Column("description")]
         public string? Description { get; set; }
 

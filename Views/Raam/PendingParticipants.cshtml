@@ -1,7 +1,7 @@
 @model List<LDHub.Models.PendingParticipant>
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Pending Participants";
+    ViewData["Title"] = "Pending Employees";
 }
 
 @section Styles {
@@ -17,7 +17,7 @@
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">Pending Participants</h1></div>
+            <div class="col-sm-6"><h1 class="m-0">Pending Employees</h1></div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item">
@@ -25,7 +25,7 @@
                             <i class="fas fa-home"></i> Dashboard
                         </a>
                     </li>
-                    <li class="breadcrumb-item active">Pending Participants</li>
+                    <li class="breadcrumb-item active">Pending Employees</li>
                 </ol>
             </div>
         </div>
@@ -66,7 +66,7 @@
         <div class="card shadow-sm">
             <div class="card-header success-gradient">
                 <h3 class="card-title">
-                    <i class="fas fa-user-clock mr-2"></i>Participants Awaiting Approval
+                    <i class="fas fa-user-clock mr-2"></i>Employees Awaiting Approval
                 </h3>
             </div>
             <div class="card-body">
@@ -74,7 +74,7 @@
                 {
                     <div class="text-center text-muted py-5">
                         <i class="fas fa-check-circle fa-3x mb-3" style="color:#4BB543; opacity:.5;"></i>
-                        <h5>No pending participants!</h5>
+                        <h5>No pending employees!</h5>
                         <p>All registrations in your region have been processed.</p>
                     </div>
                 }
@@ -172,7 +172,7 @@
         <div class="modal-content">
             <div class="modal-header success-gradient">
                 <h5 class="modal-title">
-                    <i class="fas fa-user mr-2"></i>Participant Details
+                    <i class="fas fa-user mr-2"></i>Employee Details
                 </h5>
                 <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>
@@ -212,7 +212,7 @@
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title">
-                    <i class="fas fa-times-circle mr-2"></i>Reject Participant
+                    <i class="fas fa-times-circle mr-2"></i>Reject Employee
                 </h5>
                 <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>

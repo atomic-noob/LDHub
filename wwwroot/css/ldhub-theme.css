@@ -1,0 +1,255 @@
+/*
+ * ldhub-theme.css
+ * Global theme — clean white + green-tinted shadows
+ * Place in: wwwroot/css/ldhub-theme.css
+ * Link in _Layout.cshtml after adminlte.min.css:
+ * <link rel="stylesheet" href="~/css/ldhub-theme.css" />
+ */
+
+/* ── Page background ─────────────────────────────────────── */
+body,
+.content-wrapper {
+    background: #f7f9f7 !important;
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+    border: none !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 12px rgba(17, 117, 84, 0.08) !important;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.card:hover {
+    box-shadow: 0 6px 20px rgba(17, 117, 84, 0.13) !important;
+    transform: translateY(-2px);
+}
+
+/* ── Card headers — white to mint green fade, black text ─── */
+.card-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f0fff4 100%) !important;
+    border-bottom: 1px solid #e8f5e9 !important;
+    border-radius: 10px 10px 0 0 !important;
+    color: #212529 !important;
+    font-weight: 700;
+    padding: 14px 18px;
+    box-shadow: 0 2px 8px rgba(17, 117, 84, 0.08);
+}
+.card-header .card-title {
+    color: #212529 !important;
+    font-weight: 700;
+}
+
+/* ── Keep success-gradient headers green ─────────────────── */
+.card-header.success-gradient,
+.card-header.bg-success {
+    background: linear-gradient(225deg, #9BEC00, #4BB543, #117554) !important;
+    border-bottom: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(17, 117, 84, 0.25) !important;
+}
+.card-header.success-gradient .card-title,
+.card-header.bg-success .card-title {
+    color: #ffffff !important;
+}
+.card-header.text-white {
+    color: #ffffff !important;
+}
+.card-header.text-white .card-title {
+    color: #ffffff !important;
+}
+
+/* ── KPI Cards ───────────────────────────────────────────── */
+.kpi-card {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 4px 16px rgba(17, 117, 84, 0.10),
+                0 1px 4px rgba(250, 204, 21, 0.08) !important;
+    border-left: 4px solid #2d7a4f;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    transition: box-shadow 0.25s, transform 0.25s;
+}
+.kpi-card:hover {
+    box-shadow: 0 8px 24px rgba(17, 117, 84, 0.15),
+                0 2px 8px rgba(250, 204, 21, 0.12) !important;
+    transform: translateY(-2px);
+}
+.kpi-card .num   { font-size: 2.2rem; font-weight: 800; line-height: 1; color: #1b3a2d; }
+.kpi-card .label { font-size: .82rem; color: #6c757d; margin-top: 4px; }
+.kpi-card .icon  { font-size: 2.8rem; color: #2d7a4f; opacity: .2; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn-success {
+    background: #117554 !important;
+    border-color: #117554 !important;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-success:hover {
+    background: #0d5c41 !important;
+    border-color: #0d5c41 !important;
+    box-shadow: 0 4px 12px rgba(17, 117, 84, 0.3);
+    transform: translateY(-1px);
+}
+.btn-outline-success {
+    color: #117554 !important;
+    border-color: #117554 !important;
+    border-radius: 6px;
+    font-weight: 600;
+}
+.btn-outline-success:hover {
+    background: #117554 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(17, 117, 84, 0.25);
+}
+.btn-primary  { border-radius: 6px; font-weight: 600; transition: all 0.2s ease; }
+.btn-secondary { border-radius: 6px; font-weight: 600; }
+.btn-sm { border-radius: 5px; }
+.btn-xs { border-radius: 4px; }
+
+/* ── Tables ──────────────────────────────────────────────── */
+.table thead th {
+    background: #ffffff !important;
+    color: #117554 !important;
+    border-bottom: 2px solid #4BB543 !important;
+    font-weight: 700;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: 12px 10px;
+}
+.table thead th:first-child { border-radius: 8px 0 0 0; }
+.table thead th:last-child  { border-radius: 0 8px 0 0; }
+
+.table-hover tbody tr:hover {
+    background: #f0fff4 !important;
+}
+.table td, .table th {
+    border-color: #e8f5e9 !important;
+    vertical-align: middle !important;
+}
+
+/* ── Badges ──────────────────────────────────────────────── */
+.badge-success { background: #117554 !important; }
+.badge-info    { background: #0984e3 !important; }
+
+/* ── Forms ───────────────────────────────────────────────── */
+.form-control {
+    border: 1px solid #d0e8d8;
+    border-radius: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-control:focus {
+    border-color: #117554;
+    box-shadow: 0 0 0 3px rgba(17, 117, 84, 0.12);
+    outline: none;
+}
+
+/* ── Alerts ──────────────────────────────────────────────── */
+.alert-success {
+    background: #f0fff4;
+    border-color: #c8e6c9;
+    color: #155724;
+    border-radius: 8px;
+}
+.alert-warning { border-radius: 8px; }
+.alert-danger  { border-radius: 8px; }
+.alert-info    { border-radius: 8px; }
+
+/* ── Progress bars ───────────────────────────────────────── */
+.progress {
+    border-radius: 20px;
+    background: #e8f5e9;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.05);
+}
+.progress-bar { border-radius: 20px; }
+.bg-success {
+    background: linear-gradient(90deg, #4BB543, #117554) !important;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.main-sidebar {
+    box-shadow: 2px 0 15px rgba(17, 117, 84, 0.15) !important;
+}
+
+/* ── Navbar ──────────────────────────────────────────────── */
+.main-header.navbar {
+    background: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(17, 117, 84, 0.1) !important;
+    border-bottom: 1px solid #e8f5e9;
+}
+
+/* ── Small boxes ─────────────────────────────────────────── */
+.small-box {
+    border-radius: 10px !important;
+    box-shadow: 0 4px 15px rgba(17, 117, 84, 0.12) !important;
+}
+
+/* ── Breadcrumb ──────────────────────────────────────────── */
+.breadcrumb {
+    background: transparent;
+    font-size: .85rem;
+}
+.breadcrumb-item.active { color: #117554; }
+
+/* ── Content header ──────────────────────────────────────── */
+.content-header h1 {
+    color: #1b3a2d;
+    font-weight: 800;
+}
+
+/* ── Modal headers ───────────────────────────────────────── */
+.modal-header {
+    background: linear-gradient(135deg, #ffffff, #f0fff4);
+    border-bottom: 2px solid #e8f5e9;
+}
+.modal-title {
+    color: #1b3a2d;
+    font-weight: 700;
+}
+.modal-footer {
+    border-top: 1px solid #e8f5e9;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.main-footer {
+    background: #ffffff;
+    border-top: 1px solid #e8f5e9;
+    color: #6c757d;
+    font-size: .85rem;
+}
+.main-footer a { color: #117554; }
+
+/* ── Dropdown menus ──────────────────────────────────────── */
+.dropdown-menu {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(17, 117, 84, 0.15);
+}
+.dropdown-item:hover {
+    background: #f0fff4;
+    color: #117554;
+}
+
+/* ── Select2 ─────────────────────────────────────────────── */
+.select2-container--bootstrap4 .select2-selection {
+    border-color: #d0e8d8 !important;
+    border-radius: 6px !important;
+}
+.select2-container--bootstrap4.select2-container--focus .select2-selection {
+    border-color: #117554 !important;
+    box-shadow: 0 0 0 3px rgba(17, 117, 84, 0.12) !important;
+}
+
+/* ── Preloader ───────────────────────────────────────────── */
+.preloader { background: #ffffff; }
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f0fff4; }
+::-webkit-scrollbar-thumb { background: #a5d6a7; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #117554; }

@@ -14,11 +14,13 @@
     <link rel="stylesheet" href="~/plugins/select2/css/select2.min.css" />
     <link rel="stylesheet" href="~/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css" />
     <link rel="stylesheet" href="~/plugins/sweetalert2/sweetalert2.min.css" />
+    <link rel="stylesheet" href="~/dist/css/adminlte.min.css" />
+<link rel="stylesheet" href="~/css/ldhub-theme.css" />   @* ← add this *@
 
     @* Extra styles added by individual views *@
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="hold-transition sidebar-mini">
+<body class="hold-transition sidebar-mini layout-fixed">
 
 @* AdminLTE preloader *@
 <div class="preloader flex-column justify-content-center align-items-center">

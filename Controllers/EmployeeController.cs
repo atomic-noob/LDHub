@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Models.ViewModels;
 
 namespace LDHub.Controllers;
 
@@ -65,12 +66,19 @@ public class EmployeeController : Controller
         }
         if (anyUpdated) await _db.SaveChangesAsync();
 
-        // ── Get current active enrollment ──
-        var currentEnrollment = enrollments
-            .Where(tp => tp.CompletionStatus != "Completed"
-                    && (tp.Training?.EndDate == null || tp.Training.EndDate >= now))
-            .OrderByDescending(tp => tp.Training?.StartDate)
-            .FirstOrDefault();
+       // ── Get current active enrollment (include upcoming ones too) ──
+                var currentEnrollment = enrollments
+                    .Where(tp => tp.CompletionStatus != "Completed"
+                            && (tp.Training?.EndDate == null || tp.Training.EndDate >= now))
+                    .OrderBy(tp => tp.Training?.StartDate)
+                    .FirstOrDefault();
+
+                // ── Flag if training hasn't started yet ──
+                var trainingNotStarted = currentEnrollment != null
+                    && currentEnrollment.Training?.StartDate != null
+                    && currentEnrollment.Training.StartDate > now;
+
+                ViewBag.TrainingNotStarted = trainingNotStarted;
 
         // ── Get modules for current training ──
         var modules = new List<TrainingModule>();
@@ -123,6 +131,21 @@ ViewBag.CompletedModuleIds = completedModuleIds;
             postTestAttempts = postAttempts.Count;
             postTestPassed   = postAttempts.Any(a => a.IsPassed);
         }
+        // ── Check evaluation status ──
+bool evalDone = false;
+bool hasEvalQuestions = false;
+if (currentEnrollment != null)
+{
+    evalDone = await _db.EvaluationResponses
+        .AnyAsync(r => r.UserId == userId 
+                    && r.TrainingId == currentEnrollment.TrainingId);
+
+    hasEvalQuestions = await _db.EvaluationQuestions
+        .AnyAsync(q => q.TrainingId == currentEnrollment.TrainingId);
+}
+
+ViewBag.EvalDone         = evalDone;
+ViewBag.HasEvalQuestions = hasEvalQuestions;
 
         ViewBag.TotalEnrolled   = enrollments.Count;
         ViewBag.TotalCompleted  = enrollments.Count(tp => tp.CompletionStatus == "Completed");
@@ -213,6 +236,18 @@ ViewBag.CompletedModuleIds = completedModuleIds;
             TempData["Error"] = "Please complete the pre-test first.";
             return RedirectToAction("Dashboard");
         }
+        // Check if evaluation is completed
+var evaluationDone = await _db.EvaluationResponses
+    .AnyAsync(r => r.UserId == userId && r.TrainingId == trainingId);
+
+var hasQuestions = await _db.EvaluationQuestions
+    .AnyAsync(q => q.TrainingId == trainingId);
+
+if (hasQuestions && !evaluationDone)
+{
+    TempData["Info"] = "Please complete the evaluation first before taking the Post-Test.";
+    return RedirectToAction("Take", "Evaluation", new { trainingId });
+}
 
         var training = await _db.Trainings.FindAsync(trainingId);
         if (training == null) return NotFound();
@@ -349,10 +384,11 @@ ViewBag.CompletedModuleIds = completedModuleIds;
     // ── GET: /Employee/Profile ────────────────────────────────────
     public async Task<IActionResult> Profile()
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+        var userId = GetUserId();
+         if (userId == 0) return RedirectToAction("Login", "Home");
         SetViewBag();
 
-        var userId = GetUserId();
+        
 
         var user = await _db.Users
             .Include(u => u.Region)
@@ -401,22 +437,80 @@ ViewBag.CompletedModuleIds = completedModuleIds;
         return RedirectToAction("Profile");
     }
 
-    // ── GET: /Employee/Grade ──────────────────────────────────────
-    public async Task<IActionResult> Grade()
+    // ── GET: /Employee/Grade ─────────────────────────────────────
+// REPLACE the existing Grade action in EmployeeController.cs with this:
+
+public async Task<IActionResult> Grade()
+{
+    if (!IsEmployee()) return RedirectToAction("Login", "Home");
+    SetViewBag();
+
+    var userId = GetUserId();
+
+    var enrollments = await _db.TrainingParticipants
+        .Include(tp => tp.Training)
+        .Where(tp => tp.UserId == userId)
+        .OrderByDescending(tp => tp.Training.StartDate)
+        .ToListAsync();
+
+    var trainingIds = enrollments.Select(tp => tp.TrainingId).ToList();
+
+    var attempts = await _db.ParticipantTestAttempts
+        .Where(a => a.UserId == userId && trainingIds.Contains(a.TrainingId))
+        .ToListAsync();
+
+    var quizAttempts = await _db.QuizAttempts
+        .Include(qa => qa.Quiz)
+        .Include(qa => qa.Module)
+        .Where(qa => qa.UserId == userId && trainingIds.Contains(qa.TrainingId))
+        .ToListAsync();
+
+    var questions = await _db.Questions
+        .Where(q => trainingIds.Contains(q.TrainingId))
+        .ToListAsync();
+
+    var gradeRows = enrollments.Select(tp =>
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
-        SetViewBag();
+        var trainingId = tp.TrainingId;
 
-        var userId = GetUserId();
+        var preTest = attempts
+            .Where(a => a.TrainingId == trainingId && a.TestType == "PreTest")
+            .OrderByDescending(a => a.TakenAt)
+            .FirstOrDefault();
 
-        var enrollments = await _db.TrainingParticipants
-            .Include(tp => tp.Training)
-            .Where(tp => tp.UserId == userId)
-            .OrderByDescending(tp => tp.EnrollmentDate)
-            .ToListAsync();
+        var postTests = attempts
+            .Where(a => a.TrainingId == trainingId && a.TestType == "PostTest")
+            .OrderByDescending(a => a.Score)
+            .ToList();
 
-        return View("~/Views/Employee/Grade.cshtml", enrollments);
-    }
+        var bestPost  = postTests.FirstOrDefault();
+        var totalPoints = questions
+            .Where(q => q.TrainingId == trainingId)
+            .Sum(q => q.Points);
+
+        return new EmployeeGradeViewModel
+        {
+            Training         = tp.Training,
+            TrainingId       = trainingId,
+            PreTestScore     = preTest?.Score,
+            PostTestScore    = bestPost?.Score,
+            PostTestPassed   = bestPost?.IsPassed ?? false,
+            PostAttempts     = postTests.Count,
+            TotalPoints      = totalPoints,
+            CompletionStatus = tp.CompletionStatus,
+            EnrollmentDate   = tp.EnrollmentDate,
+            QuizAttempts     = quizAttempts
+                .Where(qa => qa.TrainingId == trainingId)
+                .ToList()
+        };
+    }).ToList();
+
+    ViewBag.GradeRows = gradeRows;
+    return View("~/Views/Employee/Grade.cshtml");
+}
+
+
+
     // ── GET: /Employee/TakeQuiz ───────────────────────────────────
 public async Task<IActionResult> TakeQuiz(int moduleId)
 {
@@ -478,33 +572,36 @@ public async Task<IActionResult> SubmitQuiz(int moduleId, int quizId,
     bool passed         = scorePercentage >= quiz.PassingScore;
  
     // ── Save to database ──
-    var existing = await _db.QuizAttempts
-        .FirstOrDefaultAsync(qa => qa.UserId == userId && qa.ModuleId == moduleId);
- 
-    if (existing != null)
+   var existing = await _db.QuizAttempts
+    .FirstOrDefaultAsync(qa => qa.UserId == userId && qa.ModuleId == moduleId);
+
+if (existing != null)
+{
+    // Only update if new score is better
+    if (scorePercentage >= existing.ScorePercentage)
     {
-        // Overwrite previous attempt (quiz can only be taken once per module anyway)
         existing.CorrectCount    = correct;
         existing.TotalQuestions  = total;
         existing.ScorePercentage = scorePercentage;
         existing.IsPassed        = passed;
         existing.TakenAt         = DateTime.UtcNow;
     }
-    else
+}
+else
+{
+    _db.QuizAttempts.Add(new QuizAttempt
     {
-        _db.QuizAttempts.Add(new QuizAttempt
-        {
-            UserId          = userId,
-            ModuleId        = moduleId,
-            QuizId          = quizId,
-            TrainingId      = trainingId,
-            CorrectCount    = correct,
-            TotalQuestions  = total,
-            ScorePercentage = scorePercentage,
-            IsPassed        = passed,
-            TakenAt         = DateTime.UtcNow
-        });
-    }
+        UserId          = userId,
+        ModuleId        = moduleId,
+        QuizId          = quizId,
+        TrainingId      = trainingId,
+        CorrectCount    = correct,
+        TotalQuestions  = total,
+        ScorePercentage = scorePercentage,
+        IsPassed        = passed,
+        TakenAt         = DateTime.UtcNow
+    });
+}
  
    await _db.SaveChangesAsync();
 

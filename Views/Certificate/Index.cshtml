@@ -1,0 +1,200 @@
+@model List<LDHub.Models.Training>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Certificates";
+    var now = DateTime.Now;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
+    <style>
+        body { background: #f4fdf6; }
+        .content-wrapper { background: linear-gradient(180deg,#fff 0%,#f4fff7 100%); }
+        .success-gradient { background: linear-gradient(225deg,#9BEC00,#4BB543,#117554); color:white; }
+        .cert-uploaded { background: #f0fff4; border-left: 4px solid #4BB543; }
+        .cert-missing  { background: #fff8f0; border-left: 4px solid #e17055; }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Certificates</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item active">Certificates</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle mr-2"></i>@TempData["Success"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle mr-2"></i>@TempData["Error"]
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        }
+
+        @* Summary *@
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="info-box">
+                    <span class="info-box-icon bg-success"><i class="fas fa-certificate"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">With Certificate</span>
+                        <span class="info-box-number">@Model.Count(t => !string.IsNullOrEmpty(t.CertificatePath))</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-box">
+                    <span class="info-box-icon bg-warning"><i class="fas fa-exclamation-triangle"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Missing Certificate</span>
+                        <span class="info-box-number">@Model.Count(t => string.IsNullOrEmpty(t.CertificatePath))</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-box">
+                    <span class="info-box-icon bg-primary"><i class="fas fa-book"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Trainings</span>
+                        <span class="info-box-number">@Model.Count</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header success-gradient">
+                <h3 class="card-title">
+                    <i class="fas fa-certificate mr-2"></i>Training Certificates
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.Any())
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-3x mb-3" style="opacity:.3;"></i>
+                        <h5>No trainings found.</h5>
+                    </div>
+                }
+                else
+                {
+                    <table id="certTable" class="table table-bordered table-hover mb-0">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Training</th>
+                                <th>Region</th>
+                                <th>Date</th>
+                                <th>Participants</th>
+                                <th>Certificate</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int i = 1; }
+                            @foreach (var t in Model)
+                            {
+                                var hasCert = !string.IsNullOrEmpty(t.CertificatePath);
+                                var rowClass = hasCert ? "cert-uploaded" : "cert-missing";
+
+                                <tr class="@rowClass">
+                                    <td>@i</td>
+                                    <td>
+                                        <strong>@t.TrainingTitle</strong>
+                                        <small class="text-muted d-block">@t.TrainingCode</small>
+                                    </td>
+                                    <td><small>@(t.Region?.RegionName ?? "—")</small></td>
+                                    <td>
+                                        <small>
+                                            @(t.StartDate?.ToString("MMM dd") ?? "TBD") —
+                                            @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-light border">
+                                            @t.TrainingParticipants.Count
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (hasCert)
+                                        {
+                                            <a href="@t.CertificatePath" target="_blank"
+                                               class="btn btn-sm btn-success">
+                                                <i class="fas fa-file-pdf mr-1"></i> View
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-warning">Not uploaded</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @* Upload Form *@
+                                        <form asp-controller="Certificate" asp-action="Upload"
+                                              method="post" enctype="multipart/form-data"
+                                              class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="trainingId" value="@t.TrainingId" />
+                                            <div class="input-group input-group-sm" style="width:220px;">
+                                                <input type="file" name="certificate"
+                                                       class="form-control-file form-control form-control-sm"
+                                                       accept=".pdf,.jpg,.jpeg,.png"
+                                                       style="font-size:.75rem;" />
+                                                <div class="input-group-append">
+                                                    <button type="submit" class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-upload"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+
+                                        @* Remove Button *@
+                                        @if (hasCert)
+                                        {
+                                            <form asp-controller="Certificate" asp-action="Remove"
+                                                  method="post" style="display:inline;" class="mt-1">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="trainingId" value="@t.TrainingId" />
+                                                <button type="submit" class="btn btn-sm btn-danger mt-1"
+                                                        onclick="return confirm('Remove certificate for @t.TrainingTitle?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                                i++;
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script>
+$(function () {
+    $('#certTable').DataTable({ responsive: true, autoWidth: false, order: [[3, 'desc']] });
+});
+</script>
+}

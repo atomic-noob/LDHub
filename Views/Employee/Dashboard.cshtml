@@ -17,12 +17,13 @@
 @section Styles {
     <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
     <style>
-        body { background: #f4fdf6; }
-        .content-wrapper { background: linear-gradient(180deg, #ffffff 0%, #f4fff7 100%); }
         .module-card { margin-bottom: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
         .dropdown-btn {
-            background: linear-gradient(225deg, #9BEC00, #4BB543, #117554);
-            color: white; padding: 10px 15px; border: none; cursor: pointer;
+            background: #ffffff;
+            color: #117554;
+            border: 1px solid #4BB543;
+            padding: 10px 15px; cursor: pointer;
             width: 100%; text-align: left; border-radius: 5px 5px 0 0;
             font-weight: bold; display: flex; justify-content: space-between; align-items: center;
         }
@@ -30,8 +31,12 @@
             background: #e9ecef; color: #6c757d;
             border: 1px solid #dee2e6; cursor: not-allowed;
         }
-        .dropdown-btn.completed { background: linear-gradient(225deg, #4BB543, #117554); }
-        .dropdown-btn .check-indicator { font-size: 1rem; margin-right: 8px; display: none; }
+        .dropdown-btn.completed {
+            background: #f4fdf6;
+            color: #117554;
+            border: 1px solid #4BB543;
+        }
+        .dropdown-btn .check-indicator { font-size: 1rem; margin-right: 8px; display: none; color: #4BB543; }
         .dropdown-btn.completed .check-indicator { display: inline; }
         .dropdown-container {
             display: none; background: #fff; padding: 15px;
@@ -40,33 +45,42 @@
         }
         .dropdown-btn .fa-caret-down { transition: transform 0.3s ease; }
         .dropdown-btn.active .fa-caret-down { transform: rotate(180deg); }
-        .small-box { border-radius: 0.375rem; box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2); display: block; margin-bottom: 20px; position: relative; color: #fff; }
+
+        .small-box {
+            border-radius: 0.375rem;
+            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+            display: block; margin-bottom: 20px; position: relative;
+            background: #ffffff; color: #117554;
+        }
         .small-box > .inner { padding: 10px; }
-        .small-box h3 { font-size: 2.2rem; font-weight: 700; margin: 0 0 10px; }
-        .small-box p  { font-size: 1rem; margin: 0 0 10px; }
-        .small-box .icon { color: rgba(255,255,255,.3); position: absolute; top: -10px; right: 15px; font-size: 70px; }
-        .success-gradient { background: linear-gradient(225deg, #9BEC00, #4BB543, #117554); color: white; }
+        .small-box h3 { font-size: 2.2rem; font-weight: 700; margin: 0 0 10px; color: #117554; }
+        .small-box p  { font-size: 1rem; margin: 0 0 10px; color: #117554; }
+        .small-box .icon { color: rgba(17,117,84,.15); position: absolute; top: -10px; right: 15px; font-size: 70px; }
+
         .status-icon { font-size: 1.2rem; }
         .status-icon.done    { color: #4BB543; }
         .status-icon.pending { color: #dee2e6; }
+
         .topic-item {
             padding: 10px 15px; border: 1px solid #dee2e6; border-radius: 6px;
             margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
             display: flex; align-items: center; justify-content: space-between;
         }
-        .topic-item:hover  { background: #f4fdf6; border-color: #4BB543; }
+        .topic-item:hover   { background: #f4fdf6; border-color: #4BB543; }
         .topic-item.checked { background: #f4fdf6; border-color: #4BB543; }
         .topic-item .topic-check { color: #dee2e6; font-size: 1.2rem; transition: color 0.2s; }
         .topic-item.checked .topic-check { color: #4BB543; }
-        /* Congrats banner */
+
         .congrats-banner {
-            background: linear-gradient(135deg, #9BEC00, #4BB543, #117554);
-            color: white; border-radius: 10px; padding: 20px 25px;
-            margin-bottom: 20px; box-shadow: 0 4px 15px rgba(75,181,67,.3);
+            background: #ffffff;
+            color: #117554;
+            border: 2px solid #4BB543;
+            border-radius: 10px; padding: 20px 25px;
+            margin-bottom: 20px; box-shadow: 0 4px 15px rgba(75,181,67,.15);
             text-align: center;
         }
-        .congrats-banner h4 { font-weight: bold; margin-bottom: 5px; }
-        /* Quiz done state */
+        .congrats-banner h4 { font-weight: bold; margin-bottom: 5px; color: #117554; }
+
         .quiz-done-badge {
             display: inline-block;
             background: #e8f5e9; color: #2e7d32;
@@ -76,18 +90,8 @@
     </style>
 }
 
-
 <div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">Dashboard</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item active">Dashboard</li>
-                </ol>
-            </div>
-        </div>
-    </div>
+   
 </div>
 
 <section class="content">
@@ -100,7 +104,7 @@
                 @if (enrollment == null)
                 {
                     <div class="card shadow-sm">
-                        <div class="card-header text-center success-gradient">
+                        <div class="card-header text-center ">
                             <h4 class="mb-0"><i class="fas fa-graduation-cap mr-2"></i> My Training</h4>
                         </div>
                         <div class="card-body text-center py-5">
@@ -112,7 +116,7 @@
                             {
                                 <hr class="mt-4" />
                                 <p class="mb-0">
-                                    <i class="fas fa-check-circle text-success mr-1"></i>
+                                    <i class="fas fa-check-circle "></i>
                                     You have completed
                                     <strong class="text-success">@ViewBag.TotalCompleted</strong>
                                     training@(ViewBag.TotalCompleted > 1 ? "s" : "") so far. Great work!
@@ -124,6 +128,46 @@
                         #pendingLessons-card, #pendingQuizzes-card, #countdown-card { display: none; }
                     </style>
                 }
+                else if (ViewBag.TrainingNotStarted == true)
+                    {
+                        <div class="card shadow-sm" style="border: 2px solid #117554; border-radius: 12px; overflow:hidden;">
+    <div class="card-header text-center text-white"
+         style="background: linear-gradient(135deg, #0a4a32, #117554);">
+        <h4 class="mb-0">
+            <i class="fas fa-graduation-cap mr-2"></i>My Training
+        </h4>
+    </div>
+    <div class="card-body text-center py-5"
+         style="background: linear-gradient(180deg, #f0fff4, #ffffff);">
+
+        <div class="mb-3">
+            <span style="display:inline-flex; align-items:center; justify-content:center;
+                         width:90px; height:90px; border-radius:50%;
+                         background: linear-gradient(135deg, #0a4a32, #117554);
+                         box-shadow: 0 6px 20px rgba(17,117,84,.35);">
+                <i class="fas fa-lock fa-2x text-white"></i>
+            </span>
+        </div>
+
+        <h4 class="font-weight-bold mb-2" style="color:#0a4a32;">
+            Training Not Yet Started
+        </h4>
+        <p class="text-muted mb-1">
+            Your training <strong style="color:#117554;">@enrollment.Training?.TrainingTitle</strong> is locked until the start date.
+        </p>
+        <hr style="max-width:300px; border-color:#c8e6c9;" />
+        <p class="mb-0" style="color:#117554; font-weight:600;">
+            <i class="fas fa-calendar-alt mr-2"></i>
+            Starts on: <strong>@enrollment.Training?.StartDate?.ToString("MMMM d, yyyy")</strong>
+        </p>
+        <small class="text-muted mt-2 d-block">
+            <i class="fas fa-info-circle mr-1"></i>
+            You will be able to access this training on the start date.
+        </small>
+
+    </div>
+</div>
+                    }
                 else
                 {
                     @* ── Congratulations Banner ── *@
@@ -329,9 +373,9 @@
                                                                         <span class="quiz-done-badge mr-2">
                                                                             <i class="fas fa-check mr-1"></i>Completed
                                                                         </span>
-                                                                        <a href="@Url.Action("QuizResult", "Employee", new { moduleId = module.ModuleId })"
-                                                                           class="btn btn-sm btn-outline-success"
-                                                                           style="border-radius:20px;">
+                                                                      <a href="@Url.Action("QuizResultByModule", "Employee", new { moduleId = module.ModuleId })"
+                                                                        class="btn btn-sm btn-outline-success"
+                                                                        style="border-radius:20px;">
                                                                             <i class="fas fa-poll mr-1"></i>View Score
                                                                         </a>
                                                                     }
@@ -382,6 +426,8 @@
                                 }
                             }
                             @* ── Step 3: Post-Test ── *@
+
+
 @if (preTestTaken)
 {
     var postTestTaken    = ViewBag.PostTestTaken    as bool? ?? false;
@@ -458,7 +504,7 @@
             @* ── RIGHT COLUMN ── *@
             <div class="col-lg-4">
 
-                <div class="small-box success-gradient shadow-sm">
+                <div class="small-box shadow-sm">
                     <div class="inner">
                         <h3>@ViewBag.CompletedCount</h3>
                         <p>Trainings Completed</p>
@@ -467,7 +513,7 @@
                 </div>
 
                 <div class="card shadow-sm mb-3" id="pendingLessons-card">
-                    <div class="card-header success-gradient">
+                    <div class="card-header ">
                         <strong><i class="fas fa-book-open mr-2"></i>Pending Lectures</strong>
                     </div>
                     <div class="card-body p-2">
@@ -496,7 +542,7 @@
                 </div>
 
                 <div class="card shadow-sm mb-3" id="pendingQuizzes-card">
-                    <div class="card-header success-gradient">
+                    <div class="card-header ">
                         <strong><i class="fas fa-tasks mr-2"></i>Pending Activities &amp; Assessments</strong>
                     </div>
                     <div class="card-body p-2">
@@ -528,7 +574,7 @@
                 </div>
 
                 <div class="card shadow-sm mb-3" id="countdown-card">
-                    <div class="card-header success-gradient">
+                    <div class="card-header ">
                         <strong><i class="fas fa-clock mr-2"></i>Time Remaining</strong>
                     </div>
                     <div class="card-body">

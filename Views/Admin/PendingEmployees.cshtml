@@ -6,17 +6,7 @@
 }
 
 <section class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1>Pending Employees</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="#">Home</a></li>
-                    <li class="breadcrumb-item active">Pending Employees</li>
-                </ol>
-            </div>
-        </div>
-    </div>
+    
 </section>
 
 <section class="content">
@@ -24,23 +14,29 @@
 
         @if (TempData["Success"] != null)
         {
-            <div class="alert alert-success">@TempData["Success"]</div>
+           <div class="alert alert-success alert-dismissible">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    @TempData["Success"]
+</div>
         }
         @if (TempData["Error"] != null)
         {
-            <div class="alert alert-danger">@TempData["Error"]</div>
+           <div class="alert alert-danger alert-dismissible">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    @TempData["Error"]
+</div>
         }
 
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-user-clock mr-2"></i>Pending Employee Approvals
-                    <span class="badge badge-warning ml-2">@Model.Count()</span>
+                    <span class="badge badge-success  ml-2">@Model.Count()</span>
                 </h3>
             </div>
             <div class="card-body">
                 <table class="table table-bordered table-hover">
-                    <thead class="thead-dark">
+                    <thead>
                         <tr>
                             <th>#</th>
                             <th>Name</th>

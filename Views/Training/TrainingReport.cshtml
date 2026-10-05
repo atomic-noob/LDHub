@@ -5,6 +5,10 @@
 
     var trainings  = ViewBag.Trainings as List<LDHub.Models.Training> ?? new List<LDHub.Models.Training>();
     int trainingId = ViewBag.TrainingId ?? 0;
+     var nowTR = DateTime.Now;
+    var ongoingCountTR  = trainings.Count(t => t.StartDate.HasValue && t.EndDate.HasValue && nowTR >= t.StartDate && nowTR <= t.EndDate);
+    var upcomingCountTR = trainings.Count(t => t.StartDate.HasValue && nowTR < t.StartDate);
+    var endedCountTR    = trainings.Count(t => t.EndDate.HasValue && nowTR > t.EndDate);
 }
 
 @section Styles {
@@ -40,6 +44,40 @@
             .badge { border:1px solid #000 !important; color:#000 !important; background:none !important; }
         }
         .print-only { display:none; }
+        .training-card-item {
+    border-radius: 12px;
+    border: 2px solid #dee2e6;
+    background: white;
+    padding: 16px 18px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all .25s;
+    text-decoration: none;
+    display: block;
+    color: inherit;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.training-card-item:hover {
+    border-color: #4BB543;
+    box-shadow: 0 6px 20px rgba(75,181,67,.2);
+    transform: translateY(-2px);
+    color: inherit;
+    text-decoration: none;
+}
+.filter-btn {
+    border-radius: 20px; padding: 5px 16px;
+    font-size: .83rem; margin-right: 6px; margin-bottom: 8px;
+    border: 2px solid transparent; transition: all .2s; cursor: pointer;
+    background: transparent;
+}
+.filter-btn-all      { border-color: #6c757d; color: #6c757d; }
+.filter-btn-all.active      { background: #6c757d !important; color: white !important; }
+.filter-btn-ongoing   { border-color: #4BB543; color: #4BB543; }
+.filter-btn-ongoing.active  { background: #4BB543 !important; color: white !important; }
+.filter-btn-upcoming  { border-color: #0984e3; color: #0984e3; }
+.filter-btn-upcoming.active { background: #0984e3 !important; color: white !important; }
+.filter-btn-ended     { border-color: #adb5bd; color: #adb5bd; }
+.filter-btn-ended.active    { background: #adb5bd !important; color: white !important; }
     </style>
 }
 
@@ -62,50 +100,95 @@
 <section class="content">
     <div class="container-fluid">
 
-        @* Filter *@
-        <div class="card card-outline card-success mb-4 no-print">
-            <div class="card-header success-gradient">
-                <h3 class="card-title"><i class="fas fa-filter mr-2"></i>Select Training</h3>
-            </div>
-            <div class="card-body">
-                <form method="get" asp-controller="Training" asp-action="TrainingReport">
-                    <div class="row align-items-end">
-                        <div class="col-md-8">
-                            <label>Training</label>
-                            <select class="form-control select2-training" name="trainingId">
-                                <option value="">-- Select Training --</option>
-                                @foreach (var t in trainings)
-                                {
-                                    var dates = t.StartDate.HasValue
-                                        ? $"{t.StartDate?.ToString("MMM dd")} – {t.EndDate?.ToString("MMM dd, yyyy")}"
-                                        : "No date set";
-                                    var reg = t.Region?.RegionName ?? "No region";
-                                    <option value="@t.TrainingId"
-                                            selected="@(trainingId == t.TrainingId ? "selected" : null)">
-                                        @t.TrainingTitle — @dates | @reg
-                                    </option>
-                                }
-                            </select>
-                            <small class="text-muted">Includes title, date range, and region for easy filtering.</small>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-success btn-block mt-2">
-                                <i class="fas fa-search mr-1"></i> Generate
-                            </button>
-                        </div>
-                        @if (Model != null)
-                        {
-                            <div class="col-md-2">
-                                <button type="button" class="btn btn-outline-secondary btn-block mt-2"
-                                        onclick="printReport()">
-                                    <i class="fas fa-print mr-1"></i> Print
-                                </button>
-                            </div>
-                        }
-                    </div>
-                </form>
-            </div>
+       @if (Model == null)
+{
+    <div class="card card-outline card-success mb-4 no-print">
+        <div class="card-header success-gradient">
+            <h3 class="card-title"><i class="fas fa-filter mr-2"></i>Select Training</h3>
         </div>
+        <div class="card-body">
+
+            <div class="row mb-3 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="text" id="trainingSearch" class="form-control"
+                               placeholder="Search training..." />
+                        <div class="input-group-append">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <button class="filter-btn filter-btn-all active" data-filter="all">
+                        All <span class="badge badge-secondary ml-1">@trainings.Count</span>
+                    </button>
+                    <button class="filter-btn filter-btn-ongoing" data-filter="Ongoing">
+                        Ongoing <span class="badge badge-success ml-1">@ongoingCountTR</span>
+                    </button>
+                    <button class="filter-btn filter-btn-upcoming" data-filter="Scheduled">
+                        Scheduled <span class="badge badge-info ml-1">@upcomingCountTR</span>
+                    </button>
+                    <button class="filter-btn filter-btn-ended" data-filter="Ended">
+                        Ended <span class="badge badge-secondary ml-1">@endedCountTR</span>
+                    </button>
+                </div>
+            </div>
+
+            @if (!trainings.Any())
+            {
+                <p class="text-muted text-center py-3">No trainings available.</p>
+            }
+            else
+            {
+                <div class="row" id="trainingCardsTR">
+                    @foreach (var t in trainings)
+                    {
+                        var tStatus  = "Scheduled";
+                        var badgeCss = "badge-info";
+                        if (t.StartDate.HasValue && t.EndDate.HasValue)
+                        {
+                            if (nowTR >= t.StartDate && nowTR <= t.EndDate)
+                            { tStatus = "Ongoing"; badgeCss = "badge-success"; }
+                            else if (nowTR > t.EndDate)
+                            { tStatus = "Ended"; badgeCss = "badge-secondary"; }
+                        }
+
+                        <div class="col-md-6 col-lg-4 training-card-col"
+                             data-status="@tStatus"
+                             data-title="@t.TrainingTitle.ToLower()">
+                            <a asp-controller="Training" asp-action="TrainingReport"
+                               asp-route-trainingId="@t.TrainingId"
+                               class="training-card-item">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h6 class="font-weight-bold mb-0" style="font-size:.95rem; line-height:1.3;">
+                                        @t.TrainingTitle
+                                    </h6>
+                                    <span class="badge @badgeCss ml-2">@tStatus</span>
+                                </div>
+                                <small class="text-muted d-block mb-1">
+                                    @(t.StartDate?.ToString("MMM dd") ?? "TBD") –
+                                    @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                </small>
+                                <small class="text-muted"><i class="fas fa-map mr-1"></i>@(t.Region?.RegionName ?? "No region")</small>
+                            </a>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="mb-3 no-print d-flex justify-content-between align-items-center">
+        <a asp-controller="Training" asp-action="TrainingReport" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left mr-1"></i> Change Training
+        </a>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printReport()">
+            <i class="fas fa-print mr-1"></i> Print
+        </button>
+    </div>
+}
 
         @if (Model == null)
         {
@@ -537,14 +620,22 @@ else
 @section Scripts {
 <script src="~/plugins/select2/js/select2.full.min.js"></script>
 <script>
-$(function () {
-    $('.select2-training').select2({
-        theme: 'bootstrap4',
-        placeholder: '-- Select Training --',
-        allowClear: true,
-        width: '100%'
+    $('.filter-btn').on('click', function () {
+    $('.filter-btn').removeClass('active');
+    $(this).addClass('active');
+    var filter = $(this).data('filter');
+    $('.training-card-col').each(function () {
+        $(this).toggle(filter === 'all' || $(this).data('status') === filter);
     });
 });
+
+$('#trainingSearch').on('keyup', function () {
+    var val = $(this).val().toLowerCase();
+    $('.training-card-col').each(function () {
+        $(this).toggle($(this).data('title').indexOf(val) > -1);
+    });
+});
+
 
 function printReport() {
     var h = document.querySelector('.print-only');

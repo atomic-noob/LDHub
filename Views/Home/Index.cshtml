@@ -1,4 +1,4 @@
-﻿@model IEnumerable<LDHub.Models.Announcement>
+@model IEnumerable<LDHub.Models.Announcement>
 @{
     Layout = null;
     ViewData["Title"] = "DENR L&D Hub";
@@ -16,7 +16,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fdf9; }
 
-        /* ── Navbar ── */
+        /* -- Navbar -- */
         .ldhub-navbar {
             background: rgba(17, 117, 84, 0.92);
             backdrop-filter: blur(10px);
@@ -86,7 +86,7 @@
             background: rgba(255,255,255,.15);
         }
 
-        /* ── Hero with fixed background ── */
+        /* -- Hero with fixed background -- */
         .hero {
             height: 100vh;
             min-height: 600px;
@@ -187,7 +187,7 @@
             50% { transform: translateX(-50%) translateY(8px); }
         }
 
-        /* ── Stats Bar ── */
+        /* -- Stats Bar -- */
         .stats-bar {
             background: white;
             box-shadow: 0 4px 20px rgba(0,0,0,.08);
@@ -204,7 +204,7 @@
         }
         .stat-item .stat-label { font-size: .9rem; color: #6c757d; margin-top: 4px; }
 
-        /* ── ANNOUNCEMENTS SECTION (NEW) ── */
+        /* -- ANNOUNCEMENTS SECTION (NEW) -- */
         .announcements-section {
             padding: 80px 20px;
             background: #ffffff;
@@ -257,7 +257,7 @@
             color: white !important;
         }
 
-        /* ── Features ── */
+        /* -- Features -- */
         .features { padding: 80px 20px; background: #f8fdf9; }
         .section-title {
             text-align: center;
@@ -300,7 +300,7 @@
         .feature-card h5 { font-weight: 700; color: #2d2d2d; margin-bottom: 10px; }
         .feature-card p  { color: #6c757d; font-size: .92rem; line-height: 1.7; }
 
-        /* ── How It Works ── */
+        /* -- How It Works -- */
         .how-it-works { padding: 80px 20px; background: white; }
         .step-item { text-align: center; padding: 20px; }
         .step-number {
@@ -321,7 +321,7 @@
             margin-top: 32px;
         }
 
-        /* ── About ── */
+        /* -- About -- */
         .about {
             padding: 80px 20px;
             background: linear-gradient(135deg, #117554, #4BB543);
@@ -341,7 +341,7 @@
             border: 1px solid rgba(255,255,255,.3);
         }
 
-        /* ── CTA ── */
+        /* -- CTA -- */
         .cta { padding: 80px 20px; background: #f8fdf9; text-align: center; }
         .cta h2 { font-size: 2rem; font-weight: 800; color: #117554; margin-bottom: 10px; }
         .cta p  { color: #6c757d; margin-bottom: 30px; font-size: 1rem; }
@@ -380,7 +380,7 @@
             transform: translateY(-3px);
         }
 
-        /* ── Footer ── */
+        /* -- Footer -- */
         footer {
             background: #0d1b2a;
             color: rgba(255,255,255,.65);
@@ -405,18 +405,29 @@
             margin: 18px auto;
         }
 
-        /* ── Responsive ── */
+        /* -- Responsive -- */
         @@media (max-width: 768px) {
             .hero-content h1 { font-size: 2rem; }
             .hero-content p  { font-size: 1rem; }
             .ldhub-navbar .nav-links .btn-register { display: none; }
             .hero { background-attachment: scroll; }
         }
+         .free-training-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(75,181,67,.2) !important;
+        }
+        /* -- FAQ Section -- */
+.faq-section-divider {
+    height: 4px;
+    background: linear-gradient(135deg, #9BEC00, #4BB543, #117554);
+    border: none;
+    margin: 0;
+}
     </style>
 </head>
 <body>
 
-    @* ── NAVBAR ── *@
+    @* -- NAVBAR -- *@
     <nav class="ldhub-navbar" id="mainNavbar">
         <a href="/" class="brand">
             <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" />
@@ -434,7 +445,7 @@
         </div>
     </nav>
 
-    @* ── HERO with fixed background ── *@
+    @* -- HERO with fixed background -- *@
     <section class="hero">
         <div class="hero-content">
             <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" />
@@ -459,7 +470,7 @@
         </div>
     </section>
 
-    @* ── STATS BAR ── *@
+    @* -- STATS BAR -- *@
     <section class="stats-bar">
         <div class="container">
             <div class="row justify-content-center">
@@ -491,7 +502,7 @@
         </div>
     </section>
 
-    @* ── ANNOUNCEMENTS CONTENT DISPLAY SECTION (NEW) ── *@
+    @* -- ANNOUNCEMENTS CONTENT DISPLAY SECTION (NEW) -- *@
     <section class="announcements-section" id="announcements">
         <div class="container">
             <!-- Header Announcement Banner -->
@@ -505,11 +516,7 @@
                             Hi, This is the announcement page for the L&D Hub. Here you can find the latest updates and news regarding the platform. Stay tuned for more information and upcoming features!
                         </p>
                     </div>
-                    <div>
-                        <a href="/Announcements/Announcements" class="btn-manage-announcements">
-                            <i class="fas fa-cog"></i> Manage Feed
-                        </a>
-                    </div>
+                  
                 </div>
             </div>
 
@@ -557,7 +564,7 @@
         </div>
     </section>
 
-    @* ── FEATURES ── *@
+    @* -- FEATURES -- *@
     <section class="features" id="features">
         <div class="container">
             <h2 class="section-title">Platform Features</h2>
@@ -602,14 +609,162 @@
                     <div class="feature-card">
                         <div class="feature-icon"><i class="fas fa-users"></i></div>
                         <h5>Multi-Role Access</h5>
-                        <p>Separate dashboards for Admin, Course Manager, Resource Person, RAAM, and Employee — each tailored to their needs.</p>
+                        <p>Separate dashboards for Admin, Course Manager, Resource Person, RAAM, and Employee � each tailored to their needs.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+    
+@{
+    var freeTrainings = ViewBag.FreeTrainings as List<LDHub.Models.FreeTraining>
+                        ?? new List<LDHub.Models.FreeTraining>();
+}
 
-    @* ── HOW IT WORKS ── *@
+@if (freeTrainings.Any())
+{
+    <!-- Free Trainings / Webinars Section -->
+    <section id="free-trainings" style="padding: 80px 0; background: #f4fdf6;">
+        <div class="container">
+
+            <div class="text-center mb-5">
+                <span style="background:linear-gradient(135deg,#9BEC00,#4BB543); color:white; border-radius:20px; padding:6px 20px; font-size:.85rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;">
+                    Open for Everyone
+                </span>
+                <h2 style="font-size:2.2rem; font-weight:800; color:#117554; margin-top:15px; margin-bottom:10px;">
+                    Free Trainings &amp; Webinars
+                </h2>
+                <p style="color:#6c757d; font-size:1.05rem; max-width:600px; margin:0 auto;">
+                    Join our upcoming free training sessions and webinars hosted by the DENR Training and Development Division.
+                </p>
+            </div>
+
+            <div class="row">
+                @foreach (var t in freeTrainings)
+                {
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="free-training-card"
+                             onclick="showTrainingModal(@t.Id)"
+                             style="cursor:pointer; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.08); transition:all .3s; background:white; height:100%;">
+
+                            @* Photo *@
+                            @if (!string.IsNullOrEmpty(t.Photo))
+                            {
+                                <img src="@t.Photo" alt="@t.Title"
+                                     style="width:100%; height:200px; object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <div style="width:100%; height:200px; background:linear-gradient(135deg,#117554,#4BB543); display:flex; align-items:center; justify-content:center;">
+                                    <i class="fas fa-chalkboard fa-4x" style="color:rgba(255,255,255,.4);"></i>
+                                </div>
+                            }
+
+                            @* Card Body *@
+                            <div style="padding:20px;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                                    <span style="background:#e8f5e9; color:#117554; border-radius:20px; padding:3px 12px; font-size:.75rem; font-weight:700;">
+                                        FREE
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(t.Region?.RegionName))
+                                    {
+                                        <span style="color:#6c757d; font-size:.78rem;">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>@t.Region.RegionName
+                                        </span>
+                                    }
+                                </div>
+                                <h5 style="font-weight:700; color:#2d3436; margin-bottom:8px; line-height:1.3;">@t.Title</h5>
+                                @if (!string.IsNullOrEmpty(t.Description))
+                                {
+                                    <p style="color:#6c757d; font-size:.88rem; margin-bottom:12px; line-height:1.5;">
+                                        @(t.Description.Length > 100 ? t.Description.Substring(0, 100) + "..." : t.Description)
+                                    </p>
+                                }
+                                <div style="border-top:1px solid #f0f0f0; padding-top:12px; font-size:.82rem; color:#6c757d;">
+                                    <div class="mb-1">
+                                        <i class="fas fa-calendar mr-2" style="color:#4BB543;"></i>
+                                        @(t.StartDate?.ToString("MMM dd") ?? "TBD") � @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(t.Location))
+                                    {
+                                        <div>
+                                            <i class="fas fa-map-marker-alt mr-2" style="color:#4BB543;"></i>@t.Location
+                                        </div>
+                                    }
+                                </div>
+                                <div style="margin-top:15px;">
+                                    <span style="display:inline-block; background:linear-gradient(135deg,#9BEC00,#4BB543); color:white; border-radius:8px; padding:8px 16px; font-size:.85rem; font-weight:600;">
+                                        <i class="fas fa-info-circle mr-1"></i> View Details
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Modal for this training *@
+                    <div class="modal fade" id="trainingModal_@t.Id" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content" style="border-radius:12px; overflow:hidden;">
+                                <div class="modal-header" style="background:linear-gradient(135deg,#117554,#4BB543); color:white; border:none;">
+                                    <h5 class="modal-title font-weight-bold">
+                                        <i class="fas fa-chalkboard mr-2"></i>@t.Title
+                                    </h5>
+                                    <button type="button" class="close text-white" data-bs-dismiss="modal">&times;</button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    @if (!string.IsNullOrEmpty(t.Photo))
+                                    {
+                                        <img src="@t.Photo" alt="@t.Title"
+                                             style="width:100%; max-height:300px; object-fit:cover;" />
+                                    }
+                                    <div style="padding:25px;">
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <small class="text-muted d-block">Date</small>
+                                                <strong>
+                                                    @(t.StartDate?.ToString("MMM dd") ?? "TBD") �
+                                                    @(t.EndDate?.ToString("MMM dd, yyyy") ?? "TBD")
+                                                </strong>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <small class="text-muted d-block">Location</small>
+                                                <strong>@(t.Location ?? "�")</strong>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <small class="text-muted d-block">Region</small>
+                                                <strong>@(t.Region?.RegionName ?? "All Regions")</strong>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(t.Description))
+                                        {
+                                            <div class="mb-3">
+                                                <small class="text-muted d-block mb-1">About this Training</small>
+                                                <p style="color:#2d3436; line-height:1.7;">@t.Description</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="modal-footer" style="border:none; padding:15px 25px;">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    @if (!string.IsNullOrEmpty(t.RegistrationLink))
+                                    {
+                                        <a href="@t.RegistrationLink" target="_blank"
+                                           class="btn btn-success">
+                                            <i class="fas fa-external-link-alt mr-1"></i> Register Now
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </section>
+
+    }
+    @* -- HOW IT WORKS -- *@
     <section class="how-it-works" id="how-it-works">
         <div class="container">
             <h2 class="section-title">How It Works</h2>
@@ -646,7 +801,7 @@
         </div>
     </section>
 
-    @* ── ABOUT ── *@
+    @* -- ABOUT -- *@
     <section class="about" id="about">
         <div class="container">
             <h2><i class="fas fa-leaf mr-2"></i>About DENR TDD</h2>
@@ -665,7 +820,7 @@
         </div>
     </section>
 
-    @* ── CTA ── *@
+    @* -- CTA -- *@
     <section class="cta">
         <div class="container">
             <h2>Ready to Get Started?</h2>
@@ -679,7 +834,161 @@
         </div>
     </section>
 
-    @* ── FOOTER ── *@
+@{
+    var faqs = ViewBag.Faqs as List<LDHub.Models.Faq> ?? new List<LDHub.Models.Faq>();
+}
+
+<hr class="faq-section-divider" />
+@* -- FAQ SECTION -- *@
+<section id="faq" style="padding: 80px 20px; background: #ffffff;">
+    <div class="container">
+
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-subtitle">Can't find what you're looking for? Send us an inquiry below.</p>
+
+        @* -- Search bar -- *@
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text bg-white border-right-0">
+                            <i class="fas fa-search text-success"></i>
+                        </span>
+                    </div>
+                    <input type="text" id="faqSearch" class="form-control border-left-0"
+                           placeholder="Search FAQs..."
+                           oninput="filterFaqs(this.value)" />
+                </div>
+            </div>
+        </div>
+
+        @* -- FAQ Accordion -- *@
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+
+                @if (!faqs.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-question-circle fa-3x mb-3 d-block" style="color:#c8e6c9;"></i>
+                        <p>No FAQs available yet. Check back soon!</p>
+                    </div>
+                }
+                else
+                {
+                    <div id="faqAccordion">
+                        @{ int faqIdx = 0; }
+                        @foreach (var faq in faqs)
+                        {
+                            <div class="faq-item" data-question="@faq.Question.ToLower()" data-answer="@faq.Answer.ToLower()">
+                                <div class="card mb-2"
+                                 style="border-radius:10px; border:1px solid #eef2f5; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,.04); border-left: 4px solid #117554;">
+
+                                    @* Question header *@
+                                    <div class="card-header p-0" style="background:white; border:none;">
+                                        <button type="button" 
+                                                class="btn btn-link w-100 text-left d-flex justify-content-between align-items-center faq-toggle"
+                                               style="padding:18px 20px; color:#117554; font-weight:600; font-size:.95rem; text-decoration:none; box-shadow:none;"
+                                                onclick="toggleFaq(this, 'faqBody@(faqIdx)')">
+                                            <span>
+                                                <i class="fas fa-question-circle mr-2" style="color:#4BB543;"></i>
+                                                @faq.Question
+                                            </span>
+                                            <i class="fas fa-chevron-down faq-chevron" style="transition:transform .3s; flex-shrink:0; margin-left:10px;"></i>
+                                        </button>
+                                    </div>
+
+                                    @* Answer body *@
+                                    <div id="faqBody@(faqIdx)" style="display:none;">
+                                        <div class="card-body" style="padding:0 20px 20px 20px; border-top:1px solid #e8f5e9;">
+                                            <p style="color:#495057; line-height:1.8; margin-top:14px; margin-bottom:0; white-space:pre-line;">
+                                                @faq.Answer
+                                            </p>
+                                            @if (!string.IsNullOrEmpty(faq.ImagePath))
+                                            {
+                                                <div class="mt-3 text-center">
+                                                    <img src="@faq.ImagePath" alt="FAQ Image"
+                                                         style="max-width:100%; max-height:320px; border-radius:8px; border:1px solid #dee2e6;" />
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            faqIdx++;
+                        }
+                    </div>
+
+                    @* No results message *@
+                    <div id="faqNoResults" style="display:none;" class="text-center py-4 text-muted">
+                        <i class="fas fa-search fa-2x mb-2 d-block"></i>
+                        No FAQs matched your search.
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* -- Inquiry Form -- *@
+        <div class="row justify-content-center mt-5">
+            <div class="col-lg-7">
+                <div class="card"
+                     style="border-radius:16px; border:none; box-shadow:0 6px 25px rgba(17,117,84,.12); overflow:hidden;">
+
+                    <div class="card-header text-white text-center py-4"
+                         style="background:linear-gradient(135deg,#117554,#4BB543); border:none;">
+                        <h4 class="mb-1 font-weight-bold">
+                            <i class="fas fa-paper-plane mr-2"></i>Still have questions?
+                        </h4>
+                        <p class="mb-0" style="opacity:.9; font-size:.9rem;">
+                            Send us your inquiry and we'll get back to you.
+                        </p>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <form id="inquiryForm">
+                            @Html.AntiForgeryToken()
+
+                            <div class="form-group">
+                                <label for="inqName">Your Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="inqName"
+                                       name="Name" placeholder="Juan dela Cruz" required />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="inqEmail">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="inqEmail"
+                                       name="Email" placeholder="juan@denr.gov.ph" required />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="inqMessage">Message <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="inqMessage" name="Message"
+                                          rows="4"
+                                          placeholder="Type your question or concern here..."
+                                          required></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-block"
+                                    id="inqSubmitBtn"
+                                    style="border-radius:25px; padding:12px; font-weight:700;">
+                                <i class="fas fa-paper-plane mr-2"></i>Submit Inquiry
+                            </button>
+                        </form>
+
+                        @* Success message (hidden by default) *@
+                        <div id="inqSuccess" style="display:none;"
+                             class="alert alert-success mt-3 text-center">
+                            <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
+                            <strong>Inquiry submitted!</strong><br />
+                            <span id="inqSuccessMsg">We'll get back to you as soon as possible.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+    @* -- FOOTER -- *@
     <footer>
         <img src="~/dist/img/denrlogo.jpg" alt="DENR Logo" class="footer-logo" />
         <p class="mb-1"><strong>DENR Learning &amp; Development Hub</strong></p>
@@ -692,6 +1001,14 @@
     <script src="~/plugins/jquery/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    function showTrainingModal(id) {
+    var modalEl = document.getElementById('trainingModal_' + id);
+    var modal   = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+</script>
+    <script>
+       
         // Navbar background on scroll
         window.addEventListener('scroll', function () {
             var navbar = document.getElementById('mainNavbar');
@@ -710,6 +1027,187 @@
                 if (target) target.scrollIntoView({ behavior: 'smooth' });
             });
         });
-    </script>
+       
+// -- FAQ accordion ----------------------------------------------------------
+function toggleFaq(btn, bodyId) {
+    const body    = document.getElementById(bodyId);
+    if (!body) return;
+    const chevron = btn.querySelector('.faq-chevron');
+    const isOpen  = body.style.display === 'block';
+
+    // Close all
+    document.querySelectorAll('[id^="faqBody"]').forEach(function(el) {
+        el.style.display = 'none';
+    });
+    document.querySelectorAll('.faq-chevron').forEach(function(el) {
+        el.style.transform = 'rotate(0deg)';
+    });
+
+    // Open clicked one if it was closed
+    if (!isOpen) {
+        body.style.display = 'block';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+    }
+}
+
+// -- FAQ search filter ------------------------------------------------------
+function filterFaqs(query) {
+    const q     = query.toLowerCase().trim();
+    const items = document.querySelectorAll('.faq-item');
+    let   shown = 0;
+
+    items.forEach(function(item) {
+        const question = item.getAttribute('data-question') || '';
+        const answer   = item.getAttribute('data-answer')   || '';
+        const matches  = !q || question.includes(q) || answer.includes(q);
+        item.style.display = matches ? '' : 'none';
+        if (matches) shown++;
+    });
+
+    const noResults = document.getElementById('faqNoResults');
+    if (noResults) noResults.style.display = shown === 0 ? 'block' : 'none';
+}
+
+// -- Inquiry form submit (AJAX) ---------------------------------------------
+document.getElementById('inquiryForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('inqSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+
+    const token = document.querySelector('#inquiryForm input[name="__RequestVerificationToken"]')?.value;
+
+    const formData = new FormData(this);
+
+    try {
+        const res  = await fetch('/Faq/SubmitInquiry', {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': token },
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('inquiryForm').style.display = 'none';
+            document.getElementById('inqSuccessMsg').textContent = data.message;
+            document.getElementById('inqSuccess').style.display = 'block';
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Inquiry';
+            alert(data.message || 'Something went wrong. Please try again.');
+        }
+    } catch {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Inquiry';
+        alert('Could not connect. Please try again.');
+    }
+});
+
+// -- Cookie consent ---------------------------------------------------------
+function showCookieDetails() {
+    $('#cookieDetailsModal').modal('show');
+}
+
+function acceptCookies(type) {
+    // Store consent in localStorage
+    localStorage.setItem('cookieConsent', type);
+    localStorage.setItem('cookieConsentDate', new Date().toISOString());
+
+    // Hide banner
+    document.getElementById('cookieBanner').style.display = 'none';
+
+    // If analytics accepted, you can initialize your analytics here
+    if (type === 'all') {
+        console.log('Analytics cookies accepted.');
+        // e.g. initGoogleAnalytics();
+    }
+}
+
+function initCookieBanner() {
+    const consent = localStorage.getItem('cookieConsent');
+    if (!consent) {
+        // Show banner after a short delay so it doesn't flash immediately
+        setTimeout(function() {
+            document.getElementById('cookieBanner').style.display = 'block';
+        }, 1200);
+    }
+}
+
+// Run on page load
+document.addEventListener('DOMContentLoaded', initCookieBanner);
+</script>
+
+  
+    @* -- COOKIE CONSENT BANNER -- *@
+<div id="cookieBanner"
+     style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:9999;
+            background:#0d1b2a; color:rgba(255,255,255,.88); padding:18px 24px;
+            box-shadow:0 -4px 20px rgba(0,0,0,.3);">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+
+            <div style="max-width:700px;">
+                <strong style="color:#4BB543;">
+                    <i class="fas fa-cookie-bite mr-2"></i>We use cookies
+                </strong>
+                <p class="mb-0 mt-1" style="font-size:.86rem; line-height:1.6;">
+                    We use <strong style="color:white;">essential cookies</strong> to keep the platform running
+                    (sessions, login) and <strong style="color:white;">analytics cookies</strong> to understand
+                    how users interact with the site so we can improve it.
+                    <a href="#" onclick="showCookieDetails()" style="color:#4BB543;">Learn more</a>
+                </p>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2" style="flex-shrink:0;">
+                <button onclick="acceptCookies('essential')"
+                        class="btn btn-sm btn-outline-light"
+                        style="border-radius:20px; padding:7px 18px; font-size:.83rem; white-space:nowrap;">
+                    Essential Only
+                </button>
+                <button onclick="acceptCookies('all')"
+                        class="btn btn-sm btn-success"
+                        style="border-radius:20px; padding:7px 20px; font-size:.83rem; font-weight:700; white-space:nowrap;">
+                    <i class="fas fa-check mr-1"></i>Accept All
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@* Cookie details modal *@
+<div class="modal fade" id="cookieDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius:12px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#117554,#4BB543); color:white; border:none;">
+                <h5 class="modal-title"><i class="fas fa-cookie-bite mr-2"></i>Cookie Policy</h5>
+                <button type="button" class="close text-white" data-bs-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h6 class="text-success"><i class="fas fa-lock mr-2"></i>Essential Cookies</h6>
+                <p class="small text-muted mb-3">
+                    These are required for the platform to function. They handle your login session
+                    and keep you authenticated while navigating. These cannot be disabled.
+                </p>
+                <h6 class="text-info"><i class="fas fa-chart-bar mr-2"></i>Analytics Cookies</h6>
+                <p class="small text-muted mb-0">
+                    These help us understand how visitors use the L&D Hub � which pages are visited,
+                    how long sessions last, and where errors occur. All data is anonymous and used
+                    only to improve the platform.
+                </p>
+            </div>
+            <div class="modal-footer" style="border:none;">
+                <button onclick="acceptCookies('essential')" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                    Essential Only
+                </button>
+                <button onclick="acceptCookies('all')" class="btn btn-success btn-sm" data-bs-dismiss="modal">
+                    <i class="fas fa-check mr-1"></i>Accept All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
