@@ -25,4 +25,12 @@
     <PackageReference Include="QuestPDF" Version="2024.3.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The test project lives in a sub-folder: keep its files out of the web app build -->
+    <Compile Remove="LDHub.Tests\**" />
+    <Content Remove="LDHub.Tests\**" />
+    <EmbeddedResource Remove="LDHub.Tests\**" />
+    <None Remove="LDHub.Tests\**" />
+  </ItemGroup>
+
 </Project>
