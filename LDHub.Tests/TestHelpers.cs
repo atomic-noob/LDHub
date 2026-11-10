@@ -25,7 +25,7 @@ public sealed class FakeSession : ISession
     public void Remove(string key) => _store.Remove(key);
     public void Set(string key, byte[] value) => _store[key] = value;
 
-    public bool TryGetValue(string key, out byte[]? value)
+    public bool TryGetValue(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? value)
     {
         var found = _store.TryGetValue(key, out var v);
         value = v;
