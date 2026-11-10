@@ -53,18 +53,10 @@ public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
         {
             base.OnModelCreating(modelBuilder);
 
-            // Indexes for the most common lookups (enrollment, test history, progress, schedule)
-            modelBuilder.Entity<TrainingParticipant>()
-                .HasIndex(tp => new { tp.TrainingId, tp.UserId });
-
+            // Extra indexes for common lookups. Each one starts with a column that is NOT a foreign key,
+            // so EF keeps the foreign-key indexes that MySQL requires (dropping them fails on MySQL).
             modelBuilder.Entity<ParticipantTestAttempt>()
-                .HasIndex(a => new { a.UserId, a.TrainingId, a.TestType });
-
-            modelBuilder.Entity<ModuleProgress>()
-                .HasIndex(mp => new { mp.UserId, mp.ModuleId });
-
-            modelBuilder.Entity<QuizAttempt>()
-                .HasIndex(a => new { a.UserId, a.ModuleId });
+                .HasIndex(a => new { a.TestType, a.UserId, a.TrainingId });
 
             modelBuilder.Entity<Training>()
                 .HasIndex(t => t.StartDate);

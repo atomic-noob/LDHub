@@ -50,7 +50,7 @@ namespace LDHub.Migrations
 
                     b.HasKey("AnnouncementId");
 
-                    b.ToTable("Announcements");
+                    b.ToTable("Announcements", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Competency", b =>
@@ -86,7 +86,7 @@ namespace LDHub.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("competencies");
+                    b.ToTable("competencies", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Division", b =>
@@ -117,7 +117,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("OfficeId");
 
-                    b.ToTable("division");
+                    b.ToTable("division", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.EvaluationAnswer", b =>
@@ -146,7 +146,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("EvaluationResponseId");
 
-                    b.ToTable("EvaluationAnswers");
+                    b.ToTable("EvaluationAnswers", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.EvaluationQuestion", b =>
@@ -193,7 +193,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("TrainingId");
 
-                    b.ToTable("EvaluationQuestions");
+                    b.ToTable("EvaluationQuestions", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.EvaluationResponse", b =>
@@ -219,7 +219,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("EvaluationResponses");
+                    b.ToTable("EvaluationResponses", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Faq", b =>
@@ -265,7 +265,7 @@ namespace LDHub.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("faqs");
+                    b.ToTable("faqs", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.FreeTraining", b =>
@@ -334,7 +334,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("RegionId");
 
-                    b.ToTable("free_trainings");
+                    b.ToTable("free_trainings", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Inquiry", b =>
@@ -373,7 +373,7 @@ namespace LDHub.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("inquiries");
+                    b.ToTable("inquiries", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.ModuleProgress", b =>
@@ -404,7 +404,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ModuleProgresses");
+                    b.ToTable("ModuleProgresses", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.ModuleTextContent", b =>
@@ -437,7 +437,7 @@ namespace LDHub.Migrations
                     b.HasIndex("ModuleId")
                         .IsUnique();
 
-                    b.ToTable("module_text_content");
+                    b.ToTable("module_text_content", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.ModuleTextTopic", b =>
@@ -476,7 +476,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("ContentId");
 
-                    b.ToTable("module_text_topics");
+                    b.ToTable("module_text_topics", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Office", b =>
@@ -507,7 +507,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("RegionId");
 
-                    b.ToTable("office");
+                    b.ToTable("office", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.ParticipantTestAttempt", b =>
@@ -549,7 +549,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ParticipantTestAttempts");
+                    b.ToTable("ParticipantTestAttempts", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.PendingParticipant", b =>
@@ -664,7 +664,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("RegionId");
 
-                    b.ToTable("pending_participants");
+                    b.ToTable("pending_participants", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.ProficiencyLevel", b =>
@@ -692,7 +692,7 @@ namespace LDHub.Migrations
 
                     b.HasKey("ProficiencyId");
 
-                    b.ToTable("proficiency_levels");
+                    b.ToTable("proficiency_levels", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Question", b =>
@@ -747,7 +747,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("TrainingId");
 
-                    b.ToTable("questions");
+                    b.ToTable("questions", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Quiz", b =>
@@ -782,7 +782,7 @@ namespace LDHub.Migrations
                     b.HasIndex("ModuleId")
                         .IsUnique();
 
-                    b.ToTable("quiz");
+                    b.ToTable("quiz", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.QuizAttempt", b =>
@@ -830,7 +830,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("QuizAttempts");
+                    b.ToTable("QuizAttempts", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.QuizChoice", b =>
@@ -859,7 +859,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("quiz_choices");
+                    b.ToTable("quiz_choices", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.QuizQuestion", b =>
@@ -884,7 +884,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.ToTable("quiz_questions");
+                    b.ToTable("quiz_questions", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Region", b =>
@@ -909,7 +909,7 @@ namespace LDHub.Migrations
 
                     b.HasKey("RegionId");
 
-                    b.ToTable("region");
+                    b.ToTable("region", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Training", b =>
@@ -1007,7 +1007,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("RegionId");
 
-                    b.ToTable("trainings");
+                    b.ToTable("trainings", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.TrainingInstructor", b =>
@@ -1028,7 +1028,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("training_instructors");
+                    b.ToTable("training_instructors", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.TrainingModule", b =>
@@ -1103,7 +1103,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("UploadedBy");
 
-                    b.ToTable("training_modules");
+                    b.ToTable("training_modules", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.TrainingParticipant", b =>
@@ -1129,7 +1129,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("training_participants");
+                    b.ToTable("training_participants", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.User", b =>
@@ -1260,7 +1260,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("RegionId");
 
-                    b.ToTable("users");
+                    b.ToTable("users", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.UserRole", b =>
@@ -1290,7 +1290,7 @@ namespace LDHub.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("user_roles");
+                    b.ToTable("user_roles", (string)null);
                 });
 
             modelBuilder.Entity("LDHub.Models.Division", b =>
