@@ -304,7 +304,7 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
                 .Include(u => u.Region)
                 .Where(u => u.UserRoles.Any(r => r.Role == AppRoles.Employee)
                         && u.IsExternal == false
-                        && u.Status == "Active"
+                        && u.Status == RecordStatus.Active
                         && u.InTraining == false
                         && !assignedUserIds.Contains(u.UserId));
 
@@ -350,7 +350,7 @@ public async Task<IActionResult> AssignParticipant(int trainingId, List<int> use
             TrainingId       = trainingId,
             UserId           = userId,
             EnrollmentDate   = DateTime.UtcNow,
-            CompletionStatus = "Enrolled"
+            CompletionStatus = EnrollmentStatus.Enrolled
         });
         newlyAssignedIds.Add(userId);
 
@@ -414,7 +414,7 @@ public async Task<IActionResult> AssignResourcePerson(int id)
         .Include(u => u.Region)
         .Include(u => u.Office)
         .Where(u => u.UserRoles.Any(r => r.Role == AppRoles.ResourcePerson)
-                 && u.Status == "Active")
+                 && u.Status == RecordStatus.Active)
         .OrderBy(u => u.IsExternal)
         .ThenBy(u => u.LastName)
         .ToListAsync();

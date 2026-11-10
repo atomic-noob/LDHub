@@ -69,12 +69,12 @@ public class RaamController : Controller
             .CountAsync();
 
         var pendingCount = await _db.PendingParticipants
-            .Where(p => p.RegionId == regionId && p.Status == "Inactive")
+            .Where(p => p.RegionId == regionId && p.Status == RecordStatus.Inactive)
             .CountAsync();
 
         var completedCount = await _db.TrainingParticipants
             .Where(tp => trainingIds.Contains(tp.TrainingId)
-                      && tp.CompletionStatus == "Completed")
+                      && tp.CompletionStatus == EnrollmentStatus.Completed)
             .CountAsync();
 
         var ongoingCount = trainings.Count(t =>
@@ -140,7 +140,7 @@ public class RaamController : Controller
             .Include(p => p.Region)
             .Include(p => p.Office)
             .Include(p => p.Division)
-            .Where(p => p.RegionId == regionId && p.Status == "Inactive")
+            .Where(p => p.RegionId == regionId && p.Status == RecordStatus.Inactive)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
@@ -160,6 +160,14 @@ public class RaamController : Controller
         if (pending == null)
         {
             TempData["Error"] = "Participant not found.";
+            return RedirectToAction("PendingParticipants");
+        }
+
+        // A RAAM can only act on registrations from their own region
+        var myRegion = await GetRaamRegionId();
+        if (myRegion == null || pending.RegionId != myRegion)
+        {
+            TempData["Error"] = "That registration is outside your region.";
             return RedirectToAction("PendingParticipants");
         }
 
@@ -185,6 +193,14 @@ public class RaamController : Controller
         if (pending == null)
         {
             TempData["Error"] = "Participant not found.";
+            return RedirectToAction("PendingParticipants");
+        }
+
+        // A RAAM can only act on registrations from their own region
+        var myRegion = await GetRaamRegionId();
+        if (myRegion == null || pending.RegionId != myRegion)
+        {
+            TempData["Error"] = "That registration is outside your region.";
             return RedirectToAction("PendingParticipants");
         }
 
@@ -238,7 +254,17 @@ public class RaamController : Controller
             return RedirectToAction("ParticipantsList");
         }
 
-        user.Status    = user.Status == "Active" ? "Inactive" : "Active";
+        // Only participants in the RAAM's own region, and never admin, course manager or RAAM accounts
+        var myRegion = await GetRaamRegionId();
+        var isPrivileged = await _db.UserRoles.AnyAsync(r => r.UserId == userId
+            && (r.Role == AppRoles.Admin || r.Role == AppRoles.CourseManager || r.Role == AppRoles.Raam));
+        if (myRegion == null || user.RegionId != myRegion || isPrivileged)
+        {
+            TempData["Error"] = "You can only change participants in your own region.";
+            return RedirectToAction("ParticipantsList");
+        }
+
+        user.Status    = user.Status == RecordStatus.Active ? "Inactive" : "Active";
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 

@@ -40,7 +40,7 @@ public class UserApprovalService : IUserApprovalService
             RegionId      = pending.RegionId,
             OfficeId      = pending.OfficeId,
             DivisionId    = pending.DivisionId,
-            Status        = "Active",
+            Status        = RecordStatus.Active,
             CreatedAt     = now,
             UpdatedAt     = now
         };
@@ -56,7 +56,7 @@ public class UserApprovalService : IUserApprovalService
         });
 
         if (removePending) _db.PendingParticipants.Remove(pending);
-        else               pending.Status = "Active";
+        else               pending.Status = RecordStatus.Active;
 
         await _db.SaveChangesAsync();
 

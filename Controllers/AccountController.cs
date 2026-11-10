@@ -53,185 +53,102 @@ public class AccountController : Controller
             }
 
     // POST: /Account/Register
-   [HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> Register(RegisterViewModel model)
-{
-    if (!ModelState.IsValid)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Register(RegisterViewModel model)
     {
-        ViewBag.Regions = new SelectList(
-            _db.Regions.ToList(),
-            "RegionId",
-            "RegionName"
-        );
+        if (!ModelState.IsValid)
+            return await RegisterFormAsync(model);
 
-        return View(model);
-    }
-
-    // Check if email already exists
-    var emailExistsInUsers = await _db.Users
-        .AnyAsync(u => u.Email == model.Email);
-
-    var emailExistsInPending = await _db.PendingParticipants
-        .AnyAsync(p => p.Email == model.Email);
-
-    if (emailExistsInUsers || emailExistsInPending)
-    {
-        ModelState.AddModelError(
-            "Email",
-            "Email already registered or pending approval."
-        );
-
-        ViewBag.Regions = new SelectList(
-            _db.Regions.ToList(),
-            "RegionId",
-            "RegionName"
-        );
-
-        return View(model);
-    }
-
-    // ─────────────────────────────────────────
-    // PROFILE PHOTO UPLOAD
-    // ─────────────────────────────────────────
-    string? photoPath = null;
-
-    if (model.Photo != null && model.Photo.Length > 0)
-    {
-        // Maximum 5 MB
-        const long maxFileSize = 5 * 1024 * 1024;
-
-        if (model.Photo.Length > maxFileSize)
+        // Email already registered or waiting for approval?
+        var emailTaken = await _db.Users.AnyAsync(u => u.Email == model.Email)
+                         || await _db.PendingParticipants.AnyAsync(p => p.Email == model.Email);
+        if (emailTaken)
         {
-            ModelState.AddModelError(
-                "Photo",
-                "Profile photo must not exceed 5 MB."
-            );
-
-            ViewBag.Regions = new SelectList(
-                _db.Regions.ToList(),
-                "RegionId",
-                "RegionName"
-            );
-
-            return View(model);
+            ModelState.AddModelError("Email", "Email already registered or pending approval.");
+            return await RegisterFormAsync(model);
         }
 
-        // Allowed extensions
-        var allowedExtensions = new[]
+        // Profile photo (optional): JPG, PNG or WEBP, up to 5 MB
+        string? photoPath = null;
+        if (model.Photo != null && model.Photo.Length > 0)
         {
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".webp"
+            var photoError = UploadValidator.Validate(
+                model.Photo, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+            if (photoError != null)
+            {
+                ModelState.AddModelError("Photo", photoError);
+                return await RegisterFormAsync(model);
+            }
+
+            photoPath = await SaveProfilePhotoAsync(model.Photo);
+        }
+
+        var pending = new PendingParticipant
+        {
+            FirstName     = model.FirstName,
+            MiddleName    = model.MiddleName,
+            LastName      = model.LastName,
+            Email         = model.Email,
+            Password      = BCrypt.Net.BCrypt.HashPassword(model.Password),
+            ContactNumber = model.ContactNumber,
+            Gender        = model.Gender,
+            Age           = model.Age,
+            Position      = model.Position,
+            Designation   = model.Designation,
+            SalaryGrade   = model.SalaryGrade,
+            RegionId      = model.RegionId,
+            OfficeId      = model.OfficeId,
+            DivisionId    = model.DivisionId,
+            PhotoPath     = photoPath,
+            Status        = RecordStatus.Inactive,
+            CreatedAt     = DateTime.UtcNow
         };
 
-        var extension = Path
-            .GetExtension(model.Photo.FileName)
-            .ToLowerInvariant();
+        _db.PendingParticipants.Add(pending);
+        await _db.SaveChangesAsync();
 
-        if (!allowedExtensions.Contains(extension))
-        {
-            ModelState.AddModelError(
-                "Photo",
-                "Only JPG, JPEG, PNG, and WEBP images are allowed."
-            );
+        await NotifyApproversAsync(pending);
 
-            ViewBag.Regions = new SelectList(
-                _db.Regions.ToList(),
-                "RegionId",
-                "RegionName"
-            );
-
-            return View(model);
-        }
-
-        // wwwroot/uploads/profile-photos
-        var uploadFolder = Path.Combine(
-            _environment.WebRootPath,
-            "uploads",
-            "profile-photos"
-        );
-
-        // Create directory if it doesn't exist
-        if (!Directory.Exists(uploadFolder))
-        {
-            Directory.CreateDirectory(uploadFolder);
-        }
-
-        // Generate unique filename
-        var fileName =
-            $"{Guid.NewGuid():N}{extension}";
-
-        var physicalPath = Path.Combine(
-            uploadFolder,
-            fileName
-        );
-
-        using (var stream = new FileStream(
-            physicalPath,
-            FileMode.Create))
-        {
-            await model.Photo.CopyToAsync(stream);
-        }
-
-        // Store web path in database
-        photoPath =
-            $"/uploads/profile-photos/{fileName}";
+        TempData["Success"] = "Registration submitted! Please wait for admin approval.";
+        return RedirectToAction("Index", "Admin");
     }
 
-    // Hash password
-    var hashedPassword =
-        BCrypt.Net.BCrypt.HashPassword(model.Password);
-
-    var pending = new PendingParticipant
+    // Shows the registration form again with its error messages
+    private async Task<IActionResult> RegisterFormAsync(RegisterViewModel model)
     {
-        FirstName = model.FirstName,
-        MiddleName = model.MiddleName,
-        LastName = model.LastName,
+        ViewBag.Regions = new SelectList(await _db.Regions.ToListAsync(), "RegionId", "RegionName");
+        return View(model);
+    }
 
-        Email = model.Email,
-        Password = hashedPassword,
+    // Saves the photo under wwwroot/uploads/profile-photos and returns its web path
+    private async Task<string> SaveProfilePhotoAsync(IFormFile photo)
+    {
+        var folder = Path.Combine(_environment.WebRootPath, "uploads", "profile-photos");
+        Directory.CreateDirectory(folder);
 
-        ContactNumber = model.ContactNumber,
-        Gender = model.Gender,
-        Age = model.Age,
+        var fileName = $"{Guid.NewGuid():N}{Path.GetExtension(photo.FileName).ToLowerInvariant()}";
+        await using (var stream = new FileStream(Path.Combine(folder, fileName), FileMode.Create))
+        {
+            await photo.CopyToAsync(stream);
+        }
 
-        Position = model.Position,
-        Designation = model.Designation,
-        SalaryGrade = model.SalaryGrade,
-
-        RegionId = model.RegionId,
-        OfficeId = model.OfficeId,
-        DivisionId = model.DivisionId,
-
-        // NEW
-        PhotoPath = photoPath,
-
-        Status = "Inactive",
-        CreatedAt = DateTime.UtcNow
-    };
-
-    _db.PendingParticipants.Add(pending);
-
-    await _db.SaveChangesAsync();
+        return $"/uploads/profile-photos/{fileName}";
+    }
 
     // Tell the RAAM of that region and all Admins that someone is waiting for approval
-    var approverIds = await _db.UserRoles
-        .Where(r => r.Role == AppRoles.Admin
-                 || (r.Role == AppRoles.Raam && r.User != null && r.User.RegionId == pending.RegionId))
-        .Select(r => r.UserId)
-        .Distinct()
-        .ToListAsync();
+    private async Task NotifyApproversAsync(PendingParticipant pending)
+    {
+        var approverIds = await _db.UserRoles
+            .Where(r => r.Role == AppRoles.Admin
+                     || (r.Role == AppRoles.Raam && r.User != null && r.User.RegionId == pending.RegionId))
+            .Select(r => r.UserId)
+            .Distinct()
+            .ToListAsync();
 
-    await _notify.NotifyAsync(approverIds,
-        "New registration awaiting approval",
-        $"{pending.FirstName} {pending.LastName} has registered and is waiting for approval.",
-        Url.Action("PendingParticipants", "Raam"));
-
-    TempData["Success"] =
-        "Registration submitted! Please wait for admin approval.";
-
-    return RedirectToAction("Index", "Admin");
-}
+        await _notify.NotifyAsync(approverIds,
+            "New registration awaiting approval",
+            $"{pending.FirstName} {pending.LastName} has registered and is waiting for approval.",
+            Url.Action("PendingParticipants", "Raam"));
+    }
 }

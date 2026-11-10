@@ -91,7 +91,7 @@ public class ContentController : Controller
         {
             var user     = await _db.Users.FindAsync(userId);
             var training = await _db.Trainings.FindAsync(trainingId);
-            return training?.RegionId == user?.RegionId;
+            return user?.RegionId != null && training?.RegionId == user.RegionId;
         }
 
         if (role == AppRoles.ResourcePerson)
@@ -101,6 +101,22 @@ public class ContentController : Controller
         }
 
         return false;
+    }
+
+    // The module, only when the user may work on its training
+    // (and, when given, only if it really belongs to that training)
+    private async Task<TrainingModule?> LoadModuleAsync(int moduleId, int? expectedTrainingId = null)
+    {
+        var module = await _db.TrainingModules.FirstOrDefaultAsync(m => m.ModuleId == moduleId);
+        if (module == null) return null;
+        if (expectedTrainingId.HasValue && module.TrainingId != expectedTrainingId.Value) return null;
+        return await CanAccessTraining(module.TrainingId) ? module : null;
+    }
+
+    private IActionResult NoAccess(string action, object? routeValues = null)
+    {
+        TempData["Error"] = "You do not have access to this content.";
+        return RedirectToAction(action, routeValues);
     }
 
     // ════════════════════════════════════════════════════════════
@@ -190,29 +206,18 @@ public class ContentController : Controller
 
         if (file != null && file.Length > 0)
         {
-            if (file.Length > 41943040)
+            var uploadError = UploadValidator.Validate(
+                file, UploadValidator.ModuleExtensions, UploadValidator.ModuleMaxBytes);
+            if (uploadError != null)
             {
-                TempData["Error"] = "File size exceeds 40MB limit!";
-                return RedirectToAction("Modules", new { trainingId });
-            }
-
-            var allowedExt = new[] {
-                "pdf","doc","docx","ppt","pptx","xls","xlsx","csv",
-                "mp4","avi","mov","wmv","flv","mkv","webm",
-                "jpg","jpeg","png","gif","bmp","webp"
-            };
-
-            var ext = Path.GetExtension(file.FileName).TrimStart('.').ToLower();
-            if (!allowedExt.Contains(ext))
-            {
-                TempData["Error"] = $"File type '{ext}' is not allowed!";
+                TempData["Error"] = uploadError;
                 return RedirectToAction("Modules", new { trainingId });
             }
 
             var uploadDir = Path.Combine("wwwroot", "uploads", "modules");
             Directory.CreateDirectory(uploadDir);
 
-            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var fileName = $"{Guid.NewGuid()}_{UploadValidator.SafeFileName(file.FileName)}";
             var fullPath = Path.Combine(uploadDir, fileName);
 
             using (var stream = new FileStream(fullPath, FileMode.Create))
@@ -261,7 +266,7 @@ public class ContentController : Controller
             return RedirectToAction("Modules");
         }
 
-        var module = await _db.TrainingModules.FindAsync(moduleId);
+        var module = await LoadModuleAsync(moduleId, trainingId);
         if (module == null) return NotFound();
 
         module.ModuleDescription = moduleDescription;
@@ -270,10 +275,18 @@ public class ContentController : Controller
 
         if (file != null && file.Length > 0)
         {
+            var uploadError = UploadValidator.Validate(
+                file, UploadValidator.ModuleExtensions, UploadValidator.ModuleMaxBytes);
+            if (uploadError != null)
+            {
+                TempData["Error"] = uploadError;
+                return RedirectToAction("Modules", new { trainingId });
+            }
+
             var uploadDir = Path.Combine("wwwroot", "uploads", "modules");
             Directory.CreateDirectory(uploadDir);
 
-            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var fileName = $"{Guid.NewGuid()}_{UploadValidator.SafeFileName(file.FileName)}";
             var fullPath = Path.Combine(uploadDir, fileName);
 
             using (var stream = new FileStream(fullPath, FileMode.Create))
@@ -303,7 +316,7 @@ public class ContentController : Controller
             return RedirectToAction("Modules");
         }
 
-        var module = await _db.TrainingModules.FindAsync(moduleId);
+        var module = await LoadModuleAsync(moduleId, trainingId);
         if (module != null)
         {
             _db.TrainingModules.Remove(module);
@@ -321,11 +334,7 @@ public class ContentController : Controller
    
 public async Task<IActionResult> QuizBuilder(int moduleId)
 {
-    // keep your existing auth check here e.g.:
-    // if (!CanManageModules()) return RedirectToAction("Login", "Home");
-    // SetViewBag();
- 
-    var module = await _db.TrainingModules
+var module = await _db.TrainingModules
         .Include(m => m.Training)
         .Include(m => m.Quiz)
             .ThenInclude(q => q.Questions)
@@ -333,7 +342,10 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
         .FirstOrDefaultAsync(m => m.ModuleId == moduleId);
  
     if (module == null) return NotFound();
- 
+
+    if (!await CanAccessTraining(module.TrainingId))
+        return NoAccess("Modules");
+
     // ── Load quiz attempts for this module with user info ──
     var quizAttempts = await _db.QuizAttempts
         .Include(a => a.User)
@@ -352,9 +364,13 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
         int moduleId, int? quizId, string quizTitle, int passingScore)
     {
 
+        if (await LoadModuleAsync(moduleId) == null)
+            return NoAccess("Modules");
+
         if (quizId.HasValue && quizId > 0)
         {
-            var quiz = await _db.Quizzes.FindAsync(quizId);
+            var quiz = await _db.Quizzes
+                .FirstOrDefaultAsync(q => q.QuizId == quizId && q.ModuleId == moduleId);
             if (quiz != null)
             {
                 quiz.QuizTitle    = quizTitle;
@@ -385,6 +401,13 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
         int moduleId, int quizId, string questionText,
         List<string> choices, int correctChoice)
     {
+
+        if (await LoadModuleAsync(moduleId) == null)
+            return NoAccess("Modules");
+
+        // The quiz must belong to this module
+        if (!await _db.Quizzes.AnyAsync(q => q.QuizId == quizId && q.ModuleId == moduleId))
+            return NotFound();
 
         var question = new QuizQuestion
         {
@@ -418,9 +441,14 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
     public async Task<IActionResult> DeleteQuestion(int questionId, int moduleId)
     {
 
+        if (await LoadModuleAsync(moduleId) == null)
+            return NoAccess("Modules");
+
+        // Only a question that belongs to this module's quiz
         var question = await _db.QuizQuestions
             .Include(q => q.Choices)
-            .FirstOrDefaultAsync(q => q.QuestionId == questionId);
+            .FirstOrDefaultAsync(q => q.QuestionId == questionId
+                && _db.Quizzes.Any(z => z.QuizId == q.QuizId && z.ModuleId == moduleId));
 
         if (question != null)
         {
@@ -468,13 +496,16 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
         List<string> topicBodies)
     {
 
+        if (await LoadModuleAsync(moduleId) == null)
+            return NoAccess("Modules");
+
         ModuleTextContent? content;
 
         if (contentId.HasValue && contentId > 0)
         {
             content = await _db.ModuleTextContents
                 .Include(c => c.Topics)
-                .FirstOrDefaultAsync(c => c.ContentId == contentId);
+                .FirstOrDefaultAsync(c => c.ContentId == contentId && c.ModuleId == moduleId);
 
             if (content != null)
             {
@@ -632,7 +663,8 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 
         if (questionId.HasValue && questionId > 0)
         {
-            var q = await _db.Questions.FindAsync(questionId);
+            var q = await _db.Questions
+                .FirstOrDefaultAsync(x => x.Id == questionId && x.TrainingId == trainingId);
             if (q != null)
             {
                 q.QuestionType  = questionType;
@@ -672,7 +704,11 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
     public async Task<IActionResult> DeleteQuestion2(int questionId, int trainingId)
     {
 
-        var q = await _db.Questions.FindAsync(questionId);
+        if (!await CanAccessTraining(trainingId))
+            return NoAccess("TestMaker");
+
+        var q = await _db.Questions
+            .FirstOrDefaultAsync(x => x.Id == questionId && x.TrainingId == trainingId);
         if (q != null)
         {
             _db.Questions.Remove(q);
@@ -713,6 +749,9 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
     [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> ResetAttempts(int userId, int trainingId)
     {
+
+        if (!await CanAccessTraining(trainingId))
+            return NoAccess("TestMaker", new { trainingId });
 
         var attempts = await _db.ParticipantTestAttempts
             .Where(a => a.UserId     == userId

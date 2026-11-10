@@ -103,7 +103,7 @@ public async Task<IActionResult> Login(LoginViewModel model)
         .Include(u => u.UserRoles)
         .FirstOrDefaultAsync(u =>
             u.Email == model.Email &&
-            u.Status == "Active");
+            u.Status == RecordStatus.Active);
  
     // Check if user exists
     if (user == null)

@@ -62,9 +62,9 @@ public class EmployeeController : Controller
         {// Only auto-complete if EndDate is set AND has passed
     if (tp.Training?.EndDate != null
     && now > tp.Training.EndDate
-    && tp.CompletionStatus != "Completed")
+    && tp.CompletionStatus != EnrollmentStatus.Completed)
             {
-                tp.CompletionStatus = "Completed";
+                tp.CompletionStatus = EnrollmentStatus.Completed;
                 anyUpdated = true;
             }
         }
@@ -72,7 +72,7 @@ public class EmployeeController : Controller
 
        // ── Get current active enrollment (include upcoming ones too) ──
                 var currentEnrollment = enrollments
-                    .Where(tp => tp.CompletionStatus != "Completed"
+                    .Where(tp => tp.CompletionStatus != EnrollmentStatus.Completed
                             && (tp.Training?.EndDate == null || tp.Training.EndDate >= now))
                     .OrderBy(tp => tp.Training?.StartDate)
                     .FirstOrDefault();
@@ -152,14 +152,14 @@ ViewBag.EvalDone         = evalDone;
 ViewBag.HasEvalQuestions = hasEvalQuestions;
 
         ViewBag.TotalEnrolled   = enrollments.Count;
-        ViewBag.TotalCompleted  = enrollments.Count(tp => tp.CompletionStatus == "Completed");
+        ViewBag.TotalCompleted  = enrollments.Count(tp => tp.CompletionStatus == EnrollmentStatus.Completed);
         ViewBag.TotalOngoing    = enrollments.Count(tp =>
             tp.Training != null &&
             now >= tp.Training.StartDate &&
             now <= tp.Training.EndDate);
         ViewBag.Enrollment      = currentEnrollment;
         ViewBag.Modules         = modules;
-        ViewBag.CompletedCount  = enrollments.Count(tp => tp.CompletionStatus == "Completed");
+        ViewBag.CompletedCount  = enrollments.Count(tp => tp.CompletionStatus == EnrollmentStatus.Completed);
         ViewBag.PreTestTaken    = preTestTaken;
         ViewBag.PostTestTaken   = postTestTaken;
         ViewBag.PostTestAttempts = postTestAttempts;

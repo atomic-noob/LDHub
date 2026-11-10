@@ -85,6 +85,12 @@ private async Task<int?> GetRaamRegionId()
         string? choiceA, string? choiceB, string? choiceC, string? choiceD, bool isRequired)
     {
 
+        if (!await _db.CanManageTrainingAsync(HttpContext.Session, trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", new { trainingId });
+        }
+
         if (questionId == 0)
         {
             var maxOrder = await _db.EvaluationQuestions
@@ -108,7 +114,8 @@ private async Task<int?> GetRaamRegionId()
         }
         else
         {
-            var q = await _db.EvaluationQuestions.FindAsync(questionId);
+            var q = await _db.EvaluationQuestions
+                .FirstOrDefaultAsync(x => x.Id == questionId && x.TrainingId == trainingId);
             if (q != null)
             {
                 q.QuestionText = questionText;
@@ -133,7 +140,14 @@ private async Task<int?> GetRaamRegionId()
     public async Task<IActionResult> DeleteQuestion(int questionId, int trainingId)
     {
 
-        var q = await _db.EvaluationQuestions.FindAsync(questionId);
+        if (!await _db.CanManageTrainingAsync(HttpContext.Session, trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", new { trainingId });
+        }
+
+        var q = await _db.EvaluationQuestions
+            .FirstOrDefaultAsync(x => x.Id == questionId && x.TrainingId == trainingId);
         if (q != null)
         {
             _db.EvaluationQuestions.Remove(q);
@@ -154,6 +168,13 @@ public async Task<IActionResult> Take(int trainingId)
         return RedirectToAction("Login", "Home");
 
     SetViewBag();
+
+    // Only people enrolled in this training can evaluate it
+    if (!await _db.TrainingParticipants.AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId))
+    {
+        TempData["Error"] = "You are not enrolled in this training.";
+        return RedirectToAction("Dashboard", "Employee");
+    }
 
     // Check if already submitted
     var alreadySubmitted = await _db.EvaluationResponses
@@ -188,6 +209,13 @@ public async Task<IActionResult> Submit(int trainingId, IFormCollection form)
     if (!int.TryParse(userIdStr, out int userId))
         return RedirectToAction("Login", "Home");
 
+    // Only people enrolled in this training can evaluate it
+    if (!await _db.TrainingParticipants.AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId))
+    {
+        TempData["Error"] = "You are not enrolled in this training.";
+        return RedirectToAction("Dashboard", "Employee");
+    }
+
     // Prevent duplicate submission
     var alreadySubmitted = await _db.EvaluationResponses
         .AnyAsync(r => r.TrainingId == trainingId && r.UserId == userId);
@@ -214,7 +242,7 @@ public async Task<IActionResult> Submit(int trainingId, IFormCollection form)
 
     // Load every answered question once instead of one query per question
     var questionsById = await _db.EvaluationQuestions
-        .Where(q => questionIds.Contains(q.Id))
+        .Where(q => q.TrainingId == trainingId && questionIds.Contains(q.Id))
         .ToDictionaryAsync(q => q.Id);
 
     foreach (var qId in questionIds)
@@ -268,6 +296,9 @@ public async Task<IActionResult> Results(int trainingId)
 
     var training = await _db.Trainings.FindAsync(trainingId);
     if (training == null) return NotFound();
+
+    if (!await _db.CanManageTrainingAsync(HttpContext.Session, trainingId))
+        return StatusCode(StatusCodes.Status403Forbidden);
 
     var responses = await _db.EvaluationResponses
         .Include(r => r.User)

@@ -117,6 +117,24 @@ public class EmailService : IEmailService
         return SendManyAsync(messages);
     }
 
+    public Task SendAnnouncementAsync(IEnumerable<User> recipients, Training training, string title, string body)
+    {
+        var bodyHtml = H(body).Replace("\r\n", "<br>").Replace("\n", "<br>");
+
+        var messages = recipients.Select(u => new EmailMessage(
+            u.Email,
+            FullName(u),
+            "Announcement: " + title,
+            Wrap("Announcement",
+                Greeting(FullName(u)) +
+                "<p><strong>" + H(title) + "</strong><br>" +
+                "<span style=\"color:#666\">" + H(training.TrainingTitle) + "</span></p>" +
+                "<p>" + bodyHtml + "</p>" +
+                LoginLink())));
+
+        return SendManyAsync(messages);
+    }
+
     public Task SendRegistrationApprovedAsync(string email, string fullName) =>
         SendManyAsync(new[]
         {

@@ -72,6 +72,12 @@ public class CertificateController : Controller
         var training = await _db.Trainings.FindAsync(trainingId);
         if (training == null) return NotFound();
 
+        if (!await _db.CanManageTrainingAsync(HttpContext.Session, trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index");
+        }
+
         if (certificate == null || certificate.Length == 0)
         {
             TempData["Error"] = "Please select a file to upload.";
@@ -131,6 +137,12 @@ public class CertificateController : Controller
 
         var training = await _db.Trainings.FindAsync(trainingId);
         if (training == null) return NotFound();
+
+        if (!await _db.CanManageTrainingAsync(HttpContext.Session, trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index");
+        }
 
         if (!string.IsNullOrEmpty(training.CertificatePath))
         {

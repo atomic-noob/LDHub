@@ -29,6 +29,22 @@ public class ModuleController : Controller
 
     private bool HasAccess() => IsCourseManager() || IsResourcePerson();
 
+    // May this user work on this training?
+    // Course Managers: any training. Resource Persons: only the ones they are assigned to.
+    private async Task<bool> CanAccessTrainingAsync(int trainingId)
+    {
+        if (IsCourseManager()) return true;
+
+        if (IsResourcePerson())
+        {
+            var userId = GetUserId();
+            return await _db.TrainingInstructors
+                .AnyAsync(ti => ti.TrainingId == trainingId && ti.UserId == userId);
+        }
+
+        return false;
+    }
+
     private int GetUserId() =>
         int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
 
@@ -107,6 +123,9 @@ public class ModuleController : Controller
     public async Task<IActionResult> Create(TrainingModule model, IFormFile? file)
     {
 
+        if (!await CanAccessTrainingAsync(model.TrainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
         model.UploadedBy = GetUserId();
         model.UploadedAt = DateTime.UtcNow;
         model.UpdatedAt  = DateTime.UtcNow;
@@ -184,6 +203,9 @@ public class ModuleController : Controller
         var existing = await _db.TrainingModules.FindAsync(model.ModuleId);
         if (existing == null) return NotFound();
 
+        if (!await CanAccessTrainingAsync(existing.TrainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
         existing.ModuleName        = model.ModuleName;
         existing.ModuleDescription = model.ModuleDescription;
         existing.SortOrder         = model.SortOrder;
@@ -230,7 +252,12 @@ public class ModuleController : Controller
     public async Task<IActionResult> Delete(int moduleId, int trainingId)
     {
 
-        var module = await _db.TrainingModules.FindAsync(moduleId);
+        if (!await CanAccessTrainingAsync(trainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+        // Only a module that belongs to this training
+        var module = await _db.TrainingModules
+            .FirstOrDefaultAsync(m => m.ModuleId == moduleId && m.TrainingId == trainingId);
         if (module != null)
         {
             _db.TrainingModules.Remove(module);
@@ -252,10 +279,15 @@ public class ModuleController : Controller
         List<int> correctChoices)
     {
 
+        if (!await CanAccessTrainingAsync(trainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+        // Only a quiz that belongs to a module of this training
         var quiz = await _db.Quizzes
             .Include(q => q.Questions)
                 .ThenInclude(q => q.Choices)
-            .FirstOrDefaultAsync(q => q.QuizId == quizId);
+            .FirstOrDefaultAsync(q => q.QuizId == quizId
+                && _db.TrainingModules.Any(m => m.ModuleId == q.ModuleId && m.TrainingId == trainingId));
 
         if (quiz == null) return NotFound();
 
@@ -306,6 +338,10 @@ public class ModuleController : Controller
         List<string> topicTitles, List<string> topicBodies)
     {
 
+        if (!await CanAccessTrainingAsync(trainingId) ||
+            !await _db.TrainingModules.AnyAsync(m => m.ModuleId == moduleId && m.TrainingId == trainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
         var content = await _db.ModuleTextContents
             .Include(c => c.Topics)
             .FirstOrDefaultAsync(c => c.ModuleId == moduleId);
@@ -347,7 +383,14 @@ public class ModuleController : Controller
     [HttpGet]
     public async Task<IActionResult> GetQuiz(int moduleId)
     {
-        var quiz = await _db.Quizzes
+        var moduleTrainingId = await _db.TrainingModules
+            .Where(m => m.ModuleId == moduleId)
+            .Select(m => (int?)m.TrainingId)
+            .FirstOrDefaultAsync();
+        if (moduleTrainingId == null || !await CanAccessTrainingAsync(moduleTrainingId.Value))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+var quiz = await _db.Quizzes
             .Include(q => q.Questions)
                 .ThenInclude(q => q.Choices)
             .FirstOrDefaultAsync(q => q.ModuleId == moduleId);
@@ -377,7 +420,14 @@ public class ModuleController : Controller
     [HttpGet]
     public async Task<IActionResult> GetTextContent(int moduleId)
     {
-        var content = await _db.ModuleTextContents
+        var moduleTrainingId = await _db.TrainingModules
+            .Where(m => m.ModuleId == moduleId)
+            .Select(m => (int?)m.TrainingId)
+            .FirstOrDefaultAsync();
+        if (moduleTrainingId == null || !await CanAccessTrainingAsync(moduleTrainingId.Value))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+var content = await _db.ModuleTextContents
             .Include(c => c.Topics)
             .FirstOrDefaultAsync(c => c.ModuleId == moduleId);
 

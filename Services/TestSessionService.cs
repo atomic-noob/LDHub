@@ -107,9 +107,9 @@ public class TestSessionService : ITestSessionService
                                         && tp.UserId     == session.UserId);
             if (enrollment != null)
             {
-                if (isPassed) enrollment.CompletionStatus = "Completed";
-                if (session.AttemptNumber == 1 && enrollment.CompletionStatus == "Enrolled")
-                    enrollment.CompletionStatus = "In Progress";
+                if (isPassed) enrollment.CompletionStatus = EnrollmentStatus.Completed;
+                if (session.AttemptNumber == 1 && enrollment.CompletionStatus == EnrollmentStatus.Enrolled)
+                    enrollment.CompletionStatus = EnrollmentStatus.InProgress;
             }
         }
 

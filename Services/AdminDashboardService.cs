@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using LDHub.Data;
 using LDHub.Models.ViewModels;
 using LDHub.Services.Interfaces;
@@ -32,7 +33,7 @@ public class AdminDashboardService : IAdminDashboardService
             .CountAsync();
 
         var pendingCount = await _db.PendingParticipants
-            .Where(p => p.Status == "Inactive")
+            .Where(p => p.Status == RecordStatus.Inactive)
             .CountAsync();
 
         var totalSME = await _db.Users
@@ -106,7 +107,7 @@ public class AdminDashboardService : IAdminDashboardService
         // ── Recent Pending ─────────────────────────────────────────
         var recentPending = await _db.PendingParticipants
             .AsNoTracking()
-            .Where(p => p.Status == "Inactive")
+            .Where(p => p.Status == RecordStatus.Inactive)
             .OrderByDescending(p => p.CreatedAt)
             .Take(5)
             .ToListAsync();

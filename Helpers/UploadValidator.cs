@@ -9,8 +9,9 @@ public static class UploadValidator
         { ".jpg", ".jpeg", ".png", ".webp" };
 
     public static readonly string[] ModuleExtensions =
-        { ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx",
-          ".mp4", ".webm", ".mp3", ".jpg", ".jpeg", ".png" };
+        { ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".csv",
+          ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm", ".mp3",
+          ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
 
     public const long ImageMaxBytes  = 5L * 1024 * 1024;   // 5 MB
     public const long ModuleMaxBytes = 25L * 1024 * 1024;  // 25 MB (Kestrel's default request limit is ~30 MB)

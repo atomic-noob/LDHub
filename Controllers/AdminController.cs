@@ -196,7 +196,7 @@ public async Task<IActionResult> ToggleEmployeeStatus(int id)
         return RedirectToAction("Employees");
     }
 
-    user.Status    = user.Status == "Active" ? "Inactive" : "Active";
+    user.Status    = user.Status == RecordStatus.Active ? "Inactive" : "Active";
     user.UpdatedAt = DateTime.UtcNow;
     await _db.SaveChangesAsync();
 
@@ -382,6 +382,13 @@ public async Task<IActionResult> CreateResourcePerson(
         return RedirectToAction("ResourcePersons");
     }
  
+    var passwordError = PasswordPolicy.Validate(password);
+    if (passwordError != null)
+    {
+        TempData["Error"] = passwordError;
+        return RedirectToAction("ResourcePersons");
+    }
+
     var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
  
     var user = new User
@@ -399,7 +406,7 @@ public async Task<IActionResult> CreateResourcePerson(
         OfficeId      = officeId,
         DivisionId    = divisionId,
         IsExternal    = true,
-        Status = "Active",
+        Status = RecordStatus.Active,
         CreatedAt     = DateTime.UtcNow,
         UpdatedAt     = DateTime.UtcNow
     };
@@ -452,7 +459,16 @@ public async Task<IActionResult> EditResourcePerson(
  
     // Only update password if new one provided
     if (!string.IsNullOrWhiteSpace(newPassword))
+    {
+        var passwordError = PasswordPolicy.Validate(newPassword);
+        if (passwordError != null)
+        {
+            TempData["Error"] = passwordError;
+            return RedirectToAction("ResourcePersons");   // nothing is saved
+        }
+
         user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+    }
  
     await _db.SaveChangesAsync();
  
@@ -474,7 +490,7 @@ public async Task<IActionResult> ToggleResourcePersonStatus(int userId)
         return RedirectToAction("ResourcePersons");
     }
 
-    user.Status    = user.Status == "Active" ? "Inactive" : "Active";
+    user.Status    = user.Status == RecordStatus.Active ? "Inactive" : "Active";
     user.UpdatedAt = DateTime.UtcNow;
 
     await _db.SaveChangesAsync();
@@ -579,6 +595,17 @@ public async Task<IActionResult> UpdateAdminAccount(string email,
     {
         TempData["Error"] = "Current password is incorrect!";
         return RedirectToAction("AccountSettings");
+    }
+
+    // Check the new password before changing anything
+    if (!string.IsNullOrEmpty(newPassword))
+    {
+        var passwordError = PasswordPolicy.Validate(newPassword);
+        if (passwordError != null)
+        {
+            TempData["Error"] = passwordError;
+            return RedirectToAction("AccountSettings");
+        }
     }
 
     // Update email

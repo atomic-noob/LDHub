@@ -68,11 +68,11 @@ public async Task<IActionResult> Dashboard()
  
     var completedParticipants = trainings
         .SelectMany(t => t.TrainingParticipants)
-        .Count(tp => tp.CompletionStatus == "Completed");
+        .Count(tp => tp.CompletionStatus == EnrollmentStatus.Completed);
  
     var enrolledParticipants = trainings
         .SelectMany(t => t.TrainingParticipants)
-        .Count(tp => tp.CompletionStatus == "Enrolled" || tp.CompletionStatus == "In Progress");
+        .Count(tp => tp.CompletionStatus == EnrollmentStatus.Enrolled || tp.CompletionStatus == EnrollmentStatus.InProgress);
  
     // ── Chart data: participants per training (top 6) ─────────────
     var participantsPerTraining = trainings
@@ -93,7 +93,7 @@ public async Task<IActionResult> Dashboard()
         Enrolled   = enrolledParticipants,
         InProgress = trainings
             .SelectMany(t => t.TrainingParticipants)
-            .Count(tp => tp.CompletionStatus == "In Progress")
+            .Count(tp => tp.CompletionStatus == EnrollmentStatus.InProgress)
     };
  
     ViewBag.Trainings              = trainings;

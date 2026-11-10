@@ -20,11 +20,13 @@ public class DiscussionController : Controller
 {
     private readonly AppDbContext _db;
     private readonly INotificationService _notify;
+    private readonly IEmailService _email;
 
-    public DiscussionController(AppDbContext db, INotificationService notify)
+    public DiscussionController(AppDbContext db, INotificationService notify, IEmailService email)
     {
         _db = db;
         _notify = notify;
+        _email = email;
     }
 
     private int? CurrentUserId => HttpContext.Session.GetUserId();
@@ -198,15 +200,19 @@ public class DiscussionController : Controller
                 .ToListAsync();
             recipients.Remove(uid);
 
-            var trainingTitle = await _db.Trainings
-                .Where(t => t.TrainingId == trainingId)
-                .Select(t => t.TrainingTitle)
-                .FirstAsync();
+            var training = await _db.Trainings.AsNoTracking()
+                .FirstAsync(t => t.TrainingId == trainingId);
 
             await _notify.NotifyAsync(recipients,
                 "Announcement: " + title,
-                trainingTitle,
+                training.TrainingTitle,
                 Url.Action(nameof(Board), new { trainingId }));
+
+            // Also email the group (skipped quietly when email is not configured)
+            var recipientUsers = await _db.Users.AsNoTracking()
+                .Where(u => recipients.Contains(u.UserId))
+                .ToListAsync();
+            await _email.SendAnnouncementAsync(recipientUsers, training, title!, body);
         }
 
         TempData["Success"] = isAnnouncement ? "Announcement sent to the group." : "Posted.";
