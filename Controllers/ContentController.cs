@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -18,7 +19,7 @@ public class ContentController : Controller
     private bool CanManageContent()
     {
         var role = HttpContext.Session.GetString("UserRole");
-        return role == "CourseManager" || role == "ResourcePerson" || role == "Raam";
+        return role == AppRoles.CourseManager || role == AppRoles.ResourcePerson || role == AppRoles.Raam;
     }
 
     private int GetUserId()
@@ -43,14 +44,14 @@ public class ContentController : Controller
         var role   = GetUserRole();
         var userId = GetUserId();
 
-        if (role == "CourseManager")
+        if (role == AppRoles.CourseManager)
         {
             // See ALL trainings
             return await _db.Trainings
                 .OrderBy(t => t.TrainingTitle)
                 .ToListAsync();
         }
-        else if (role == "Raam")
+        else if (role == AppRoles.Raam)
         {
             // See only trainings in their region
             var user = await _db.Users.FindAsync(userId);
@@ -61,7 +62,7 @@ public class ContentController : Controller
                 .OrderBy(t => t.TrainingTitle)
                 .ToListAsync();
         }
-        else if (role == "ResourcePerson")
+        else if (role == AppRoles.ResourcePerson)
         {
             // See only trainings assigned to them
             var assignedTrainingIds = await _db.TrainingInstructors
@@ -84,16 +85,16 @@ public class ContentController : Controller
         var role   = GetUserRole();
         var userId = GetUserId();
 
-        if (role == "CourseManager") return true;
+        if (role == AppRoles.CourseManager) return true;
 
-        if (role == "Raam")
+        if (role == AppRoles.Raam)
         {
             var user     = await _db.Users.FindAsync(userId);
             var training = await _db.Trainings.FindAsync(trainingId);
             return training?.RegionId == user?.RegionId;
         }
 
-        if (role == "ResourcePerson")
+        if (role == AppRoles.ResourcePerson)
         {
             return await _db.TrainingInstructors
                 .AnyAsync(ti => ti.UserId == userId && ti.TrainingId == trainingId);
@@ -106,9 +107,9 @@ public class ContentController : Controller
     //  MODULES
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Modules(int? id, int? trainingId)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var selectedTrainingId = id ?? trainingId;
@@ -159,12 +160,12 @@ public class ContentController : Controller
     // ── POST: CreateModule ─────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> CreateModule(
         int trainingId, string moduleName, string moduleDescription,
         string moduleType, string? lectureSource, string? linkUrl,
         IFormFile? file)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         if (!await CanAccessTraining(trainingId))
         {
@@ -248,11 +249,11 @@ public class ContentController : Controller
     // ── POST: EditModule ───────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> EditModule(
         int moduleId, int trainingId, string moduleDescription,
         string? linkUrl, IFormFile? file)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         if (!await CanAccessTraining(trainingId))
         {
@@ -292,9 +293,9 @@ public class ContentController : Controller
     // ── POST: DeleteModule ─────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> DeleteModule(int moduleId, int trainingId)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         if (!await CanAccessTraining(trainingId))
         {
@@ -346,10 +347,10 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 }
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> SaveQuizSettings(
         int moduleId, int? quizId, string quizTitle, int passingScore)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         if (quizId.HasValue && quizId > 0)
         {
@@ -379,11 +380,11 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> AddQuestion(
         int moduleId, int quizId, string questionText,
         List<string> choices, int correctChoice)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         var question = new QuizQuestion
         {
@@ -413,9 +414,9 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> DeleteQuestion(int questionId, int moduleId)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         var question = await _db.QuizQuestions
             .Include(q => q.Choices)
@@ -436,9 +437,9 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
     //  TEXT EDITOR
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> TextEditor(int moduleId)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var module = await _db.TrainingModules
@@ -460,12 +461,12 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> SaveTextContent(
         int moduleId, int? contentId, string? introduction,
         string? referencesText, List<string> topicTitles,
         List<string> topicBodies)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         ModuleTextContent? content;
 
@@ -530,9 +531,9 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
     //  TEST MAKER
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> TestMaker(int? trainingId)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         // Get filtered trainings based on role
@@ -575,12 +576,12 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
                 var userAttempts = attempts.Where(a => a.UserId == tp.UserId).ToList();
 
                 var preTest = userAttempts
-                    .Where(a => a.TestType == "PreTest")
+                    .Where(a => a.TestType == TestTypes.PreTest)
                     .OrderByDescending(a => a.TakenAt)
                     .FirstOrDefault();
 
                 var postTests = userAttempts
-                    .Where(a => a.TestType == "PostTest")
+                    .Where(a => a.TestType == TestTypes.PostTest)
                     .OrderByDescending(a => a.Score)
                     .ToList();
 
@@ -608,13 +609,13 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> SaveQuestion(
         int? questionId, int trainingId, string questionType,
         string questionText, string? choiceA, string? choiceB,
         string? choiceC, string? choiceD, string? correctAnswer,
         string? correctAnswerTf, string? correctAnswerText, decimal points)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         if (!await CanAccessTraining(trainingId))
         {
@@ -667,9 +668,9 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> DeleteQuestion2(int questionId, int trainingId)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         var q = await _db.Questions.FindAsync(questionId);
         if (q != null)
@@ -684,10 +685,10 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> SaveTestSettings(
         int trainingId, int minimumScore, int posttestTimer)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         if (!await CanAccessTraining(trainingId))
         {
@@ -709,14 +710,14 @@ public async Task<IActionResult> QuizBuilder(int moduleId)
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.Raam, AppRoles.ResourcePerson)]
     public async Task<IActionResult> ResetAttempts(int userId, int trainingId)
     {
-        if (!CanManageContent()) return RedirectToAction("Login", "Home");
 
         var attempts = await _db.ParticipantTestAttempts
             .Where(a => a.UserId     == userId
                      && a.TrainingId == trainingId
-                     && a.TestType   == "PostTest")
+                     && a.TestType   == TestTypes.PostTest)
             .ToListAsync();
 
         _db.ParticipantTestAttempts.RemoveRange(attempts);

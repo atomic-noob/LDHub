@@ -1,4 +1,5 @@
 // Controllers/EvaluationController.cs
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -14,7 +15,7 @@ public class EvaluationController : Controller
     private bool CanAccess()
     {
         var role = HttpContext.Session.GetString("UserRole");
-        return role == "Admin" || role == "CourseManager" || role == "Raam";
+        return role == AppRoles.Admin || role == AppRoles.CourseManager || role == AppRoles.Raam;
     }
 
     private void SetViewBag()
@@ -24,9 +25,9 @@ public class EvaluationController : Controller
     }
 
     // ── GET: /Evaluation/Index ─────────────────────────────// ── GET: /Evaluation/Index ─────────────────────────────
+[RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
 public async Task<IActionResult> Index(int? trainingId)
 {
-    if (!CanAccess()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var role     = HttpContext.Session.GetString("UserRole");
@@ -34,7 +35,7 @@ public async Task<IActionResult> Index(int? trainingId)
 
     IQueryable<Training> trainingsQuery = _db.Trainings;
 
-    if (role == "Raam")
+    if (role == AppRoles.Raam)
         trainingsQuery = trainingsQuery.Where(t => t.RegionId == regionId);
 
     ViewBag.Trainings  = await trainingsQuery.OrderByDescending(t => t.CreatedAt).ToListAsync();
@@ -46,7 +47,7 @@ public async Task<IActionResult> Index(int? trainingId)
     if (training == null) return View();
 
     // ── Block RAAM from managing evaluation questions outside their region ──
-    if (role == "Raam" && training.RegionId != regionId)
+    if (role == AppRoles.Raam && training.RegionId != regionId)
     {
         TempData["Error"] = "You do not have access to this training's evaluation.";
         return RedirectToAction("Index");
@@ -66,7 +67,7 @@ public async Task<IActionResult> Index(int? trainingId)
 private async Task<int?> GetRaamRegionId()
 {
     var role = HttpContext.Session.GetString("UserRole");
-    if (role != "Raam") return null;
+    if (role != AppRoles.Raam) return null;
 
     var userIdStr = HttpContext.Session.GetString("UserId");
     if (!int.TryParse(userIdStr, out int userId)) return null;
@@ -78,11 +79,11 @@ private async Task<int?> GetRaamRegionId()
     // ── POST: /Evaluation/SaveQuestion ─────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> SaveQuestion(
         int questionId, int trainingId, string questionText, string questionType,
         string? choiceA, string? choiceB, string? choiceC, string? choiceD, bool isRequired)
     {
-        if (!CanAccess()) return RedirectToAction("Login", "Home");
 
         if (questionId == 0)
         {
@@ -128,9 +129,9 @@ private async Task<int?> GetRaamRegionId()
     // ── POST: /Evaluation/DeleteQuestion ───────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> DeleteQuestion(int questionId, int trainingId)
     {
-        if (!CanAccess()) return RedirectToAction("Login", "Home");
 
         var q = await _db.EvaluationQuestions.FindAsync(questionId);
         if (q != null)
@@ -260,9 +261,9 @@ public static async Task<bool> HasCompletedEvaluation(
 }
 
 // ── GET: /Evaluation/Results ───────────────────────────────
+[RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
 public async Task<IActionResult> Results(int trainingId)
 {
-    if (!CanAccess()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var training = await _db.Trainings.FindAsync(trainingId);

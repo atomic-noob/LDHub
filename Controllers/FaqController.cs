@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -18,7 +19,7 @@ public class FaqController : Controller
 
     // ── Auth guard ────────────────────────────────────────────────
     private bool IsAdmin()
-        => HttpContext.Session.GetString("UserRole") == "Admin";
+        => HttpContext.Session.GetString("UserRole") == AppRoles.Admin;
 
     private IActionResult AdminOnly()
         => RedirectToAction("Login", "Home");

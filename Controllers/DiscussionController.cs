@@ -40,17 +40,17 @@ public class DiscussionController : Controller
 
         var role = CurrentRole;
 
-        if (role == "Admin" || role == "CourseManager")
+        if (role == AppRoles.Admin || role == AppRoles.CourseManager)
             return new Access(true, true, true);
 
-        if (role == "Raam")
+        if (role == AppRoles.Raam)
         {
             var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == userId);
             if (user?.RegionId != null && user.RegionId == training.RegionId)
                 return new Access(true, true, true);
         }
 
-        if (role == "ResourcePerson" &&
+        if (role == AppRoles.ResourcePerson &&
             await _db.TrainingInstructors.AnyAsync(ti => ti.TrainingId == trainingId && ti.UserId == userId))
             return new Access(true, true, true);
 
@@ -69,17 +69,17 @@ public class DiscussionController : Controller
 
         IQueryable<Training> query = _db.Trainings.AsNoTracking();
 
-        if (role == "Admin" || role == "CourseManager")
+        if (role == AppRoles.Admin || role == AppRoles.CourseManager)
         {
             // all trainings
         }
-        else if (role == "Raam")
+        else if (role == AppRoles.Raam)
         {
             var regionId = (await _db.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.UserId == uid))?.RegionId;
             query = query.Where(t => t.RegionId == regionId);
         }
-        else if (role == "ResourcePerson")
+        else if (role == AppRoles.ResourcePerson)
         {
             query = query.Where(t => _db.TrainingInstructors
                 .Any(ti => ti.TrainingId == t.TrainingId && ti.UserId == uid));

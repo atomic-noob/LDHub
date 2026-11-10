@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -10,16 +11,18 @@ public class RaamController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IEmailService _email;
+    private readonly IUserApprovalService _approvals;
 
-    public RaamController(AppDbContext db, IEmailService email)
+    public RaamController(AppDbContext db, IEmailService email, IUserApprovalService approvals)
     {
         _db = db;
         _email = email;
+        _approvals = approvals;
     }
 
     // ── Auth helpers ───────────────────────────────────────────
     private bool IsRaam() =>
-        HttpContext.Session.GetString("UserRole") == "Raam";
+        HttpContext.Session.GetString("UserRole") == AppRoles.Raam;
 
     private int GetUserId()
     {
@@ -29,7 +32,7 @@ public class RaamController : Controller
 
     private void SetViewBag()
     {
-        ViewBag.ActiveRole = "Raam";
+        ViewBag.ActiveRole = AppRoles.Raam;
         ViewBag.UserName   = HttpContext.Session.GetString("UserName");
         ViewBag.UserPhoto  = HttpContext.Session.GetString("UserPhoto");
     }
@@ -45,9 +48,9 @@ public class RaamController : Controller
     //  DASHBOARD
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> Dashboard()
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var regionId = await GetRaamRegionId();
@@ -102,9 +105,9 @@ public class RaamController : Controller
     //  TRAINING — region filtered, reuse Training/Index.cshtml
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> Training()
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var regionId = await GetRaamRegionId();
@@ -126,9 +129,9 @@ public class RaamController : Controller
     //  PENDING PARTICIPANTS — region filtered
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> PendingParticipants()
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var regionId = await GetRaamRegionId();
@@ -149,9 +152,9 @@ public class RaamController : Controller
     // ── POST: Approve participant ──────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> ApproveParticipant(int pendingId)
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
 
         var pending = await _db.PendingParticipants.FindAsync(pendingId);
         if (pending == null)
@@ -160,44 +163,12 @@ public class RaamController : Controller
             return RedirectToAction("PendingParticipants");
         }
 
-        // Create user account
-        var user = new User
+        var error = await _approvals.ApproveAsync(pending, removePending: false);
+        if (error != null)
         {
-            FirstName     = pending.FirstName,
-            MiddleName    = pending.MiddleName,
-            LastName      = pending.LastName,
-            Email         = pending.Email,
-            Password      = pending.Password,
-            ContactNumber = pending.ContactNumber,
-            Gender        = pending.Gender,
-            Age           = pending.Age,
-            Position      = pending.Position,
-            Designation   = pending.Designation,
-            SalaryGrade   = pending.SalaryGrade,
-            RegionId      = pending.RegionId,
-            OfficeId      = pending.OfficeId,
-            DivisionId    = pending.DivisionId,
-            Status        = "Active",
-            CreatedAt     = DateTime.UtcNow,
-            UpdatedAt     = DateTime.UtcNow
-        };
-
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        // Assign Employee role
-        _db.UserRoles.Add(new UserRole
-        {
-            UserId     = user.UserId,
-            Role       = "Employee",
-            AssignedAt = DateTime.UtcNow
-        });
-
-        // Mark pending as approved
-        pending.Status = "Active";
-        await _db.SaveChangesAsync();
-
-        await _email.SendRegistrationApprovedAsync(pending.Email, $"{pending.FirstName} {pending.LastName}");
+            TempData["Error"] = error;
+            return RedirectToAction("PendingParticipants");
+        }
 
         TempData["Success"] = $"{pending.FirstName} {pending.LastName} approved successfully!";
         return RedirectToAction("PendingParticipants");
@@ -206,9 +177,9 @@ public class RaamController : Controller
     // ── POST: Reject participant ───────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> RejectParticipant(int pendingId, string? reason)
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
 
         var pending = await _db.PendingParticipants.FindAsync(pendingId);
         if (pending == null)
@@ -230,9 +201,9 @@ public class RaamController : Controller
     //  PARTICIPANTS LIST — region filtered
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> ParticipantsList()
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var regionId = await GetRaamRegionId();
@@ -243,7 +214,7 @@ public class RaamController : Controller
             .Include(u => u.Division)
             .Include(u => u.UserRoles)
             .Where(u => u.RegionId == regionId
-                     && u.UserRoles.Any(r => r.Role == "Employee")
+                     && u.UserRoles.Any(r => r.Role == AppRoles.Employee)
                      && u.IsExternal == false)
             .OrderBy(u => u.LastName)
             .ToListAsync();
@@ -256,9 +227,9 @@ public class RaamController : Controller
     // ── POST: Toggle participant status ────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> ToggleParticipantStatus(int userId)
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
 
         var user = await _db.Users.FindAsync(userId);
         if (user == null)
@@ -277,9 +248,9 @@ public class RaamController : Controller
     // ── POST: Edit employee ─────────────────────────────────────
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Raam)]
 public async Task<IActionResult> EmployeeEdit(User model)
 {
-    if (!IsRaam()) return RedirectToAction("Login", "Home");
 
     var regionId = await GetRaamRegionId();
     var user = await _db.Users.FindAsync(model.UserId);
@@ -314,9 +285,9 @@ public async Task<IActionResult> EmployeeEdit(User model)
 // ── POST: Assign role ────────────────────────────────────────
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Raam)]
 public async Task<IActionResult> AssignRole(int userId, string role)
 {
-    if (!IsRaam()) return RedirectToAction("Login", "Home");
 
     var regionId = await GetRaamRegionId();
     var user = await _db.Users.FindAsync(userId);
@@ -352,9 +323,9 @@ public async Task<IActionResult> AssignRole(int userId, string role)
 // ── POST: Remove role ────────────────────────────────────────
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Raam)]
 public async Task<IActionResult> RemoveRole(int userId, string role)
 {
-    if (!IsRaam()) return RedirectToAction("Login", "Home");
 
     var regionId = await GetRaamRegionId();
     var user = await _db.Users.FindAsync(userId);
@@ -382,9 +353,9 @@ public async Task<IActionResult> RemoveRole(int userId, string role)
     //  LOCATIONS
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> Offices()
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var regionId = await GetRaamRegionId();
@@ -400,9 +371,9 @@ public async Task<IActionResult> RemoveRole(int userId, string role)
         return View("~/Views/Raam/Offices.cshtml", offices);
     }
 
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> Divisions()
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var regionId = await GetRaamRegionId();
@@ -423,9 +394,9 @@ public async Task<IActionResult> RemoveRole(int userId, string role)
     //  AUTO PDF / REPORT (placeholder — build later)
     // ════════════════════════════════════════════════════════════
 
+    [RequireRole(AppRoles.Raam)]
     public async Task<IActionResult> TrainingReport()
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var regionId  = await GetRaamRegionId();
@@ -443,9 +414,9 @@ public async Task<IActionResult> RemoveRole(int userId, string role)
         return View("~/Views/Raam/TrainingReport.cshtml", trainings);
     }
 
+    [RequireRole(AppRoles.Raam)]
     public IActionResult AutoPdf()
     {
-        if (!IsRaam()) return RedirectToAction("Login", "Home");
         SetViewBag();
         return View("~/Views/Raam/AutoPdf.cshtml");
     }

@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -12,18 +13,20 @@ public class TrainingController : Controller
     private readonly AppDbContext _db;
     private readonly IEmailService _email;
     private readonly INotificationService _notify;
+    private readonly ITrainingReportService _reports;
 
-    public TrainingController(AppDbContext db, IEmailService email, INotificationService notify)
+    public TrainingController(AppDbContext db, IEmailService email, INotificationService notify, ITrainingReportService reports)
     {
         _db = db;
         _email = email;
         _notify = notify;
+        _reports = reports;
     }
 
     private bool CanAccessTraining()
     {
         var role = HttpContext.Session.GetString("UserRole");
-        return role == "Admin" || role == "CourseManager" || role == "Raam";
+        return role == AppRoles.Admin || role == AppRoles.CourseManager || role == AppRoles.Raam;
     }
 
     private int GetUserId()
@@ -45,15 +48,15 @@ public class TrainingController : Controller
     // ── Get RAAM's region ID ───────────────────────────────────
     private async Task<int?> GetRaamRegionId()
     {
-        if (GetUserRole() != "Raam") return null;
+        if (GetUserRole() != AppRoles.Raam) return null;
         var user = await _db.Users.FindAsync(GetUserId());
         return user?.RegionId;
     }
 
     // ── GET: /Training/Index ───────────────────────────────────
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Index()
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var role     = GetUserRole();
@@ -63,23 +66,23 @@ public class TrainingController : Controller
             .Include(t => t.TrainingParticipants);
 
         // RAAM only sees their region
-        if (role == "Raam")
+        if (role == AppRoles.Raam)
             query = query.Where(t => t.RegionId == regionId);
 
         var trainings = await query
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 
-        ViewBag.IsRaam   = role == "Raam";
+        ViewBag.IsRaam   = role == AppRoles.Raam;
         ViewBag.RegionId = regionId;
 
         return View("~/Views/Training/Index.cshtml", trainings);
     }
 
     // ── GET: /Training/Create ──────────────────────────────────
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Create()
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var role     = GetUserRole();
@@ -94,7 +97,7 @@ public class TrainingController : Controller
 
 
         ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).ToListAsync();
-        ViewBag.IsRaam       = role == "Raam";
+        ViewBag.IsRaam       = role == AppRoles.Raam;
         ViewBag.RaamRegionId = regionId;
 
         return View("~/Views/Training/Create.cshtml");
@@ -103,9 +106,9 @@ public class TrainingController : Controller
     // ── POST: /Training/Create ─────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Create(Training model)
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
 
         var role     = GetUserRole();
         var regionId = await GetRaamRegionId();
@@ -119,7 +122,7 @@ public class TrainingController : Controller
             }
 
         // Force RAAM's region
-        if (role == "Raam")
+        if (role == AppRoles.Raam)
             model.RegionId = regionId;
 
         model.CreatedBy = GetUserId();
@@ -141,16 +144,16 @@ public class TrainingController : Controller
                 "ProficiencyName"
             );
         ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).ToListAsync();
-        ViewBag.IsRaam        = role == "Raam";
+        ViewBag.IsRaam        = role == AppRoles.Raam;
         ViewBag.RaamRegionId  = regionId;
 
         return View("~/Views/Training/Create.cshtml", model);
     }
 
     // ── GET: /Training/Edit/{id} ───────────────────────────────
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Edit(int id)
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var training = await _db.Trainings.FindAsync(id);
@@ -160,7 +163,7 @@ public class TrainingController : Controller
         var regionId = await GetRaamRegionId();
 
         // RAAM can only edit trainings in their region
-        if (role == "Raam" && training.RegionId != regionId)
+        if (role == AppRoles.Raam && training.RegionId != regionId)
         {
             TempData["Error"] = "You do not have access to this training.";
             return RedirectToAction("Index", "Training");
@@ -174,7 +177,7 @@ public class TrainingController : Controller
 );
 
         ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).ToListAsync();
-        ViewBag.IsRaam        = role == "Raam";
+        ViewBag.IsRaam        = role == AppRoles.Raam;
         ViewBag.RaamRegionId  = regionId;
 
         return View("~/Views/Training/Edit.cshtml", training);
@@ -183,9 +186,9 @@ public class TrainingController : Controller
     // ── POST: /Training/Edit ───────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Edit(int id, Training model)
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
 
         var role     = GetUserRole();
         var regionId = await GetRaamRegionId();
@@ -194,14 +197,14 @@ public class TrainingController : Controller
         if (training == null) return NotFound();
 
         // RAAM can only edit trainings in their region
-        if (role == "Raam" && training.RegionId != regionId)
+        if (role == AppRoles.Raam && training.RegionId != regionId)
         {
             TempData["Error"] = "You do not have access to this training.";
             return RedirectToAction("Index", "Training");
         }
 
         // Force RAAM's region
-        if (role == "Raam")
+        if (role == AppRoles.Raam)
             model.RegionId = regionId;
 
         if (ModelState.IsValid)
@@ -217,7 +220,7 @@ public class TrainingController : Controller
             training.MOVs              = model.MOVs;
             training.SuccessIndicator  = model.SuccessIndicator;
             training.ProficiencyId     = model.ProficiencyId;
-            training.RegionId          = role == "Raam" ? regionId : model.RegionId;
+            training.RegionId          = role == AppRoles.Raam ? regionId : model.RegionId;
             training.UpdatedAt         = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
@@ -233,16 +236,16 @@ public class TrainingController : Controller
     training.ProficiencyId  // ← this pre-selects the current value
 );
 ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).ToListAsync();
-        ViewBag.IsRaam        = role == "Raam";
+        ViewBag.IsRaam        = role == AppRoles.Raam;
         ViewBag.RaamRegionId  = regionId;
 
         return View("~/Views/Training/Edit.cshtml", model);
     }
 
     // ── GET: /Training/Details/{id} ────────────────────────────
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Details(int id)
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
       var training = await _db.Trainings
@@ -259,7 +262,7 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
         var regionId = await GetRaamRegionId();
 
         // RAAM can only view trainings in their region
-        if (role == "Raam" && training.RegionId != regionId)
+        if (role == AppRoles.Raam && training.RegionId != regionId)
         {
             TempData["Error"] = "You do not have access to this training.";
             return RedirectToAction("Index", "Training");
@@ -269,9 +272,9 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
     }
 
     // ── GET: /Training/AssignParticipant/{id} ──────────────────
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> AssignParticipant(int id)
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var training = await _db.Trainings
@@ -285,7 +288,7 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
         var regionId = await GetRaamRegionId();
 
         // RAAM can only assign participants to trainings in their region
-        if (role == "Raam" && training.RegionId != regionId)
+        if (role == AppRoles.Raam && training.RegionId != regionId)
         {
             TempData["Error"] = "You do not have access to this training.";
             return RedirectToAction("Index", "Training");
@@ -299,13 +302,13 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
             IQueryable<User> usersQuery = _db.Users
                 .Include(u => u.UserRoles)
                 .Include(u => u.Region)
-                .Where(u => u.UserRoles.Any(r => r.Role == "Employee")
+                .Where(u => u.UserRoles.Any(r => r.Role == AppRoles.Employee)
                         && u.IsExternal == false
                         && u.Status == "Active"
                         && u.InTraining == false
                         && !assignedUserIds.Contains(u.UserId));
 
-        if (role == "Raam")
+        if (role == AppRoles.Raam)
             usersQuery = usersQuery.Where(u => u.RegionId == regionId);
 
         var users = await usersQuery
@@ -320,9 +323,9 @@ ViewBag.Competencies   = await _db.Competencies.OrderBy(c => c.CompetencyCode).T
 
    [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
 public async Task<IActionResult> AssignParticipant(int trainingId, List<int> userIds)
 {
-    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
 
     userIds ??= new List<int>();
     var newlyAssignedIds = new List<int>();
@@ -383,9 +386,9 @@ public async Task<IActionResult> AssignParticipant(int trainingId, List<int> use
   // ── GET: /Training/AssignResourcePerson/{id} ───────────────
 // REPLACE the existing AssignResourcePerson GET action with this:
 
+[RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
 public async Task<IActionResult> AssignResourcePerson(int id)
 {
-    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var training = await _db.Trainings
@@ -399,7 +402,7 @@ public async Task<IActionResult> AssignResourcePerson(int id)
     var role     = GetUserRole();
     var regionId = await GetRaamRegionId();
 
-    if (role == "Raam" && training.RegionId != regionId)
+    if (role == AppRoles.Raam && training.RegionId != regionId)
     {
         TempData["Error"] = "You do not have access to this training.";
         return RedirectToAction("Index", "Training");
@@ -410,7 +413,7 @@ public async Task<IActionResult> AssignResourcePerson(int id)
         .Include(u => u.UserRoles)
         .Include(u => u.Region)
         .Include(u => u.Office)
-        .Where(u => u.UserRoles.Any(r => r.Role == "ResourcePerson")
+        .Where(u => u.UserRoles.Any(r => r.Role == AppRoles.ResourcePerson)
                  && u.Status == "Active")
         .OrderBy(u => u.IsExternal)
         .ThenBy(u => u.LastName)
@@ -427,9 +430,9 @@ public async Task<IActionResult> AssignResourcePerson(int id)
 
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
 public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> userIds)
 {
-    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
 
     // Security check — prevent assigning someone who is already a participant
     var participantIds = await _db.TrainingParticipants
@@ -488,9 +491,9 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
     // ── POST: /Training/Delete ─────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Delete(int id)
     {
-        if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
 
         var training = await _db.Trainings.FindAsync(id);
         if (training == null) return NotFound();
@@ -499,7 +502,7 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
         var regionId = await GetRaamRegionId();
 
         // RAAM can only delete trainings in their region
-        if (role == "Raam" && training.RegionId != regionId)
+        if (role == AppRoles.Raam && training.RegionId != regionId)
         {
             TempData["Error"] = "You do not have access to this training.";
             return RedirectToAction("Index", "Training");
@@ -513,9 +516,9 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
     }
   // ── GET: /Training/TrainingReport ─────────────────────────────
 // ── GET: /Training/TrainingReport ─────────────────────────────
+[RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
 public async Task<IActionResult> TrainingReport(int? trainingId)
 {
-    if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var role     = GetUserRole();
@@ -526,7 +529,7 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
 
     IQueryable<Training> trainingsQuery = _db.Trainings.AsNoTracking();
 
-    if (role == "Raam")
+    if (role == AppRoles.Raam)
         trainingsQuery = trainingsQuery.Where(t => t.RegionId == regionId);
 
     ViewBag.Trainings = await trainingsQuery.OrderByDescending(t => t.CreatedAt).ToListAsync();
@@ -543,91 +546,13 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
     if (training == null) return View("~/Views/Training/TrainingReport.cshtml");
 
     // ── Block RAAM from viewing a report for a training outside their region ──
-    if (role == "Raam" && training.RegionId != regionId)
+    if (role == AppRoles.Raam && training.RegionId != regionId)
     {
         TempData["Error"] = "You do not have access to this training's report.";
         return RedirectToAction("TrainingReport");
     }
 
-    // One query for every participant's tests (instead of three queries per participant)
-    var attempts = await _db.ParticipantTestAttempts
-        .AsNoTracking()
-        .Where(e => e.TrainingId == trainingId
-                 && (e.TestType == "PreTest" || e.TestType == "PostTest"))
-        .ToListAsync();
-    var attemptsByUser = attempts.ToLookup(e => e.UserId);
-
-    var rows = new List<ReportRow>();
-
-    foreach (var tp in training.TrainingParticipants)
-    {
-        if (tp.User == null) continue;
-
-        var mine         = attemptsByUser[tp.UserId].ToList();
-        var preAttempt   = mine.Where(e => e.TestType == "PreTest")
-                               .OrderByDescending(e => e.TakenAt).FirstOrDefault();
-        var postAttempts = mine.Where(e => e.TestType == "PostTest").ToList();
-        var postAttempt  = postAttempts.OrderByDescending(e => e.TakenAt).FirstOrDefault();
-
-        rows.Add(new ReportRow
-        {
-            UserId       = tp.UserId,
-            Name         = $"{tp.User.FirstName} {tp.User.LastName}",
-            Position     = tp.User.Position ?? "—",
-            Office       = tp.User.Office?.OfficeName ?? "—",
-            PreScore     = preAttempt  != null ? (decimal?)preAttempt.Score : null,
-            PostScore    = postAttempt != null ? (decimal?)postAttempt.Score : null,
-            IsPassed     = postAttempt?.IsPassed ?? false,
-            PostAttempts = postAttempts.Count
-        });
-    }
-
-    var vm = new TrainingReportViewModel
-    {
-        Training          = training,
-        TotalParticipants = rows.Count,
-        PassedCount       = rows.Count(r => r.IsPassed),
-        FailedCount       = rows.Count(r => !r.IsPassed && r.PostScore.HasValue),
-        NotTakenCount     = rows.Count(r => !r.PostScore.HasValue),
-        PreTestAvg        = rows.Any(r => r.PreScore.HasValue)
-                            ? Math.Round(rows.Where(r => r.PreScore.HasValue)
-                                .Average(r => r.PreScore!.Value), 2)
-                            : 0,
-        PostTestAvg       = rows.Any(r => r.PostScore.HasValue)
-                            ? Math.Round(rows.Where(r => r.PostScore.HasValue)
-                                .Average(r => r.PostScore!.Value), 2)
-                            : 0,
-        PassingRate       = rows.Count > 0
-                            ? Math.Round((decimal)rows.Count(r => r.IsPassed) / rows.Count * 100, 2)
-                            : 0,
-        Rows              = rows
-    };
-
-    vm.LearningGain = vm.PostTestAvg - vm.PreTestAvg;
-    vm.TotalPoints  = rows.Sum(r => r.PostScore ?? 0);
-
-    var pairs = rows
-        .Where(r => r.PreScore.HasValue && r.PostScore.HasValue)
-        .Select(r => (Pre: (double)r.PreScore!.Value, Post: (double)r.PostScore!.Value))
-        .ToList();
-
-    if (pairs.Count >= 2)
-    {
-        var pairedPre  = new List<double>();
-        var pairedPost = new List<double>();
-
-        foreach (var r in rows)
-        {
-            if (r.PreScore.HasValue && r.PostScore.HasValue)
-            {
-                pairedPre.Add((double)r.PreScore.Value);
-                pairedPost.Add((double)r.PostScore.Value);
-            }
-        }
-
-        vm.TTest = LDHub.Services.TTestService.ComputePairedTTest(
-            pairedPre, pairedPost, training.TrainingTitle);
-    }
+    var vm = await _reports.BuildAsync(training);
 
     return View("~/Views/Training/TrainingReport.cshtml", vm);
 }

@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -19,7 +20,7 @@ public class CertificateController : Controller
     private bool CanAccess()
     {
         var role = HttpContext.Session.GetString("UserRole");
-        return role == "Admin" || role == "CourseManager" || role == "Raam";
+        return role == AppRoles.Admin || role == AppRoles.CourseManager || role == AppRoles.Raam;
     }
 
     private async Task<int?> GetRaamRegionId()
@@ -38,9 +39,9 @@ public class CertificateController : Controller
     }
 
     // ── GET: /Certificate/Index ────────────────────────────────
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Index()
     {
-        if (!CanAccess()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var role = HttpContext.Session.GetString("UserRole");
@@ -51,7 +52,7 @@ public class CertificateController : Controller
             .OrderByDescending(t => t.CreatedAt);
 
         // RAAM only sees their region
-        if (role == "Raam")
+        if (role == AppRoles.Raam)
         {
             var regionId = await GetRaamRegionId();
             query = query.Where(t => t.RegionId == regionId);
@@ -64,9 +65,9 @@ public class CertificateController : Controller
     // ── POST: /Certificate/Upload ──────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Upload(int trainingId, IFormFile certificate)
     {
-        if (!CanAccess()) return RedirectToAction("Login", "Home");
 
         var training = await _db.Trainings.FindAsync(trainingId);
         if (training == null) return NotFound();
@@ -124,9 +125,9 @@ public class CertificateController : Controller
     // ── POST: /Certificate/Remove ──────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> Remove(int trainingId)
     {
-        if (!CanAccess()) return RedirectToAction("Login", "Home");
 
         var training = await _db.Trainings.FindAsync(trainingId);
         if (training == null) return NotFound();

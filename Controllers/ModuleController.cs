@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -20,10 +21,10 @@ public class ModuleController : Controller
     // ── Auth helpers ──────────────────────────────────────────────
     // Check if user is CourseManager or ResourcePerson
     private bool IsCourseManager() =>
-        HttpContext.Session.GetString("UserRole") == "CourseManager";
+        HttpContext.Session.GetString("UserRole") == AppRoles.CourseManager;
 
     private bool IsResourcePerson() =>
-        HttpContext.Session.GetString("UserRole") == "ResourcePerson";
+        HttpContext.Session.GetString("UserRole") == AppRoles.ResourcePerson;
 
     private bool HasAccess() => IsCourseManager() || IsResourcePerson();
 
@@ -41,9 +42,9 @@ public class ModuleController : Controller
     // Shows list of trainings
     // CourseManager → sees ALL trainings
     // ResourcePerson → sees only assigned trainings
+  [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
   public async Task<IActionResult> Index()
 {
-    if (!HasAccess()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var userId = GetUserId();
@@ -71,9 +72,9 @@ public class ModuleController : Controller
 
     // ── GET: /Module/Modules/5 ────────────────────────────────────
     // Shows list of modules for a specific training
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Modules(int id)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var training = await _db.Trainings.FindAsync(id);
@@ -101,9 +102,9 @@ public class ModuleController : Controller
     // Create new module — called from modal
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Create(TrainingModule model, IFormFile? file)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
 
         model.UploadedBy = GetUserId();
         model.UploadedAt = DateTime.UtcNow;
@@ -167,9 +168,9 @@ public class ModuleController : Controller
     // ── POST: /Module/Edit ────────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Edit(TrainingModule model, IFormFile? file)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
 
         var existing = await _db.TrainingModules.FindAsync(model.ModuleId);
         if (existing == null) return NotFound();
@@ -208,9 +209,9 @@ public class ModuleController : Controller
     // ── POST: /Module/Delete ──────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Delete(int moduleId, int trainingId)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
 
         var module = await _db.TrainingModules.FindAsync(moduleId);
         if (module != null)
@@ -227,12 +228,12 @@ public class ModuleController : Controller
     // Save quiz questions and choices
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> SaveQuiz(int quizId, int trainingId,
         List<string> questionTexts,
         List<List<string>> choices,
         List<int> correctChoices)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
 
         var quiz = await _db.Quizzes
             .Include(q => q.Questions)
@@ -282,11 +283,11 @@ public class ModuleController : Controller
     // Save text module content and topics
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> SaveText(int moduleId, int trainingId,
         string? introduction, string? referencesText,
         List<string> topicTitles, List<string> topicBodies)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
 
         var content = await _db.ModuleTextContents
             .Include(c => c.Topics)

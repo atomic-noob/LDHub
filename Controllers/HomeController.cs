@@ -122,7 +122,7 @@ public async Task<IActionResult> Login(LoginViewModel model)
     }
  
     // Block admin from using this login page
-    if (user.UserRoles.Any(r => r.Role == "Admin"))
+    if (user.UserRoles.Any(r => r.Role == AppRoles.Admin))
     {
         _throttle.RegisterFailure(throttleKey);
         ViewBag.Error = "Invalid email or password.";
@@ -144,7 +144,7 @@ public async Task<IActionResult> Login(LoginViewModel model)
     // ── EXTERNAL RESOURCE PERSON ───────────────────────────────
     if (user.IsExternal && roles.Contains("ResourcePerson"))
     {
-        HttpContext.Session.SetString("UserRole", "ResourcePerson");
+        HttpContext.Session.SetString("UserRole", AppRoles.ResourcePerson);
         return RedirectToAction("Index", "ResourcePerson");
     }
  
@@ -163,7 +163,7 @@ public async Task<IActionResult> Login(LoginViewModel model)
     }
  
     // ── DEFAULT: EMPLOYEE DASHBOARD ───────────────────────────
-    HttpContext.Session.SetString("UserRole", "Employee");
+    HttpContext.Session.SetString("UserRole", AppRoles.Employee);
     return RedirectToAction("Dashboard", "Employee");
 }
 

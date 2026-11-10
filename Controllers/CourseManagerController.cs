@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using LDHub.Data;
 using LDHub.Models;
@@ -21,27 +22,27 @@ public class CourseManagerController : Controller
 
     // ── Auth check helper ─────────────────────────────────────────
     private bool IsCourseManager() =>
-        HttpContext.Session.GetString("UserRole") == "CourseManager";
+        HttpContext.Session.GetString("UserRole") == AppRoles.CourseManager;
 
     private bool CanManageModules()
     {
         var role = HttpContext.Session.GetString("UserRole");
-        return role == "CourseManager" || role == "ResourcePerson";
+        return role == AppRoles.CourseManager || role == AppRoles.ResourcePerson;
     }
 
     // ── ViewBag helper ────────────────────────────────────────────
     private void SetViewBag()
     {
-        ViewBag.ActiveRole = "CourseManager";
+        ViewBag.ActiveRole = AppRoles.CourseManager;
         ViewBag.UserName = HttpContext.Session.GetString("UserName");
         ViewBag.UserPhoto = HttpContext.Session.GetString("UserPhoto");
     }
 
     // ── GET: /CourseManager/Dashboard ─────────────────────────────
 
+[RequireRole(AppRoles.CourseManager)]
 public async Task<IActionResult> Dashboard()
 {
-    if (!IsCourseManager()) return RedirectToAction("Login", "Home");
     SetViewBag();
  
     var now = DateTime.Now;
@@ -109,9 +110,9 @@ ViewBag.StatusBreakdown        = System.Text.Json.JsonSerializer.Serialize(statu
 }
 
     // ── GET: /CourseManager/Trainings ─────────────────────────────
+    [RequireRole(AppRoles.CourseManager)]
     public async Task<IActionResult> Trainings()
     {
-        if (!IsCourseManager()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var trainings = await _db.Trainings
@@ -125,33 +126,33 @@ ViewBag.StatusBreakdown        = System.Text.Json.JsonSerializer.Serialize(statu
   
 
     // ── GET: /CourseManager/TestResult ────────────────────────────
+    [RequireRole(AppRoles.CourseManager)]
     public IActionResult TestResult()
     {
-        if (!IsCourseManager()) return RedirectToAction("Login", "Home");
         SetViewBag();
         return View("~/Views/CourseManager/TestResult.cshtml");
     }
 
     // ── GET: /CourseManager/TrainingReport ────────────────────────
+    [RequireRole(AppRoles.CourseManager)]
     public IActionResult TrainingReport()
     {
-        if (!IsCourseManager()) return RedirectToAction("Login", "Home");
         SetViewBag();
         return View("~/Views/Training/TrainingReport.cshtml");
     }
 
     // ── GET: /CourseManager/EvaluationDashboard ───────────────────
+    [RequireRole(AppRoles.CourseManager)]
     public IActionResult EvaluationDashboard()
     {
-        if (!IsCourseManager()) return RedirectToAction("Login", "Home");
         SetViewBag();
         return View("~/Views/CourseManager/EvaluationDashboard.cshtml");
     }
 
     // ── GET: /CourseManager/AutoPdf ───────────────────────────────
+    [RequireRole(AppRoles.CourseManager)]
     public IActionResult AutoPdf()
     {
-        if (!IsCourseManager()) return RedirectToAction("Login", "Home");
         SetViewBag();
         return View("~/Views/CourseManager/AutoPdf.cshtml");
     }

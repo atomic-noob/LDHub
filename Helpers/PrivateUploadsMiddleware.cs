@@ -50,7 +50,7 @@ public class PrivateUploadsMiddleware
         }
 
         var role = ctx.Session.GetString("UserRole") ?? string.Empty;
-        if (role is "Admin" or "CourseManager")
+        if (role is AppRoles.Admin or AppRoles.CourseManager)
         {
             await _next(ctx);
             return;
@@ -78,10 +78,10 @@ public class PrivateUploadsMiddleware
 
         var allowed = await db.TrainingParticipants.AnyAsync(tp => tp.TrainingId == tid && tp.UserId == uid);
 
-        if (!allowed && role == "ResourcePerson")
+        if (!allowed && role == AppRoles.ResourcePerson)
             allowed = await db.TrainingInstructors.AnyAsync(ti => ti.TrainingId == tid && ti.UserId == uid);
 
-        if (!allowed && role == "Raam")
+        if (!allowed && role == AppRoles.Raam)
         {
             var regionId = await db.Users.AsNoTracking()
                 .Where(u => u.UserId == uid)

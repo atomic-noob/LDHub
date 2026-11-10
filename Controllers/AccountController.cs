@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -217,8 +218,8 @@ public async Task<IActionResult> Register(RegisterViewModel model)
 
     // Tell the RAAM of that region and all Admins that someone is waiting for approval
     var approverIds = await _db.UserRoles
-        .Where(r => r.Role == "Admin"
-                 || (r.Role == "Raam" && r.User != null && r.User.RegionId == pending.RegionId))
+        .Where(r => r.Role == AppRoles.Admin
+                 || (r.Role == AppRoles.Raam && r.User != null && r.User.RegionId == pending.RegionId))
         .Select(r => r.UserId)
         .Distinct()
         .ToListAsync();

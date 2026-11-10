@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using LDHub.Services.Interfaces;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,7 +25,7 @@ namespace LDHub.Controllers
         private bool CanManageLocations()
         {
             var role = HttpContext.Session.GetString("UserRole");
-            return role == "Admin" || role == "Raam";
+            return role == AppRoles.Admin || role == AppRoles.Raam;
         }
 
         private void SetViewBag()
@@ -67,9 +68,9 @@ namespace LDHub.Controllers
         // ═══════════════════════════════════════
         //  REGIONS CRUD
         // ═══════════════════════════════════════
+        [RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
         public async Task<IActionResult> Regions()
         {
-            if (!CanManageLocations()) return RedirectToAction("Index", "Home");
             SetViewBag();
             var regions = await _db.Regions.ToListAsync();
             return View("~/Views/Location/Regions.cshtml", regions);
@@ -77,9 +78,9 @@ namespace LDHub.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
         public async Task<IActionResult> RegionCreate(Region model)
         {
-            if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
             var exists = await _db.Regions.AnyAsync(r => r.RegionName == model.RegionName);
             if (exists)
@@ -96,9 +97,9 @@ namespace LDHub.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
         public async Task<IActionResult> RegionEdit(Region model)
         {
-            if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
             var region = await _db.Regions.FindAsync(model.RegionId);
             if (region == null)
@@ -116,9 +117,9 @@ namespace LDHub.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
         public async Task<IActionResult> RegionDelete(int id)
         {
-            if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
             var region = await _db.Regions.FindAsync(id);
             if (region == null)
@@ -136,9 +137,9 @@ namespace LDHub.Controllers
         // ═══════════════════════════════════════
         //  OFFICES CRUD
         // ═══════════════════════════════════════
+       [RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
        public async Task<IActionResult> Offices()
             {
-                if (!CanManageLocations()) return RedirectToAction("Index", "Home");
                 SetViewBag();
 
                 var role     = HttpContext.Session.GetString("UserRole");
@@ -146,31 +147,31 @@ namespace LDHub.Controllers
 
                 IQueryable<Office> query = _db.Offices.Include(o => o.Region);
 
-                if (role == "Raam")
+                if (role == AppRoles.Raam)
                     query = query.Where(o => o.RegionId == regionId);
 
                 var offices = await query.OrderBy(o => o.OfficeName).ToListAsync();
 
                 // RAAM only gets their own region in the dropdown — prevents picking another region
-                ViewBag.Regions = role == "Raam"
+                ViewBag.Regions = role == AppRoles.Raam
                     ? await _db.Regions.Where(r => r.RegionId == regionId).ToListAsync()
                     : await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
 
-                ViewBag.IsRaam = role == "Raam";
+                ViewBag.IsRaam = role == AppRoles.Raam;
 
                 return View("~/Views/Location/Offices.cshtml", offices);
             }
 
       [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
 public async Task<IActionResult> OfficeCreate(Office model)
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
     var role     = HttpContext.Session.GetString("UserRole");
     var regionId = await GetRaamRegionId();
 
-    if (role == "Raam")
+    if (role == AppRoles.Raam)
         model.RegionId = regionId ?? 0; // force their own region regardless of what was submitted
 
     if (model.RegionId == 0)
@@ -194,15 +195,15 @@ public async Task<IActionResult> OfficeCreate(Office model)
 }
       [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
 public async Task<IActionResult> OfficeBulkCreate(int regionId,
     List<string> officeNames, List<string> officeCodes)
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
     var role         = HttpContext.Session.GetString("UserRole");
     var raamRegionId = await GetRaamRegionId();
 
-    if (role == "Raam" && regionId != raamRegionId)
+    if (role == AppRoles.Raam && regionId != raamRegionId)
     {
         TempData["Error"] = "You can only add offices to your own region.";
         return RedirectToAction("Offices");
@@ -235,9 +236,9 @@ public async Task<IActionResult> OfficeBulkCreate(int regionId,
 }
         [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
 public async Task<IActionResult> OfficeEdit(Office model)
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
     var office = await _db.Offices.FindAsync(model.OfficeId);
     if (office == null)
@@ -249,7 +250,7 @@ public async Task<IActionResult> OfficeEdit(Office model)
     var role     = HttpContext.Session.GetString("UserRole");
     var regionId = await GetRaamRegionId();
 
-    if (role == "Raam" && office.RegionId != regionId)
+    if (role == AppRoles.Raam && office.RegionId != regionId)
     {
         TempData["Error"] = "You do not have access to this office.";
         return RedirectToAction("Offices");
@@ -257,7 +258,7 @@ public async Task<IActionResult> OfficeEdit(Office model)
 
     office.OfficeName = model.OfficeName;
     office.OfficeCode = model.OfficeCode;
-    office.RegionId   = role == "Raam" ? regionId ?? office.RegionId : model.RegionId;
+    office.RegionId   = role == AppRoles.Raam ? regionId ?? office.RegionId : model.RegionId;
     await _db.SaveChangesAsync();
     TempData["Success"] = "Office updated successfully!";
     return RedirectToAction("Offices");
@@ -265,9 +266,9 @@ public async Task<IActionResult> OfficeEdit(Office model)
 
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
 public async Task<IActionResult> OfficeDelete(int id)
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
     var office = await _db.Offices.FindAsync(id);
     if (office == null)
@@ -279,7 +280,7 @@ public async Task<IActionResult> OfficeDelete(int id)
     var role     = HttpContext.Session.GetString("UserRole");
     var regionId = await GetRaamRegionId();
 
-    if (role == "Raam" && office.RegionId != regionId)
+    if (role == AppRoles.Raam && office.RegionId != regionId)
     {
         TempData["Error"] = "You do not have access to this office.";
         return RedirectToAction("Offices");
@@ -294,9 +295,9 @@ public async Task<IActionResult> OfficeDelete(int id)
         // ═══════════════════════════════════════
         //  DIVISIONS CRUD
         // ═══════════════════════════════════════
+      [RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
       public async Task<IActionResult> Divisions()
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
     SetViewBag();
 
     var role     = HttpContext.Session.GetString("UserRole");
@@ -305,30 +306,30 @@ public async Task<IActionResult> OfficeDelete(int id)
     IQueryable<Division> query = _db.Divisions
         .Include(d => d.Office).ThenInclude(o => o.Region);
 
-    if (role == "Raam")
+    if (role == AppRoles.Raam)
         query = query.Where(d => d.Office.RegionId == regionId);
 
     var divisions = await query.OrderBy(d => d.DivisionName).ToListAsync();
 
-    ViewBag.Regions = role == "Raam"
+    ViewBag.Regions = role == AppRoles.Raam
         ? await _db.Regions.Where(r => r.RegionId == regionId).ToListAsync()
         : await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
 
-    ViewBag.IsRaam = role == "Raam";
+    ViewBag.IsRaam = role == AppRoles.Raam;
 
     return View("~/Views/Location/Divisions.cshtml", divisions);
 }
 
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
 public async Task<IActionResult> DivisionCreate(Division model)
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
     var role     = HttpContext.Session.GetString("UserRole");
     var regionId = await GetRaamRegionId();
 
-    if (role == "Raam")
+    if (role == AppRoles.Raam)
     {
         var office = await _db.Offices.FindAsync(model.OfficeId);
         if (office == null || office.RegionId != regionId)
@@ -354,9 +355,9 @@ public async Task<IActionResult> DivisionCreate(Division model)
 
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
 public async Task<IActionResult> DivisionEdit(Division model)
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
     var division = await _db.Divisions.Include(d => d.Office).FirstOrDefaultAsync(d => d.DivisionId == model.DivisionId);
     if (division == null)
@@ -368,7 +369,7 @@ public async Task<IActionResult> DivisionEdit(Division model)
     var role     = HttpContext.Session.GetString("UserRole");
     var regionId = await GetRaamRegionId();
 
-    if (role == "Raam" && division.Office?.RegionId != regionId)
+    if (role == AppRoles.Raam && division.Office?.RegionId != regionId)
     {
         TempData["Error"] = "You do not have access to this division.";
         return RedirectToAction("Divisions");
@@ -384,9 +385,9 @@ public async Task<IActionResult> DivisionEdit(Division model)
 
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
 public async Task<IActionResult> DivisionDelete(int id)
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
     var division = await _db.Divisions.Include(d => d.Office).FirstOrDefaultAsync(d => d.DivisionId == id);
     if (division == null)
@@ -398,7 +399,7 @@ public async Task<IActionResult> DivisionDelete(int id)
     var role     = HttpContext.Session.GetString("UserRole");
     var regionId = await GetRaamRegionId();
 
-    if (role == "Raam" && division.Office?.RegionId != regionId)
+    if (role == AppRoles.Raam && division.Office?.RegionId != regionId)
     {
         TempData["Error"] = "You do not have access to this division.";
         return RedirectToAction("Divisions");
@@ -412,15 +413,15 @@ public async Task<IActionResult> DivisionDelete(int id)
 
        [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, AppRoles.Raam, RedirectAction = "Index", RedirectController = "Home")]
 public async Task<IActionResult> DivisionBulkCreate(int officeId,
     List<string> divisionNames, List<string> divisionCodes)
 {
-    if (!CanManageLocations()) return RedirectToAction("Index", "Home");
 
     var role         = HttpContext.Session.GetString("UserRole");
     var raamRegionId = await GetRaamRegionId();
 
-    if (role == "Raam")
+    if (role == AppRoles.Raam)
     {
         var office = await _db.Offices.FindAsync(officeId);
         if (office == null || office.RegionId != raamRegionId)
@@ -464,7 +465,7 @@ public async Task<IActionResult> GetOfficesByRegion(int regionId)
     var role      = HttpContext.Session.GetString("UserRole");
     var raamRegionId = await GetRaamRegionId();
 
-    if (role == "Raam" && regionId != raamRegionId)
+    if (role == AppRoles.Raam && regionId != raamRegionId)
         return Json(new List<object>()); // return empty, block cross-region lookups
 
     var offices = await _db.Offices
@@ -477,7 +478,7 @@ public async Task<IActionResult> GetOfficesByRegion(int regionId)
         private async Task<int?> GetRaamRegionId()
             {
                 var role = HttpContext.Session.GetString("UserRole");
-                if (role != "Raam") return null;
+                if (role != AppRoles.Raam) return null;
 
                 var userIdStr = HttpContext.Session.GetString("UserId");
                 if (!int.TryParse(userIdStr, out int userId)) return null;
