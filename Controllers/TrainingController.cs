@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc.Rendering;
 namespace LDHub.Controllers;
 using LDHub.Models.ViewModels;
@@ -9,10 +10,12 @@ using LDHub.Models.ViewModels;
 public class TrainingController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly IEmailService _email;
 
-    public TrainingController(AppDbContext db)
+    public TrainingController(AppDbContext db, IEmailService email)
     {
         _db = db;
+        _email = email;
     }
 
     private bool CanAccessTraining()
@@ -319,6 +322,8 @@ public async Task<IActionResult> AssignParticipant(int trainingId, List<int> use
 {
     if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
 
+    var newlyAssignedIds = new List<int>();
+
     foreach (var userId in userIds)
     {
         var exists = await _db.TrainingParticipants
@@ -333,6 +338,7 @@ public async Task<IActionResult> AssignParticipant(int trainingId, List<int> use
                 EnrollmentDate   = DateTime.UtcNow,
                 CompletionStatus = "Enrolled"
             });
+            newlyAssignedIds.Add(userId);
 
             // ── Mark user as in training ──────────────────────
             var user = await _db.Users.FindAsync(userId);
@@ -345,6 +351,16 @@ public async Task<IActionResult> AssignParticipant(int trainingId, List<int> use
     }
 
     await _db.SaveChangesAsync();
+
+    // Email only the people who were newly enrolled (never blocks or fails the request)
+    if (newlyAssignedIds.Any())
+    {
+        var training = await _db.Trainings.FindAsync(trainingId);
+        var enrolled = await _db.Users.Where(u => newlyAssignedIds.Contains(u.UserId)).ToListAsync();
+        if (training != null)
+            await _email.SendTrainingAssignedAsync(enrolled, training);
+    }
+
     TempData["Success"] = "Participants assigned successfully!";
     return RedirectToAction("Index", "Training");
 }
@@ -418,6 +434,7 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
         .Where(ti => ti.TrainingId == trainingId)
         .ToListAsync();
 
+    var previousInstructorIds = existing.Select(ti => ti.UserId).ToList();
     _db.TrainingInstructors.RemoveRange(existing);
 
     // Add new assignments
@@ -432,6 +449,17 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
     }
 
     await _db.SaveChangesAsync();
+
+    // Email only resource persons who were not already assigned before this save
+    var newInstructorIds = userIds.Except(previousInstructorIds).ToList();
+    if (newInstructorIds.Any())
+    {
+        var training = await _db.Trainings.FindAsync(trainingId);
+        var instructors = await _db.Users.Where(u => newInstructorIds.Contains(u.UserId)).ToListAsync();
+        if (training != null)
+            await _email.SendInstructorAssignedAsync(instructors, training);
+    }
+
     TempData["Success"] = "Resource Persons assigned successfully!";
     return RedirectToAction("Index", "Training");
 }

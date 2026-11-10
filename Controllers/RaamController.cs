@@ -2,16 +2,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Services.Interfaces;
 
 namespace LDHub.Controllers;
 
 public class RaamController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly IEmailService _email;
 
-    public RaamController(AppDbContext db)
+    public RaamController(AppDbContext db, IEmailService email)
     {
         _db = db;
+        _email = email;
     }
 
     // ── Auth helpers ───────────────────────────────────────────
@@ -194,6 +197,8 @@ public class RaamController : Controller
         pending.Status = "Active";
         await _db.SaveChangesAsync();
 
+        await _email.SendRegistrationApprovedAsync(pending.Email, $"{pending.FirstName} {pending.LastName}");
+
         TempData["Success"] = $"{pending.FirstName} {pending.LastName} approved successfully!";
         return RedirectToAction("PendingParticipants");
     }
@@ -214,6 +219,8 @@ public class RaamController : Controller
 
         pending.Status = "Rejected";
         await _db.SaveChangesAsync();
+
+        await _email.SendRegistrationRejectedAsync(pending.Email, $"{pending.FirstName} {pending.LastName}", reason);
 
         TempData["Success"] = $"{pending.FirstName} {pending.LastName} has been rejected.";
         return RedirectToAction("PendingParticipants");
