@@ -42,9 +42,8 @@ public class EmployeeController : Controller
 
         var userId = GetUserId();
         var now    = DateTime.Now;
-        // TEMP DEBUG
-        Console.WriteLine($"SESSION UserId: {HttpContext.Session.GetInt32("UserId")}");
-        Console.WriteLine($"GetUserId() returns: {userId}");
+        // Grade tests whose time ran out while the participant was away
+        await FinalizeExpiredSessionsAsync(userId);
 
         // Get all enrollments
         var enrollments = await _db.TrainingParticipants
@@ -168,6 +167,184 @@ ViewBag.HasEvalQuestions = hasEvalQuestions;
         return View("~/Views/Employee/Dashboard.cshtml", enrollments);
     }
 
+
+    // ══════════════════════════════════════════════════════════════
+    //  TEST SESSIONS: progress is kept in the database, not the browser
+    // ══════════════════════════════════════════════════════════════
+    private const int TestGraceSeconds = 30;
+
+    private static bool IsAnswerKey(string key) =>
+        key.StartsWith("answer_") && int.TryParse(key.AsSpan(7), out _);
+
+    private static Dictionary<string, string> ReadAnswers(TestSession session)
+    {
+        if (string.IsNullOrWhiteSpace(session.AnswersJson)) return new Dictionary<string, string>();
+        try
+        {
+            return System.Text.Json.JsonSerializer
+                       .Deserialize<Dictionary<string, string>>(session.AnswersJson)
+                   ?? new Dictionary<string, string>();
+        }
+        catch
+        {
+            return new Dictionary<string, string>();
+        }
+    }
+
+    /// <summary>Returns the participant's in-progress session, or starts a new one.</summary>
+    private async Task<TestSession> StartOrResumeSessionAsync(
+        int userId, int trainingId, string testType, int attemptNumber, int timerMinutes)
+    {
+        var session = await _db.TestSessions.FirstOrDefaultAsync(s =>
+            s.UserId == userId && s.TrainingId == trainingId &&
+            s.TestType == testType && s.ModuleId == null && s.Status == "InProgress");
+        if (session != null) return session;
+
+        var now = DateTime.UtcNow;
+        session = new TestSession
+        {
+            UserId        = userId,
+            TrainingId    = trainingId,
+            TestType      = testType,
+            AttemptNumber = attemptNumber,
+            StartedAt     = now,
+            ExpiresAt     = timerMinutes > 0 ? now.AddMinutes(timerMinutes) : null,
+            Status        = "InProgress"
+        };
+        _db.TestSessions.Add(session);
+        await _db.SaveChangesAsync();
+        return session;
+    }
+
+    /// <summary>Grades the answers, records the attempt, and closes the session.</summary>
+    private async Task<ParticipantTestAttempt> RecordAttemptAsync(
+        TestSession session, Dictionary<string, string> answers, bool auto)
+    {
+        var training  = await _db.Trainings.FindAsync(session.TrainingId);
+        var questions = await _db.Questions
+            .Where(q => q.TrainingId == session.TrainingId)
+            .ToListAsync();
+
+        decimal score       = 0;
+        decimal totalPoints = questions.Sum(q => q.Points);
+
+        foreach (var q in questions)
+        {
+            answers.TryGetValue($"answer_{q.Id}", out var raw);
+            var answer = (raw ?? string.Empty).Trim();
+            if (answer.Length == 0) continue;
+
+            bool correct = q.QuestionType is "true_false" or "multiple_choice" or "identification"
+                           && answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase);
+            if (correct) score += q.Points;
+        }
+
+        bool isPassed = session.TestType == "PostTest"
+                        && training != null
+                        && score >= training.MinimumScore;   // pre-test never gates
+
+        var attempt = new ParticipantTestAttempt
+        {
+            TrainingId    = session.TrainingId,
+            UserId        = session.UserId,
+            TestType      = session.TestType,
+            Score         = score,
+            TotalPoints   = totalPoints,
+            IsPassed      = isPassed,
+            AttemptNumber = session.AttemptNumber,
+            TakenAt       = DateTime.UtcNow
+        };
+        _db.ParticipantTestAttempts.Add(attempt);
+
+        if (session.TestType == "PostTest")
+        {
+            var enrollment = await _db.TrainingParticipants
+                .FirstOrDefaultAsync(tp => tp.TrainingId == session.TrainingId
+                                        && tp.UserId     == session.UserId);
+            if (enrollment != null)
+            {
+                if (isPassed) enrollment.CompletionStatus = "Completed";
+                if (session.AttemptNumber == 1 && enrollment.CompletionStatus == "Enrolled")
+                    enrollment.CompletionStatus = "In Progress";
+            }
+        }
+
+        session.AnswersJson = System.Text.Json.JsonSerializer.Serialize(answers);
+        session.LastSavedAt = DateTime.UtcNow;
+        session.Status      = auto ? "AutoSubmitted" : "Submitted";
+
+        await _db.SaveChangesAsync();
+        return attempt;
+    }
+
+    /// <summary>Grades saved answers for post-tests whose deadline has passed (participant never came back).</summary>
+    private async Task FinalizeExpiredSessionsAsync(int userId)
+    {
+        var cutoff = DateTime.UtcNow.AddSeconds(-TestGraceSeconds);
+        var expired = await _db.TestSessions
+            .Where(s => s.UserId == userId && s.Status == "InProgress"
+                     && s.TestType == "PostTest"
+                     && s.ExpiresAt != null && s.ExpiresAt < cutoff)
+            .ToListAsync();
+
+        foreach (var s in expired)
+            await RecordAttemptAsync(s, ReadAnswers(s), auto: true);
+    }
+
+    private IActionResult RedirectToResult(ParticipantTestAttempt a) =>
+        RedirectToAction("TestResult", new
+        {
+            trainingId    = a.TrainingId,
+            testType      = a.TestType,
+            score         = (int)a.Score,
+            totalPoints   = (int)a.TotalPoints,
+            isPassed      = a.IsPassed ? 1 : 0,
+            attemptNumber = a.AttemptNumber
+        });
+
+    // ── POST: /Employee/SaveProgress (autosave from the test and quiz pages) ──
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveProgress([FromBody] SaveProgressRequest req)
+    {
+        if (!IsEmployee()) return Json(new { ok = false, loggedOut = true });
+        var userId = GetUserId();
+
+        if (req.TestType is not ("PreTest" or "PostTest" or "Quiz"))
+            return Json(new { ok = false });
+
+        var session = await _db.TestSessions.FirstOrDefaultAsync(s =>
+            s.UserId == userId && s.TrainingId == req.TrainingId &&
+            s.TestType == req.TestType && s.ModuleId == req.ModuleId &&
+            s.Status == "InProgress");
+
+        if (session == null) return Json(new { ok = false, noSession = true });
+
+        var now = DateTime.UtcNow;
+        if (session.ExpiresAt != null && now > session.ExpiresAt.Value.AddSeconds(TestGraceSeconds))
+            return Json(new { ok = false, expired = true });
+
+        var clean = (req.Answers ?? new Dictionary<string, string?>())
+            .Where(kv => IsAnswerKey(kv.Key) && (kv.Value?.Length ?? 0) <= 500)
+            .Take(500)
+            .ToDictionary(kv => kv.Key, kv => kv.Value ?? string.Empty);
+
+        session.AnswersJson = System.Text.Json.JsonSerializer.Serialize(clean);
+        session.LastSavedAt = now;
+        await _db.SaveChangesAsync();
+
+        int? secondsLeft = session.ExpiresAt == null
+            ? null
+            : Math.Max(0, (int)(session.ExpiresAt.Value - now).TotalSeconds);
+
+        return Json(new { ok = true, secondsLeft });
+    }
+
+    // ── POST: /Employee/KeepAlive (stops the login from expiring during a long test) ──
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult KeepAlive() => Json(new { ok = IsEmployee() });
+
     // ── GET: /Employee/PreTest ────────────────────────────────────
     public async Task<IActionResult> PreTest(int trainingId)
     {
@@ -201,6 +378,10 @@ ViewBag.HasEvalQuestions = hasEvalQuestions;
         ViewBag.Questions = questions;
         ViewBag.TestType  = "PreTest";
 
+        var session = await StartOrResumeSessionAsync(userId, trainingId, "PreTest", 1, 0);
+        ViewBag.AttemptNumber = 1;
+        ViewBag.SavedAnswers  = ReadAnswers(session);
+
         return View("~/Views/Employee/TakeTest.cshtml");
     }
 
@@ -211,6 +392,9 @@ ViewBag.HasEvalQuestions = hasEvalQuestions;
         SetViewBag();
 
         var userId = GetUserId();
+
+        // Grade any earlier post-test whose time ran out while the participant was away
+        await FinalizeExpiredSessionsAsync(userId);
 
         // Check attempt count — max 3
         var attempts = await _db.ParticipantTestAttempts
@@ -259,9 +443,24 @@ if (hasQuestions && !evaluationDone)
 
         ViewBag.Training      = training;
         ViewBag.Questions     = questions;
+        var session = await StartOrResumeSessionAsync(
+            userId, trainingId, "PostTest", attempts.Count + 1, training.PosttestTimer);
+
+        // Time ran out while the participant was away: grade what was saved
+        if (session.ExpiresAt != null && session.ExpiresAt <= DateTime.UtcNow)
+        {
+            var finished = await RecordAttemptAsync(session, ReadAnswers(session), auto: true);
+            TempData["Info"] = "Your time ran out while you were away. Your saved answers were submitted.";
+            return RedirectToResult(finished);
+        }
+
         ViewBag.TestType      = "PostTest";
-        ViewBag.AttemptNumber = attempts.Count + 1;
+        ViewBag.AttemptNumber = session.AttemptNumber;
         ViewBag.Timer         = training.PosttestTimer; // minutes
+        ViewBag.SecondsLeft   = session.ExpiresAt == null
+            ? (int?)null
+            : Math.Max(0, (int)(session.ExpiresAt.Value - DateTime.UtcNow).TotalSeconds);
+        ViewBag.SavedAnswers  = ReadAnswers(session);
 
         return View("~/Views/Employee/TakeTest.cshtml");
     }
@@ -273,84 +472,40 @@ if (hasQuestions && !evaluationDone)
         int attemptNumber, IFormCollection form)
     {
         if (!IsEmployee()) return RedirectToAction("Login", "Home");
+        var userId = GetUserId();
 
-        var userId   = GetUserId();
-        var training = await _db.Trainings.FindAsync(trainingId);
-        if (training == null) return NotFound();
+        // The attempt is the one the server started. The posted attemptNumber is ignored.
+        var session = await _db.TestSessions.FirstOrDefaultAsync(s =>
+            s.UserId == userId && s.TrainingId == trainingId &&
+            s.TestType == testType && s.ModuleId == null && s.Status == "InProgress");
 
-        var questions = await _db.Questions
-            .Where(q => q.TrainingId == trainingId)
-            .ToListAsync();
-
-        decimal score       = 0;
-        decimal totalPoints = questions.Sum(q => q.Points);
-
-        foreach (var q in questions)
+        if (session == null)
         {
-            var answer = form[$"answer_{q.Id}"].ToString().Trim();
-            if (string.IsNullOrEmpty(answer)) continue;
+            // Double click or refresh after submitting: show the result that already exists
+            var last = await _db.ParticipantTestAttempts.AsNoTracking()
+                .Where(a => a.UserId == userId && a.TrainingId == trainingId && a.TestType == testType)
+                .OrderByDescending(a => a.TakenAt)
+                .FirstOrDefaultAsync();
+            if (last != null) return RedirectToResult(last);
 
-            bool correct = q.QuestionType switch
-            {
-                "true_false"      => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
-                "multiple_choice" => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
-                "identification"  => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
-                _                 => false
-            };
-
-            if (correct) score += q.Points;
+            TempData["Error"] = "We could not find an active test. Please start it again from your dashboard.";
+            return RedirectToAction("Dashboard");
         }
 
-        bool isPassed = testType == "PostTest"
-            ? score >= training.MinimumScore
-            : false; // pre-test never gates
+        var answers = ReadAnswers(session);
 
-        var attempt = new ParticipantTestAttempt
+        // Within the deadline (plus a short grace period) the answers on the page win over the last autosave.
+        // Past it, only what was saved before the deadline counts.
+        var pastDeadline = session.ExpiresAt != null
+            && DateTime.UtcNow > session.ExpiresAt.Value.AddSeconds(TestGraceSeconds);
+        if (!pastDeadline)
         {
-            TrainingId    = trainingId,
-            UserId        = userId,
-            TestType      = testType,
-            Score         = score,
-            TotalPoints   = totalPoints,
-            IsPassed      = isPassed,
-            AttemptNumber = attemptNumber,
-            TakenAt       = DateTime.UtcNow
-        };
-
-        _db.ParticipantTestAttempts.Add(attempt);
-
-        // If post-test passed → mark training as Completed
-        if (testType == "PostTest" && isPassed)
-        {
-            var enrollment = await _db.TrainingParticipants
-                .FirstOrDefaultAsync(tp => tp.TrainingId == trainingId
-                                        && tp.UserId     == userId);
-            if (enrollment != null)
-                enrollment.CompletionStatus = "Completed";
+            foreach (var key in form.Keys.Where(IsAnswerKey))
+                answers[key] = form[key].ToString();
         }
 
-        // If post-test and first attempt → mark as In Progress
-        if (testType == "PostTest" && attemptNumber == 1)
-        {
-            var enrollment = await _db.TrainingParticipants
-                .FirstOrDefaultAsync(tp => tp.TrainingId == trainingId
-                                        && tp.UserId     == userId);
-            if (enrollment != null && enrollment.CompletionStatus == "Enrolled")
-                enrollment.CompletionStatus = "In Progress";
-        }
-
-        await _db.SaveChangesAsync();
-
-        // Redirect to results page
-        return RedirectToAction("TestResult", new
-        {
-            trainingId,
-            testType,
-            score         = (int)score,
-            totalPoints   = (int)totalPoints,
-            isPassed      = isPassed ? 1 : 0,
-            attemptNumber
-        });
+        var attempt = await RecordAttemptAsync(session, answers, auto: pastDeadline);
+        return RedirectToResult(attempt);
     }
 
     // ── GET: /Employee/TestResult ─────────────────────────────────
@@ -368,6 +523,17 @@ if (hasQuestions && !evaluationDone)
             .CountAsync(a => a.UserId     == userId
                           && a.TrainingId == trainingId
                           && a.TestType   == "PostTest");
+
+        // Use the saved attempt, not the numbers in the address bar
+        var savedAttempt = await _db.ParticipantTestAttempts.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.UserId == userId && a.TrainingId == trainingId
+                                   && a.TestType == testType && a.AttemptNumber == attemptNumber);
+        if (savedAttempt != null)
+        {
+            score       = savedAttempt.Score;
+            totalPoints = savedAttempt.TotalPoints;
+            isPassed    = savedAttempt.IsPassed ? 1 : 0;
+        }
 
         ViewBag.Training        = training;
         ViewBag.TestType        = testType;
@@ -535,6 +701,26 @@ public async Task<IActionResult> TakeQuiz(int moduleId)
     var module = await _db.TrainingModules.FindAsync(moduleId);
 
     ViewBag.Module = module;
+
+    // Keep the participant's selected answers in the database while they work
+    if (module != null)
+    {
+        var quizSession = await _db.TestSessions.FirstOrDefaultAsync(s =>
+            s.UserId == userId && s.ModuleId == moduleId &&
+            s.TestType == "Quiz" && s.Status == "InProgress");
+        if (quizSession == null)
+        {
+            quizSession = new TestSession
+            {
+                UserId = userId, TrainingId = module.TrainingId, ModuleId = moduleId,
+                TestType = "Quiz", AttemptNumber = 1, Status = "InProgress"
+            };
+            _db.TestSessions.Add(quizSession);
+            await _db.SaveChangesAsync();
+        }
+        ViewBag.SavedAnswers = ReadAnswers(quizSession);
+    }
+
     return View("~/Views/Employee/TakeQuiz.cshtml", quiz);
 }
 [HttpPost]
@@ -570,6 +756,12 @@ public async Task<IActionResult> SubmitQuiz(int moduleId, int quizId,
  
     int scorePercentage = total > 0 ? (int)Math.Round((double)correct / total * 100) : 0;
     bool passed         = scorePercentage >= quiz.PassingScore;
+
+    // Close the saved-progress session for this quiz
+    var openQuiz = await _db.TestSessions.FirstOrDefaultAsync(s =>
+        s.UserId == userId && s.ModuleId == moduleId &&
+        s.TestType == "Quiz" && s.Status == "InProgress");
+    if (openQuiz != null) { openQuiz.Status = "Submitted"; openQuiz.LastSavedAt = DateTime.UtcNow; }
  
     // ── Save to database ──
    var existing = await _db.QuizAttempts

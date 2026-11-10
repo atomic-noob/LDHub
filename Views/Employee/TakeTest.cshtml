@@ -7,6 +7,8 @@
     var attemptNumber = ViewBag.AttemptNumber as int? ?? 1;
     var timerMinutes  = ViewBag.Timer    as int? ?? 0;
     var isPostTest    = testType == "PostTest";
+    var secondsLeft   = ViewBag.SecondsLeft as int? ?? (timerMinutes * 60);
+    var savedAnswers  = ViewBag.SavedAnswers as Dictionary<string, string> ?? new Dictionary<string, string>();
 
     ViewData["Title"] = isPostTest ? "Post-Test" : "Pre-Test";
 }
@@ -439,7 +441,7 @@ $(function () {
     var timerMinutes = @(timerMinutes);
 
     if (isPostTest && timerMinutes > 0) {
-        var remaining = timerMinutes * 60;
+        var remaining = @secondsLeft;   // time left according to the server
 
         function updateTimer() {
             var mins    = Math.floor(remaining / 60);
@@ -479,6 +481,75 @@ $(function () {
         $('#testForm').on('submit', function() {
             window.onbeforeunload = null;
         });
+    }
+
+    // ── Autosave, resume, and keep-alive ─────────────────────────
+    var saveUrl      = '@Url.Action("SaveProgress", "Employee")';
+    var keepAliveUrl = '@Url.Action("KeepAlive", "Employee")';
+    var csrfToken    = $('#testForm input[name="__RequestVerificationToken"]').val();
+    var restored     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(savedAnswers));
+
+    // Put back the answers saved earlier
+    Object.keys(restored).forEach(function (name) {
+        var val  = restored[name];
+        var $els = $('#testForm [name="' + name + '"]');
+        if ($els.filter('[type="radio"]').length) {
+            $els.filter(function () { return this.value === val; }).prop('checked', true);
+        } else {
+            $els.val(val);
+        }
+    });
+    updateProgress();
+
+    function collectAnswers() {
+        var data = {};
+        $('#testForm input[type="radio"]:checked').each(function () { data[this.name] = this.value; });
+        $('#testForm input[type="text"][name^="answer_"]').each(function () {
+            if (this.value.trim() !== '') data[this.name] = this.value;
+        });
+        return data;
+    }
+
+    var lastSaved = JSON.stringify(restored);
+    var dirty = false, saving = false, saveTimer = null;
+    var $badge = $('<div style="position:fixed;right:16px;bottom:16px;z-index:1050;padding:6px 12px;' +
+                   'border-radius:16px;color:#fff;font-size:12px;opacity:.9;display:none;"></div>').appendTo('body');
+    function badge(text, bad) { $badge.text(text).css('background', bad ? '#dc3545' : '#343a40').show(); }
+
+    function saveNow() {
+        var data = collectAnswers();
+        var json = JSON.stringify(data);
+        if (json === lastSaved || saving) return;
+        saving = true;
+        $.ajax({
+            url: saveUrl, method: 'POST', contentType: 'application/json',
+            headers: { 'RequestVerificationToken': csrfToken },
+            data: JSON.stringify({ trainingId: @(training?.TrainingId ?? 0), testType: '@testType', answers: data })
+        }).done(function (r) {
+            if (r.ok) { lastSaved = json; dirty = false; badge('Progress saved ' + new Date().toLocaleTimeString()); }
+            else if (r.loggedOut) { badge('Your login expired. Log in again to continue where you left off.', true); }
+            else if (r.expired) { badge('Time is up.', true); }
+        }).fail(function () {
+            badge('Could not save. Check your connection.', true);
+        }).always(function () { saving = false; });
+    }
+
+    $(document).on('change input', '#testForm input', function () {
+        dirty = true;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveNow, 1500);
+    });
+    setInterval(saveNow, 20000);
+
+    // Keep the login alive while the participant is working
+    setInterval(function () {
+        $.ajax({ url: keepAliveUrl, method: 'POST', headers: { 'RequestVerificationToken': csrfToken } });
+    }, 240000);
+
+    // Pre-test: warn only when something has not been saved yet (the post-test warning is above)
+    if (!isPostTest) {
+        window.onbeforeunload = function () { return dirty ? 'You have unsaved answers.' : undefined; };
+        $('#testForm').on('submit', function () { window.onbeforeunload = null; });
     }
 
 });

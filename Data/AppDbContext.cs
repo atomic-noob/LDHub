@@ -45,12 +45,29 @@ public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
   public DbSet<Announcement> Announcements { get; set; }
   public DbSet<Notification> Notifications { get; set; }
   public DbSet<TrainingPost> TrainingPosts { get; set; }
+  public DbSet<TestSession> TestSessions { get; set; }
   
 
         // ── Relationships & Constraints ───────────────────────────
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Test sessions: find a user's in-progress test fast; removed with the user or training
+            modelBuilder.Entity<TestSession>()
+                .HasIndex(t => new { t.UserId, t.TrainingId, t.TestType, t.Status });
+
+            modelBuilder.Entity<TestSession>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TestSession>()
+                .HasOne<Training>()
+                .WithMany()
+                .HasForeignKey(t => t.TrainingId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Discussion board: posts belong to a training; replies belong to a post
             modelBuilder.Entity<TrainingPost>()
