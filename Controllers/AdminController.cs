@@ -87,7 +87,6 @@ public class AdminController : Controller
 
         return RedirectToAction("Dashboard", "Admin");
     }
-    // GET: /Admin/Hash — TEMPORARY, remove after use
 
 
     public IActionResult Logout()
@@ -131,11 +130,6 @@ public class AdminController : Controller
     ViewBag.RecentPending   = d.RecentPending;
 
     return View("~/Views/Admin/Dashboard.cshtml");
-}
-    public IActionResult Hash()
-{
-    var hash = BCrypt.Net.BCrypt.HashPassword("Password@123");
-    return Content(hash);
 }
 
     // ── Manage Users ──────────────────────────────────────────────

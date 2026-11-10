@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Helpers;
 
 namespace LDHub.Controllers;
 
@@ -115,11 +116,19 @@ public class ModuleController : Controller
             model.LectureSource == "file" && 
             file != null && file.Length > 0)
         {
+            var uploadError = UploadValidator.Validate(
+                file, UploadValidator.ModuleExtensions, UploadValidator.ModuleMaxBytes);
+            if (uploadError != null)
+            {
+                TempData["Error"] = uploadError;
+                return RedirectToAction("Modules", "CourseManager", new { trainingId = model.TrainingId });
+            }
+
             var uploadsFolder = Path.Combine(
                 Directory.GetCurrentDirectory(), "wwwroot", "uploads", "modules");
             Directory.CreateDirectory(uploadsFolder);
 
-            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var fileName = $"{Guid.NewGuid()}_{UploadValidator.SafeFileName(file.FileName)}";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -184,11 +193,19 @@ public class ModuleController : Controller
         // Handle file upload
         if (file != null && file.Length > 0)
         {
+            var uploadError = UploadValidator.Validate(
+                file, UploadValidator.ModuleExtensions, UploadValidator.ModuleMaxBytes);
+            if (uploadError != null)
+            {
+                TempData["Error"] = uploadError;
+                return RedirectToAction("Modules", "CourseManager", new { trainingId = existing.TrainingId });
+            }
+
             var uploadsFolder = Path.Combine(
                 Directory.GetCurrentDirectory(), "wwwroot", "uploads", "modules");
             Directory.CreateDirectory(uploadsFolder);
 
-            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var fileName = $"{Guid.NewGuid()}_{UploadValidator.SafeFileName(file.FileName)}";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))

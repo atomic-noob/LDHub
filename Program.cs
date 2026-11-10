@@ -10,9 +10,13 @@ using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Ensure a persistent folder for DataProtection keys in development so
-// session cookies can be unprotected across restarts.
-var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys");
+// DataProtection keys must live OUTSIDE the repo and survive restarts/deploys.
+// Set DATAPROTECTION_KEYS_PATH to a persistent folder on the server. If unset, keys go
+// to the user's local app-data folder, never into the project folder.
+var keysFolder = builder.Configuration["DATAPROTECTION_KEYS_PATH"]
+    ?? Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "LDHub", "DataProtection-Keys");
 Directory.CreateDirectory(keysFolder);
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(keysFolder))

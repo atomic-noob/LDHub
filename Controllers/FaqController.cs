@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Helpers;
 
 namespace LDHub.Controllers;
 
@@ -65,6 +66,14 @@ public class FaqController : Controller
         // Handle image upload
         if (imageFile != null && imageFile.Length > 0)
         {
+            var imageError = UploadValidator.Validate(
+                imageFile, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+            if (imageError != null)
+            {
+                ModelState.AddModelError("", imageError);
+                return View(model);
+            }
+
             var uploadPath = Path.Combine(
                 _env.WebRootPath, "uploads", "faqs");
 
@@ -119,6 +128,14 @@ public class FaqController : Controller
         // Handle image upload
         if (imageFile != null && imageFile.Length > 0)
         {
+            var imageError = UploadValidator.Validate(
+                imageFile, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+            if (imageError != null)
+            {
+                ModelState.AddModelError("", imageError);
+                return View(model);
+            }
+
             // Delete old image if exists
             if (!string.IsNullOrEmpty(existing.ImagePath))
             {

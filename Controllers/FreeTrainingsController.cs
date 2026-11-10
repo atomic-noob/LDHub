@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Helpers;
 
 namespace LDHub.Controllers;
 
@@ -79,6 +80,15 @@ public class FreeTrainingsController : Controller
             // Handle photo upload
             if (photo != null && photo.Length > 0)
             {
+                var photoError = UploadValidator.Validate(
+                    photo, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+                if (photoError != null)
+                {
+                    ModelState.AddModelError("Photo", photoError);
+                    ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+                    return View("~/Views/FreeTrainings/Create.cshtml", model);
+                }
+
                 var uploadDir = Path.Combine(_env.WebRootPath, "uploads", "free-trainings");
                 Directory.CreateDirectory(uploadDir);
                 var fileName = $"{Guid.NewGuid()}{Path.GetExtension(photo.FileName)}";
@@ -133,6 +143,18 @@ public class FreeTrainingsController : Controller
             TempData["Error"] = "Start date must be a weekday (Monday to Friday).";
             ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
             return View("~/Views/FreeTrainings/Edit.cshtml", model);
+        }
+
+        if (photo != null && photo.Length > 0)
+        {
+            var photoError = UploadValidator.Validate(
+                photo, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+            if (photoError != null)
+            {
+                TempData["Error"] = photoError;
+                ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+                return View("~/Views/FreeTrainings/Edit.cshtml", model);
+            }
         }
 
         training.Title            = model.Title;
