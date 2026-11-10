@@ -53,6 +53,22 @@ public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
         {
             base.OnModelCreating(modelBuilder);
 
+            // Indexes for the most common lookups (enrollment, test history, progress, schedule)
+            modelBuilder.Entity<TrainingParticipant>()
+                .HasIndex(tp => new { tp.TrainingId, tp.UserId });
+
+            modelBuilder.Entity<ParticipantTestAttempt>()
+                .HasIndex(a => new { a.UserId, a.TrainingId, a.TestType });
+
+            modelBuilder.Entity<ModuleProgress>()
+                .HasIndex(mp => new { mp.UserId, mp.ModuleId });
+
+            modelBuilder.Entity<QuizAttempt>()
+                .HasIndex(a => new { a.UserId, a.ModuleId });
+
+            modelBuilder.Entity<Training>()
+                .HasIndex(t => t.StartDate);
+
             // Test sessions: find a user's in-progress test fast; removed with the user or training
             modelBuilder.Entity<TestSession>()
                 .HasIndex(t => new { t.UserId, t.TrainingId, t.TestType, t.Status });

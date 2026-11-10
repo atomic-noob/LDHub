@@ -324,31 +324,38 @@ public async Task<IActionResult> AssignParticipant(int trainingId, List<int> use
 {
     if (!CanAccessTraining()) return RedirectToAction("Login", "Home");
 
+    userIds ??= new List<int>();
     var newlyAssignedIds = new List<int>();
 
-    foreach (var userId in userIds)
+    // One query for who is already enrolled and one for the users being added
+    // (instead of two queries for every selected person)
+    var alreadyEnrolled = (await _db.TrainingParticipants
+        .Where(tp => tp.TrainingId == trainingId && userIds.Contains(tp.UserId))
+        .Select(tp => tp.UserId)
+        .ToListAsync()).ToHashSet();
+
+    var usersById = await _db.Users
+        .Where(u => userIds.Contains(u.UserId))
+        .ToDictionaryAsync(u => u.UserId);
+
+    foreach (var userId in userIds.Distinct())
     {
-        var exists = await _db.TrainingParticipants
-            .AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId);
+        if (alreadyEnrolled.Contains(userId)) continue;
 
-        if (!exists)
+        _db.TrainingParticipants.Add(new TrainingParticipant
         {
-            _db.TrainingParticipants.Add(new TrainingParticipant
-            {
-                TrainingId       = trainingId,
-                UserId           = userId,
-                EnrollmentDate   = DateTime.UtcNow,
-                CompletionStatus = "Enrolled"
-            });
-            newlyAssignedIds.Add(userId);
+            TrainingId       = trainingId,
+            UserId           = userId,
+            EnrollmentDate   = DateTime.UtcNow,
+            CompletionStatus = "Enrolled"
+        });
+        newlyAssignedIds.Add(userId);
 
-            // ── Mark user as in training ──────────────────────
-            var user = await _db.Users.FindAsync(userId);
-            if (user != null)
-            {
-                user.InTraining = true;
-                user.UpdatedAt  = DateTime.UtcNow;
-            }
+        // Mark user as in training
+        if (usersById.TryGetValue(userId, out var user))
+        {
+            user.InTraining = true;
+            user.UpdatedAt  = DateTime.UtcNow;
         }
     }
 
@@ -515,9 +522,9 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
     var regionId = await GetRaamRegionId();
 
     // Load regions for dropdown (kept for compatibility, though the view no longer uses a dropdown)
-    ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+    ViewBag.Regions = await _db.Regions.AsNoTracking().OrderBy(r => r.RegionName).ToListAsync();
 
-    IQueryable<Training> trainingsQuery = _db.Trainings;
+    IQueryable<Training> trainingsQuery = _db.Trainings.AsNoTracking();
 
     if (role == "Raam")
         trainingsQuery = trainingsQuery.Where(t => t.RegionId == regionId);
@@ -527,8 +534,10 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
     if (trainingId == null) return View("~/Views/Training/TrainingReport.cshtml");
 
     var training = await _db.Trainings
+        .AsNoTracking()
         .Include(t => t.TrainingParticipants)
             .ThenInclude(tp => tp.User)
+                .ThenInclude(u => u!.Office)
         .FirstOrDefaultAsync(t => t.TrainingId == trainingId);
 
     if (training == null) return View("~/Views/Training/TrainingReport.cshtml");
@@ -540,25 +549,25 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
         return RedirectToAction("TrainingReport");
     }
 
+    // One query for every participant's tests (instead of three queries per participant)
+    var attempts = await _db.ParticipantTestAttempts
+        .AsNoTracking()
+        .Where(e => e.TrainingId == trainingId
+                 && (e.TestType == "PreTest" || e.TestType == "PostTest"))
+        .ToListAsync();
+    var attemptsByUser = attempts.ToLookup(e => e.UserId);
+
     var rows = new List<ReportRow>();
 
     foreach (var tp in training.TrainingParticipants)
     {
         if (tp.User == null) continue;
 
-        var preAttempt = await _db.ParticipantTestAttempts
-            .Where(e => e.UserId == tp.UserId 
-                     && e.TrainingId == trainingId 
-                     && e.TestType == "PreTest")
-            .OrderByDescending(e => e.TakenAt)
-            .FirstOrDefaultAsync();
-
-        var postAttempt = await _db.ParticipantTestAttempts
-            .Where(e => e.UserId == tp.UserId 
-                     && e.TrainingId == trainingId 
-                     && e.TestType == "PostTest")
-            .OrderByDescending(e => e.TakenAt)
-            .FirstOrDefaultAsync();
+        var mine         = attemptsByUser[tp.UserId].ToList();
+        var preAttempt   = mine.Where(e => e.TestType == "PreTest")
+                               .OrderByDescending(e => e.TakenAt).FirstOrDefault();
+        var postAttempts = mine.Where(e => e.TestType == "PostTest").ToList();
+        var postAttempt  = postAttempts.OrderByDescending(e => e.TakenAt).FirstOrDefault();
 
         rows.Add(new ReportRow
         {
@@ -567,12 +576,9 @@ public async Task<IActionResult> TrainingReport(int? trainingId)
             Position     = tp.User.Position ?? "—",
             Office       = tp.User.Office?.OfficeName ?? "—",
             PreScore     = preAttempt  != null ? (decimal?)preAttempt.Score : null,
-            PostScore    = postAttempt != null ? (decimal?)postAttempt.Score: null,
+            PostScore    = postAttempt != null ? (decimal?)postAttempt.Score : null,
             IsPassed     = postAttempt?.IsPassed ?? false,
-            PostAttempts = await _db.ParticipantTestAttempts
-                .CountAsync(e => e.UserId == tp.UserId 
-                              && e.TrainingId == trainingId 
-                              && e.TestType == "PostTest")
+            PostAttempts = postAttempts.Count
         });
     }
 

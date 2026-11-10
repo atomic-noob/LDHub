@@ -211,10 +211,14 @@ public async Task<IActionResult> Submit(int trainingId, IFormCollection form)
     // Save answers
     var questionIds = form["question_ids"].Select(id => int.Parse(id)).ToList();
 
+    // Load every answered question once instead of one query per question
+    var questionsById = await _db.EvaluationQuestions
+        .Where(q => questionIds.Contains(q.Id))
+        .ToDictionaryAsync(q => q.Id);
+
     foreach (var qId in questionIds)
     {
-        var question = await _db.EvaluationQuestions.FindAsync(qId);
-        if (question == null) continue;
+        if (!questionsById.TryGetValue(qId, out var question)) continue;
 
         var answer = new EvaluationAnswer
         {

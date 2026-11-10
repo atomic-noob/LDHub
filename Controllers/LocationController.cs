@@ -208,12 +208,17 @@ public async Task<IActionResult> OfficeBulkCreate(int regionId,
         return RedirectToAction("Offices");
     }
 
+    // One query for the offices that already exist in this region
+    var existingOffices = (await _db.Offices
+        .Where(o => o.RegionId == regionId)
+        .Select(o => o.OfficeName)
+        .ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
     int added = 0;
     for (int i = 0; i < officeNames.Count; i++)
     {
-        var exists = await _db.Offices
-            .AnyAsync(o => o.OfficeName == officeNames[i] && o.RegionId == regionId);
-        if (exists) continue;
+        if (string.IsNullOrWhiteSpace(officeNames[i])) continue;
+        if (!existingOffices.Add(officeNames[i])) continue;   // already exists (or repeated in this batch)
 
         _db.Offices.Add(new Office
         {
@@ -425,12 +430,17 @@ public async Task<IActionResult> DivisionBulkCreate(int officeId,
         }
     }
 
+    // One query for the divisions that already exist in this office
+    var existingDivisions = (await _db.Divisions
+        .Where(d => d.OfficeId == officeId)
+        .Select(d => d.DivisionName)
+        .ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
     int added = 0;
     for (int i = 0; i < divisionNames.Count; i++)
     {
-        var exists = await _db.Divisions
-            .AnyAsync(d => d.DivisionName == divisionNames[i] && d.OfficeId == officeId);
-        if (exists) continue;
+        if (string.IsNullOrWhiteSpace(divisionNames[i])) continue;
+        if (!existingDivisions.Add(divisionNames[i])) continue;   // already exists (or repeated in this batch)
 
         _db.Divisions.Add(new Division
         {

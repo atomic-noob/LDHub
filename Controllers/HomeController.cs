@@ -25,6 +25,7 @@ public class HomeController : Controller
  
     // Load active free trainings
     var freeTrainings = await _db.FreeTrainings
+        .AsNoTracking()
         .Include(t => t.Region)
         .Where(t => t.IsActive && t.EndDate >= now)
         .OrderBy(t => t.StartDate)
@@ -34,6 +35,7 @@ public class HomeController : Controller
  
     // Load active FAQs ordered by display_order
     var faqs = await _db.Faqs
+        .AsNoTracking()
         .Where(f => f.IsActive)
         .OrderBy(f => f.DisplayOrder)
         .ThenBy(f => f.CreatedAt)

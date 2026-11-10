@@ -245,7 +245,7 @@ public class ModuleController : Controller
         _db.QuizQuestions.RemoveRange(quiz.Questions);
         await _db.SaveChangesAsync();
 
-        // Add new questions
+        // Add new questions with their choices, then save once
         for (int i = 0; i < questionTexts.Count; i++)
         {
             if (string.IsNullOrWhiteSpace(questionTexts[i])) continue;
@@ -255,25 +255,24 @@ public class ModuleController : Controller
                 QuizId       = quizId,
                 QuestionText = questionTexts[i]
             };
-            _db.QuizQuestions.Add(question);
-            await _db.SaveChangesAsync();
 
-            // Add choices
             if (choices.Count > i)
             {
                 for (int j = 0; j < choices[i].Count; j++)
                 {
                     if (string.IsNullOrWhiteSpace(choices[i][j])) continue;
-                    _db.QuizChoices.Add(new QuizChoice
+                    question.Choices.Add(new QuizChoice
                     {
-                        QuestionId = question.QuestionId,
                         ChoiceText = choices[i][j],
                         IsCorrect  = correctChoices.Count > i && correctChoices[i] == j
                     });
                 }
-                await _db.SaveChangesAsync();
             }
+
+            _db.QuizQuestions.Add(question);
         }
+
+        await _db.SaveChangesAsync();   // all questions and choices in one transaction
 
         TempData["Success"] = "Quiz saved!";
         return RedirectToAction("Modules", "CourseManager", new { trainingId = trainingId });

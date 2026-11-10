@@ -98,9 +98,8 @@ public class AdminController : Controller
 
     var now = DateTime.Now;
 
-    // ── KPI Stats ──────────────────────────────────────────────
+    // ── KPI Stats (all counted in the database) ───────────────
     var totalEmployees  = await _db.Users
-        .Include(u => u.UserRoles)
         .Where(u => u.UserRoles.Any(r => r.Role == "Employee") && u.IsExternal == false)
         .CountAsync();
 
@@ -119,61 +118,76 @@ public class AdminController : Controller
         .CountAsync();
 
     var totalSME = await _db.Users
-        .Include(u => u.UserRoles)
         .Where(u => u.UserRoles.Any(r => r.Role == "ResourcePerson") && u.IsExternal == true)
         .CountAsync();
 
     var totalUsers = await _db.Users.CountAsync();
 
     // ── Passing Rate ───────────────────────────────────────────
-    var allAttempts = await _db.ParticipantTestAttempts
-        .Where(a => a.TestType == "PostTest")
-        .ToListAsync();
-
-    var passedCount = allAttempts.Count(a => a.IsPassed);
-    var passingRate = allAttempts.Count > 0
-        ? Math.Round((double)passedCount / allAttempts.Count * 100, 1)
+    var totalAttempts = await _db.ParticipantTestAttempts
+        .CountAsync(a => a.TestType == "PostTest");
+    var passedCount = await _db.ParticipantTestAttempts
+        .CountAsync(a => a.TestType == "PostTest" && a.IsPassed);
+    var passingRate = totalAttempts > 0
+        ? Math.Round((double)passedCount / totalAttempts * 100, 1)
         : 0;
 
     // ── Monthly Trainings (Bar Chart) ──────────────────────────
-    var allTrainings = await _db.Trainings
-        .Include(t => t.TrainingParticipants)
-        .Include(t => t.Region)
-        .OrderByDescending(t => t.CreatedAt)
+    var year = now.Year;
+    var trainingsByMonth = await _db.Trainings
+        .Where(t => t.CreatedAt.Year == year)
+        .GroupBy(t => t.CreatedAt.Month)
+        .Select(g => new { Month = g.Key, Count = g.Count() })
         .ToListAsync();
-
     var monthlyTrainings = Enumerable.Range(1, 12)
-        .Select(m => allTrainings.Count(t => t.CreatedAt.Month == m && t.CreatedAt.Year == now.Year))
+        .Select(m => trainingsByMonth.FirstOrDefault(x => x.Month == m)?.Count ?? 0)
         .ToList();
 
     // ── Training Status (Pie Chart) ────────────────────────────
-    var scheduledCount = allTrainings.Count(t => t.StartDate.HasValue && t.StartDate > now);
-    var ongoingCount   = allTrainings.Count(t => t.StartDate <= now && t.EndDate >= now);
-    var endedCount     = allTrainings.Count(t => t.EndDate.HasValue && t.EndDate < now);
+    var scheduledCount = await _db.Trainings.CountAsync(t => t.StartDate.HasValue && t.StartDate > now);
+    var ongoingCount   = await _db.Trainings.CountAsync(t => t.StartDate <= now && t.EndDate >= now);
+    var endedCount     = await _db.Trainings.CountAsync(t => t.EndDate.HasValue && t.EndDate < now);
 
     // ── Participants per Region (Bar Chart) ────────────────────
-    var regions = await _db.Regions.ToListAsync();
-    var participantsByRegion = regions.Select(r => new
+    var regionCounts = await _db.Users
+        .Where(u => u.RegionId != null && u.UserRoles.Any(ur => ur.Role == "Employee"))
+        .GroupBy(u => u.RegionId)
+        .Select(g => new { RegionId = g.Key, Count = g.Count() })
+        .ToListAsync();
+    var regionNames = await _db.Regions
+        .AsNoTracking()
+        .ToDictionaryAsync(r => r.RegionId, r => r.RegionName);
+    var participantsByRegion = regionNames.Select(r => new
     {
-        RegionName = r.RegionName,
-        Count      = _db.Users.Count(u => u.RegionId == r.RegionId
-                        && u.UserRoles.Any(ur => ur.Role == "Employee"))
+        RegionName = r.Value,
+        Count      = regionCounts.FirstOrDefault(c => c.RegionId == r.Key)?.Count ?? 0
     }).OrderByDescending(r => r.Count).Take(10).ToList();
 
     // ── Employee Registrations per Month (Line Chart) ──────────
-    var allUsers = await _db.Users.ToListAsync();
+    var registrationsByMonth = await _db.Users
+        .Where(u => u.CreatedAt.Year == year)
+        .GroupBy(u => u.CreatedAt.Month)
+        .Select(g => new { Month = g.Key, Count = g.Count() })
+        .ToListAsync();
     var monthlyRegistrations = Enumerable.Range(1, 12)
-        .Select(m => allUsers.Count(u => u.CreatedAt.Month == m && u.CreatedAt.Year == now.Year))
+        .Select(m => registrationsByMonth.FirstOrDefault(x => x.Month == m)?.Count ?? 0)
         .ToList();
 
     // ── Pass vs Fail (Pie Chart) ───────────────────────────────
-    var failedCount2 = allAttempts.Count(a => !a.IsPassed);
+    var failedCount2 = totalAttempts - passedCount;
 
-    // ── Recent Trainings ───────────────────────────────────────
-    var recentTrainings = allTrainings.Take(5).ToList();
+    // ── Recent Trainings (only the 5 shown, not every training) ─
+    var recentTrainings = await _db.Trainings
+        .AsNoTracking()
+        .Include(t => t.TrainingParticipants)
+        .Include(t => t.Region)
+        .OrderByDescending(t => t.CreatedAt)
+        .Take(5)
+        .ToListAsync();
 
     // ── Recent Pending ─────────────────────────────────────────
     var recentPending = await _db.PendingParticipants
+        .AsNoTracking()
         .Where(p => p.Status == "Inactive")
         .OrderByDescending(p => p.CreatedAt)
         .Take(5)
@@ -190,7 +204,7 @@ public class AdminController : Controller
     ViewBag.PassingRate        = passingRate;
     ViewBag.PassedCount        = passedCount;
     ViewBag.FailedCount        = failedCount2;
-    ViewBag.TotalAttempts      = allAttempts.Count;
+    ViewBag.TotalAttempts      = totalAttempts;
 
     // Chart data as JSON
     ViewBag.MonthlyTrainings      = System.Text.Json.JsonSerializer.Serialize(monthlyTrainings);
