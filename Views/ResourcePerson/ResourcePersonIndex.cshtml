@@ -25,18 +25,18 @@
         .profile-card h4 { font-weight:800; margin-bottom:3px; }
         .profile-card p  { opacity:.85; margin-bottom:0; font-size:.9rem; }
         .stat-card {
-            border-radius: 10px; padding: 20px; color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,.1); margin-bottom: 20px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .stat-card .num   { font-size:2.5rem; font-weight:800; line-height:1; }
-        .stat-card .label { font-size:.85rem; opacity:.85; margin-top:4px; }
-        .stat-card .icon  { font-size:3rem; opacity:.3; }
-        .stat-card.green  { background: linear-gradient(135deg,#4BB543,#117554); }
-        .stat-card.blue   { background: linear-gradient(135deg,#0984e3,#74b9ff); }
-        .stat-card.orange { background: linear-gradient(135deg,#e17055,#fdcb6e); }
-        .stat-card.teal   { background: linear-gradient(135deg,#00b894,#55efc4); }
-        .training-status-badge { font-size:.8rem; }
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 20px;
+    color: #1f2937;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.stat-card .num   { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+.stat-card .label { font-size: .85rem; color: #6b7280; margin-top: 4px; }
+.stat-card .stat-icon { font-size: 3rem; color: #d1d5db; }
     </style>
 }
 
@@ -153,7 +153,7 @@
                 @if (currentTraining != null)
                 {
                     <div class="card shadow-sm mb-4">
-                        <div class="card-header success-gradient">
+                        <div class="card-header ">
                             <h3 class="card-title">
                                 <i class="fas fa-chalkboard mr-2"></i>Current Training
                             </h3>
@@ -222,7 +222,7 @@
 
                 @* Recent Trainings *@
                 <div class="card shadow-sm">
-                    <div class="card-header success-gradient">
+                    <div class="card-header ">
                         <h3 class="card-title">
                             <i class="fas fa-history mr-2"></i>Recent Training Assignments
                         </h3>

@@ -6,8 +6,7 @@
 
 <section class="content-header">
     <div class="container-fluid">
-        <h1 class="m-0">Discussion Boards</h1>
-        <p class="text-muted mb-0">Pick a training to read announcements and join the discussion.</p>
+      
     </div>
 </section>
 
@@ -45,7 +44,7 @@
                                     @(counts.ContainsKey(t.TrainingId) ? counts[t.TrainingId] : 0) topics
                                 </div>
                                 <a asp-controller="Discussion" asp-action="Board" asp-route-trainingId="@t.TrainingId"
-                                   class="btn btn-primary btn-sm">Open board</a>
+                                   class="btn btn-success btn-sm">Open board</a>
                             </div>
                         </div>
                     </div>

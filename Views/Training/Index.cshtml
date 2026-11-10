@@ -9,31 +9,13 @@
   <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
   <link rel="stylesheet" href="~/plugins/datatables-responsive/css/responsive.bootstrap4.min.css" />
   <link rel="stylesheet" href="~/plugins/datatables-buttons/css/buttons.bootstrap4.min.css" />
+  <link rel="stylesheet" href="~/plugins/datatables-buttons/css/buttons.bootstrap4.min.css" />
 }
 
 <section class="content-header">
   <div class="container-fluid">
     <div class="row mb-2 align-items-center">
-      <div class="col-sm-6">
-        <h1 class="m-0">
-          <i class="fas fa-graduation-cap mr-2 text-success">
-          </i>
-          Training Management
-        </h1>
-      </div>
-      <div class="col-sm-6">
-        <ol class="breadcrumb float-sm-right mb-0">
-          <li class="breadcrumb-item">
-            <a asp-controller="Home"
-             asp-action="Index">
-              Home
-            </a>
-          </li>
-          <li class="breadcrumb-item active">
-            Trainings
-          </li>
-        </ol>
-      </div>
+      
     </div>
   </div>
 </section>
@@ -106,7 +88,7 @@
             List of Trainings
           </h3>
           <a asp-controller="Training"
-           asp-action="Create"
+            asp-action="Create"
            class="btn btn-success btn-sm">
             <i class="fas fa-plus mr-1">
             </i>
@@ -293,36 +275,14 @@
 </section>
 @section Scripts
 {
-  @* _Layout must load jQuery, Bootstrap 4 bundle, and AdminLTE before this section.
-     If the layout already loads these DataTables files, keep them in ONE place.
-     Use the matching DataTables 1.x / Buttons 2.x / Responsive 2.x assets
-     from your AdminLTE 3 distribution. *@
   <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
   <script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
   <script src="~/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
   <script src="~/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
-  <script src="~/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
-  <script src="~/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
-  <script src="~/plugins/jszip/jszip.min.js"></script>
-  <script src="~/plugins/pdfmake/pdfmake.min.js"></script>
-  <script src="~/plugins/pdfmake/vfs_fonts.js"></script>
-  <script src="~/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
-  <script src="~/plugins/datatables-buttons/js/buttons.print.min.js"></script>
-  <script src="~/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
   <script>
     $(function () {
-      // Export training data across all filtered pages, excluding row numbers/actions.
-      // Use explicit columns so narrow screens do not remove data from exports.
-      var exportOptions = {
-        columns: [1, 2, 3, 4, 5, 6, 7],
-        modifier: { search: 'applied', order: 'applied', page: 'all' },
-        stripHtml: true,
-        stripNewlines: true,
-        trim: true
-      };
-
-      var table = $('#trainingsTable').DataTable({
+      $('#trainingsTable').DataTable({
         responsive: true,
         autoWidth: false,
         paging: true,
@@ -335,8 +295,7 @@
         order: [],
         pagingType: 'full_numbers',
         dom:
-          '<"row mb-2"<"col-12"B>>' +
-          '<"row align-items-center"<"col-md-6"l><"col-md-6"f>>' +
+          '<"row align-items-center mb-2"<"col-md-6"l><"col-md-6"f>>' +
           '<"row"<"col-12"tr>>' +
           '<"row align-items-center"<"col-md-5"i><"col-md-7"p>>',
         columnDefs: [
@@ -356,35 +315,8 @@
           emptyTable: 'No trainings found. Use New Training to create a record.',
           zeroRecords: 'No matching trainings found.',
           paginate: { first: 'First', previous: 'Previous', next: 'Next', last: 'Last' }
-        },
-        buttons: [
-          { extend: 'copyHtml5', text: 'Copy', title: 'Training Report', exportOptions: exportOptions },
-          { extend: 'csvHtml5', text: 'CSV', filename: 'Trainings', bom: true, exportOptions: exportOptions },
-          { extend: 'excelHtml5', text: 'Excel', title: 'Training Report', filename: 'Trainings', exportOptions: exportOptions },
-          {
-            extend: 'pdfHtml5', text: 'PDF', title: 'Training Report', filename: 'Trainings',
-            orientation: 'landscape', pageSize: 'A4', exportOptions: exportOptions,
-            customize: function (doc) {
-              doc.defaultStyle.fontSize = 9;
-              doc.styles.tableHeader.fontSize = 10;
-            }
-          },
-          { extend: 'print', text: 'Print', title: 'Training Report', exportOptions: exportOptions },
-          { extend: 'colvis', text: 'Columns', columns: [1, 2, 3, 4, 5, 6, 7] },
-          {
-            text: 'Reset',
-            action: function (event, dt) {
-              dt.search('').columns().search('');
-              dt.columns().visible(true, false);
-              dt.order([]).page.len(10).draw();
-              dt.columns.adjust().responsive.recalc();
-            }
-          }
-        ]
+        }
       });
-
-      table.buttons().container().addClass('d-flex flex-wrap');
-      table.buttons().nodes().addClass('btn-sm mb-1');
 
       function closeAlert(selector, delay) {
         if ($(selector).length) {

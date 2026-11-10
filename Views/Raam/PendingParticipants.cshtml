@@ -16,19 +16,7 @@
 
 <div class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">Pending Employees</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item">
-                        <a asp-controller="Raam" asp-action="Dashboard">
-                            <i class="fas fa-home"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item active">Pending Employees</li>
-                </ol>
-            </div>
-        </div>
+       
     </div>
 </div>
 
@@ -50,21 +38,10 @@
             </div>
         }
 
-        @* Summary *@
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <div class="info-box">
-                    <span class="info-box-icon bg-warning"><i class="fas fa-user-clock"></i></span>
-                    <div class="info-box-content">
-                        <span class="info-box-text">Pending Approvals</span>
-                        <span class="info-box-number">@Model.Count</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+     
 
         <div class="card shadow-sm">
-            <div class="card-header success-gradient">
+            <div class="card-header ">
                 <h3 class="card-title">
                     <i class="fas fa-user-clock mr-2"></i>Employees Awaiting Approval
                 </h3>

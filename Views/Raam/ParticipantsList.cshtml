@@ -11,24 +11,13 @@
         body { background: #f4fdf6; }
         .content-wrapper { background: linear-gradient(180deg, #ffffff 0%, #f4fff7 100%); }
         .success-gradient { background: linear-gradient(225deg, #9BEC00, #4BB543, #117554); color: white; }
+        .card-header.d-flex::after { display: none; }
     </style>
 }
 
 <div class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">Employees</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item">
-                        <a asp-controller="Raam" asp-action="Dashboard">
-                            <i class="fas fa-home"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item active">Employees</li>
-                </ol>
-            </div>
-        </div>
+       
     </div>
 </div>
 
@@ -53,11 +42,11 @@
     
 
         <div class="card shadow-sm">
-            <div class="card-header success-gradient d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+            <div class="card-header  d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
                 <h3 class="card-title mb-0">
                     <i class="fas fa-users mr-2"></i>Employees in Your Region
                 </h3>
-                <div class="d-flex align-items-center" style="gap:8px;">
+                <div class="d-flex align-items-center ml-auto" style="gap:8px;">
                     <label class="mb-0 font-weight-bold text-white text-nowrap">Filter by Role:</label>
                     <select id="roleFilter" class="form-control form-control-sm" style="min-width:180px;">
                         <option value="">All Roles</option>
