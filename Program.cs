@@ -44,6 +44,7 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 // builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 // builder.Services.AddScoped<ITrainingService, TrainingService>();
 // builder.Services.AddScoped<IModuleService, ModuleService>();
 // builder.Services.AddScoped<IQuizService, QuizService>();

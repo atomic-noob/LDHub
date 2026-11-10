@@ -21,6 +21,26 @@
     @* Right side — role switcher + user info + logout *@
     <ul class="navbar-nav ml-auto">
 
+        @* Notification bell *@
+        @if (Context.Session.GetInt32("UserId") != null)
+        {
+            <li class="nav-item dropdown" id="notifBell">
+                <a class="nav-link" data-toggle="dropdown" href="#" title="Notifications">
+                    <i class="far fa-bell"></i>
+                    <span class="badge badge-danger navbar-badge" id="notifCount" style="display:none;"></span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="min-width:320px;">
+                    <span class="dropdown-item dropdown-header">Notifications</span>
+                    <div class="dropdown-divider"></div>
+                    <div id="notifList">
+                        <span class="dropdown-item text-muted small">Loading...</span>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="@Url.Action("Index", "Notification")" class="dropdown-item dropdown-footer">See all notifications</a>
+                </div>
+            </li>
+        }
+
         @* Role Switcher — only shown if user has more than 1 role *@
         @await Html.PartialAsync("_RoleSwitcher")
 
@@ -60,3 +80,73 @@
 
     </ul>
 </nav>
+
+@if (Context.Session.GetInt32("UserId") != null)
+{
+    <script>
+    (function () {
+        var summaryUrl = '@Url.Action("Summary", "Notification")';
+        var openUrlTemplate = '@Url.Action("Open", "Notification", new { id = "__ID__" })';
+        var countEl = document.getElementById('notifCount');
+        var listEl = document.getElementById('notifList');
+        if (!countEl || !listEl) return;
+
+        function render(data) {
+            if (data.unread > 0) {
+                countEl.textContent = data.unread > 99 ? '99+' : data.unread;
+                countEl.style.display = '';
+            } else {
+                countEl.style.display = 'none';
+            }
+
+            listEl.innerHTML = '';
+            if (!data.items || data.items.length === 0) {
+                var empty = document.createElement('span');
+                empty.className = 'dropdown-item text-muted small';
+                empty.textContent = 'No notifications yet.';
+                listEl.appendChild(empty);
+                return;
+            }
+
+            data.items.forEach(function (n) {
+                var a = document.createElement('a');
+                a.className = 'dropdown-item' + (n.isRead ? '' : ' bg-light');
+                a.href = openUrlTemplate.replace('__ID__', n.id);
+
+                var title = document.createElement('div');
+                title.className = (n.isRead ? '' : 'font-weight-bold ') + 'text-wrap small';
+                title.textContent = n.title;
+                a.appendChild(title);
+
+                if (n.message) {
+                    var msg = document.createElement('div');
+                    msg.className = 'text-muted small text-wrap';
+                    msg.textContent = n.message;
+                    a.appendChild(msg);
+                }
+
+                var time = document.createElement('div');
+                time.className = 'text-muted';
+                time.style.fontSize = '11px';
+                time.textContent = n.time;
+                a.appendChild(time);
+
+                listEl.appendChild(a);
+                var hr = document.createElement('div');
+                hr.className = 'dropdown-divider';
+                listEl.appendChild(hr);
+            });
+        }
+
+        function load() {
+            fetch(summaryUrl, { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) { if (d) render(d); })
+                .catch(function () { /* ignore network errors */ });
+        }
+
+        load();
+        setInterval(load, 60000);
+    })();
+    </script>
+}

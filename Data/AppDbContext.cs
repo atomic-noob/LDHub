@@ -43,12 +43,23 @@ public DbSet<QuizChoice> QuizChoices { get; set; }
 public DbSet<ModuleTextContent> ModuleTextContents { get; set; }
 public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
   public DbSet<Announcement> Announcements { get; set; }
+  public DbSet<Notification> Notifications { get; set; }
   
 
         // ── Relationships & Constraints ───────────────────────────
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Notifications: fast lookup of a user's unread items; removed with the user
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => new { n.UserId, n.IsRead });
+
+            modelBuilder.Entity<Notification>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // One user can have many roles
             modelBuilder.Entity<UserRole>()

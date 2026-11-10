@@ -11,11 +11,13 @@ public class TrainingController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IEmailService _email;
+    private readonly INotificationService _notify;
 
-    public TrainingController(AppDbContext db, IEmailService email)
+    public TrainingController(AppDbContext db, IEmailService email, INotificationService notify)
     {
         _db = db;
         _email = email;
+        _notify = notify;
     }
 
     private bool CanAccessTraining()
@@ -358,7 +360,13 @@ public async Task<IActionResult> AssignParticipant(int trainingId, List<int> use
         var training = await _db.Trainings.FindAsync(trainingId);
         var enrolled = await _db.Users.Where(u => newlyAssignedIds.Contains(u.UserId)).ToListAsync();
         if (training != null)
+        {
             await _email.SendTrainingAssignedAsync(enrolled, training);
+            await _notify.NotifyAsync(newlyAssignedIds,
+                "Enrolled: " + training.TrainingTitle,
+                "You have been enrolled in this training.",
+                Url.Action("Dashboard", "Employee"));
+        }
     }
 
     TempData["Success"] = "Participants assigned successfully!";
@@ -457,7 +465,13 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
         var training = await _db.Trainings.FindAsync(trainingId);
         var instructors = await _db.Users.Where(u => newInstructorIds.Contains(u.UserId)).ToListAsync();
         if (training != null)
+        {
             await _email.SendInstructorAssignedAsync(instructors, training);
+            await _notify.NotifyAsync(newInstructorIds,
+                "Assigned as Resource Person: " + training.TrainingTitle,
+                "You have been assigned to this training.",
+                Url.Action("Dashboard", "ResourcePerson"));
+        }
     }
 
     TempData["Success"] = "Resource Persons assigned successfully!";

@@ -1,0 +1,63 @@
+@model List<LDHub.Models.Notification>
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="m-0">Notifications</h1>
+            @if (Model.Any(n => !n.IsRead))
+            {
+                <form asp-controller="Notification" asp-action="MarkAllRead" method="post">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-check-double mr-1"></i> Mark all as read
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                @if (!Model.Any())
+                {
+                    <div class="p-4 text-center text-muted">
+                        <i class="far fa-bell-slash fa-2x mb-2"></i>
+                        <div>You have no notifications yet.</div>
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var n in Model)
+                        {
+                            <li class="list-group-item @(n.IsRead ? "" : "bg-light")">
+                                <a asp-controller="Notification" asp-action="Open" asp-route-id="@n.Id"
+                                   class="d-flex justify-content-between text-decoration-none text-dark">
+                                    <div>
+                                        <div class="@(n.IsRead ? "" : "font-weight-bold")">
+                                            @if (!n.IsRead)
+                                            {
+                                                <i class="fas fa-circle text-primary mr-1" style="font-size:8px;"></i>
+                                            }
+                                            @n.Title
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(n.Message))
+                                        {
+                                            <div class="text-muted small">@n.Message</div>
+                                        }
+                                    </div>
+                                    <small class="text-muted ml-3 text-nowrap">@n.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</section>

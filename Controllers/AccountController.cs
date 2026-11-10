@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Models.ViewModels;
 using LDHub.Data;
+using LDHub.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace LDHub.Controllers;
@@ -11,13 +12,16 @@ public class AccountController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _environment;
+    private readonly INotificationService _notify;
 
     public AccountController(
     AppDbContext db,
-    IWebHostEnvironment environment)
+    IWebHostEnvironment environment,
+    INotificationService notify)
 {
     _db = db;
     _environment = environment;
+    _notify = notify;
 }
     // GET: /Account/Register
         public IActionResult Register()
@@ -210,6 +214,19 @@ public async Task<IActionResult> Register(RegisterViewModel model)
     _db.PendingParticipants.Add(pending);
 
     await _db.SaveChangesAsync();
+
+    // Tell the RAAM of that region and all Admins that someone is waiting for approval
+    var approverIds = await _db.UserRoles
+        .Where(r => r.Role == "Admin"
+                 || (r.Role == "Raam" && r.User != null && r.User.RegionId == pending.RegionId))
+        .Select(r => r.UserId)
+        .Distinct()
+        .ToListAsync();
+
+    await _notify.NotifyAsync(approverIds,
+        "New registration awaiting approval",
+        $"{pending.FirstName} {pending.LastName} has registered and is waiting for approval.",
+        Url.Action("PendingParticipants", "Raam"));
 
     TempData["Success"] =
         "Registration submitted! Please wait for admin approval.";
