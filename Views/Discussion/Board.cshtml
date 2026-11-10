@@ -1,0 +1,165 @@
+@model LDHub.Models.ViewModels.DiscussionBoardViewModel
+@{
+    ViewData["Title"] = "Discussion Board";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <a asp-controller="Discussion" asp-action="Index" class="small">
+            <i class="fas fa-arrow-left mr-1"></i> All boards
+        </a>
+        <h1 class="m-0 mt-1">@Model.Training.TrainingTitle</h1>
+        <p class="text-muted mb-0">
+            Discussion board
+            @if (Model.Training.StartDate.HasValue)
+            {
+                <span> &middot; @Model.Training.StartDate.Value.ToString("MMM d, yyyy")</span>
+            }
+        </p>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        @* ── New post / announcement ───────────────────────────── *@
+        <div class="card">
+            <div class="card-header"><strong>Start a new topic</strong></div>
+            <div class="card-body">
+                <form asp-controller="Discussion" asp-action="PostThread" method="post">
+                    <input type="hidden" name="trainingId" value="@Model.Training.TrainingId" />
+
+                    @if (Model.CanAnnounce)
+                    {
+                        <div class="custom-control custom-checkbox mb-2">
+                            <input type="checkbox" class="custom-control-input" id="isAnnouncement"
+                                   name="isAnnouncement" value="true" />
+                            <label class="custom-control-label" for="isAnnouncement">
+                                Send as an announcement to everyone in this training
+                            </label>
+                        </div>
+                        <div class="form-group" id="titleGroup" style="display:none;">
+                            <input type="text" name="title" class="form-control" maxlength="200"
+                                   placeholder="Announcement title" />
+                        </div>
+                    }
+
+                    <div class="form-group">
+                        <textarea name="body" class="form-control" rows="3" maxlength="2000"
+                                  placeholder="Write something..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-paper-plane mr-1"></i> Post
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        @* ── Threads ───────────────────────────────────────────── *@
+        @if (!Model.Threads.Any())
+        {
+            <div class="text-center text-muted p-4">
+                <i class="far fa-comments fa-2x mb-2"></i>
+                <div>No posts yet. Be the first to start a topic.</div>
+            </div>
+        }
+
+        @foreach (var thread in Model.Threads)
+        {
+            var p = thread.Post;
+            var author = ((p.User?.FirstName ?? "") + " " + (p.User?.LastName ?? "")).Trim();
+            <div class="card @(p.IsAnnouncement ? "card-warning card-outline" : "")">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            @if (p.IsAnnouncement)
+                            {
+                                <span class="badge badge-warning mr-1"><i class="fas fa-bullhorn mr-1"></i>Announcement</span>
+                                <strong>@p.Title</strong>
+                            }
+                            else
+                            {
+                                <strong>@author</strong>
+                            }
+                            <div class="text-muted small">
+                                @if (p.IsAnnouncement) { <span>@author &middot; </span> }
+                                @p.CreatedAt.ToString("MMM d, yyyy h:mm tt")
+                            </div>
+                        </div>
+                        @if (Model.IsStaff || p.UserId == Model.CurrentUserId)
+                        {
+                            <form asp-controller="Discussion" asp-action="Delete" method="post"
+                                  onsubmit="return confirm('Delete this post and its replies?');">
+                                <input type="hidden" name="id" value="@p.Id" />
+                                <button type="submit" class="btn btn-link text-danger btn-sm p-0" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        }
+                    </div>
+
+                    <div class="mt-2" style="white-space:pre-wrap;">@p.Body</div>
+
+                    @* Replies *@
+                    @foreach (var r in thread.Replies)
+                    {
+                        var rAuthor = ((r.User?.FirstName ?? "") + " " + (r.User?.LastName ?? "")).Trim();
+                        <div class="border-left pl-3 mt-3">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong class="small">@rAuthor</strong>
+                                    <span class="text-muted small"> &middot; @r.CreatedAt.ToString("MMM d, yyyy h:mm tt")</span>
+                                </div>
+                                @if (Model.IsStaff || r.UserId == Model.CurrentUserId)
+                                {
+                                    <form asp-controller="Discussion" asp-action="Delete" method="post"
+                                          onsubmit="return confirm('Delete this reply?');">
+                                        <input type="hidden" name="id" value="@r.Id" />
+                                        <button type="submit" class="btn btn-link text-danger btn-sm p-0" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                            <div style="white-space:pre-wrap;">@r.Body</div>
+                        </div>
+                    }
+
+                    @* Reply box *@
+                    <form asp-controller="Discussion" asp-action="Reply" method="post" class="mt-3">
+                        <input type="hidden" name="parentId" value="@p.Id" />
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="body" class="form-control" maxlength="2000"
+                                   placeholder="Write a reply..." required />
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-outline-primary">Reply</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        (function () {
+            var box = document.getElementById('isAnnouncement');
+            var group = document.getElementById('titleGroup');
+            if (!box || !group) return;
+            box.addEventListener('change', function () {
+                group.style.display = box.checked ? '' : 'none';
+            });
+        })();
+    </script>
+}

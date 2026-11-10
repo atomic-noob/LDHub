@@ -44,12 +44,29 @@ public DbSet<ModuleTextContent> ModuleTextContents { get; set; }
 public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
   public DbSet<Announcement> Announcements { get; set; }
   public DbSet<Notification> Notifications { get; set; }
+  public DbSet<TrainingPost> TrainingPosts { get; set; }
   
 
         // ── Relationships & Constraints ───────────────────────────
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Discussion board: posts belong to a training; replies belong to a post
+            modelBuilder.Entity<TrainingPost>()
+                .HasIndex(p => new { p.TrainingId, p.CreatedAt });
+
+            modelBuilder.Entity<TrainingPost>()
+                .HasOne<Training>()
+                .WithMany()
+                .HasForeignKey(p => p.TrainingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TrainingPost>()
+                .HasOne<TrainingPost>()
+                .WithMany()
+                .HasForeignKey(p => p.ParentId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Notifications: fast lookup of a user's unread items; removed with the user
             modelBuilder.Entity<Notification>()
