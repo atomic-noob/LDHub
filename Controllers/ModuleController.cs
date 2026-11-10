@@ -66,10 +66,6 @@ public class ModuleController : Controller
     }
 
     // DEBUG — remove after fixing
-    System.Console.WriteLine($"Role: {HttpContext.Session.GetString("UserRole")}");
-    System.Console.WriteLine($"UserId: {userId}");
-    System.Console.WriteLine($"Trainings count: {trainings.Count}");
-
     return View("~/Views/Module/Index.cshtml", trainings);
 }
 

@@ -17,7 +17,8 @@ namespace LDHub.Models.ViewModels
         public string Email { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(6)]
+        [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
+        [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).+$", ErrorMessage = "Password must include at least one letter and one number.")]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 

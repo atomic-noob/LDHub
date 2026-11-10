@@ -1,4 +1,5 @@
 using LDHub.Data;
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +14,7 @@ public class NotificationController : Controller
         _db = db;
     }
 
-    private int? CurrentUserId => HttpContext.Session.GetInt32("UserId");
+    private int? CurrentUserId => HttpContext.Session.GetUserId();
 
     // GET: /Notification  (inbox, latest 100)
     public async Task<IActionResult> Index()

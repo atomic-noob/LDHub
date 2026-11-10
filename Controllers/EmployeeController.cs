@@ -868,11 +868,26 @@ public async Task<IActionResult> QuizResultByModule(int moduleId)
 
 // ── POST: /Employee/MarkModuleDone ────────────────────────────
 [HttpPost]
+[ValidateAntiForgeryToken]
 public async Task<IActionResult> MarkModuleDone(int moduleId, int trainingId)
 {
     if (!IsEmployee()) return Json(new { success = false });
 
     var userId = GetUserId();
+
+    // The module must exist, belong to the posted training, and the user must be enrolled in it
+    var module = await _db.TrainingModules.AsNoTracking()
+        .Include(m => m.Quiz)
+        .FirstOrDefaultAsync(m => m.ModuleId == moduleId);
+    if (module == null || module.TrainingId != trainingId)
+        return Json(new { success = false });
+
+    var enrolled = await _db.TrainingParticipants
+        .AnyAsync(tp => tp.TrainingId == module.TrainingId && tp.UserId == userId);
+    if (!enrolled) return Json(new { success = false });
+
+    // Quiz modules are completed by passing the quiz (SubmitQuiz), never by a direct call
+    if (module.Quiz != null) return Json(new { success = false });
 
     var exists = await _db.ModuleProgresses
         .AnyAsync(mp => mp.UserId == userId && mp.ModuleId == moduleId);
@@ -883,7 +898,7 @@ public async Task<IActionResult> MarkModuleDone(int moduleId, int trainingId)
         {
             UserId      = userId,
             ModuleId    = moduleId,
-            TrainingId  = trainingId,
+            TrainingId  = module.TrainingId,
             CompletedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync();

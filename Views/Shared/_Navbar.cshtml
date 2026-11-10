@@ -1,3 +1,4 @@
+@using LDHub.Helpers
 @* _Navbar.cshtml — Top navigation bar shared by all roles
    Gets user info from Session via ViewBag (set in controllers)
 *@
@@ -22,7 +23,7 @@
     <ul class="navbar-nav ml-auto">
 
         @* Notification bell *@
-        @if (Context.Session.GetInt32("UserId") != null)
+        @if (Context.Session.GetUserId() != null)
         {
             <li class="nav-item dropdown" id="notifBell">
                 <a class="nav-link" data-toggle="dropdown" href="#" title="Notifications">
@@ -81,7 +82,7 @@
     </ul>
 </nav>
 
-@if (Context.Session.GetInt32("UserId") != null)
+@if (Context.Session.GetUserId() != null)
 {
     <script>
     (function () {

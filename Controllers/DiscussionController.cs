@@ -1,4 +1,5 @@
 using LDHub.Data;
+using LDHub.Helpers;
 using LDHub.Models;
 using LDHub.Models.ViewModels;
 using LDHub.Services.Interfaces;
@@ -26,7 +27,7 @@ public class DiscussionController : Controller
         _notify = notify;
     }
 
-    private int? CurrentUserId => HttpContext.Session.GetInt32("UserId");
+    private int? CurrentUserId => HttpContext.Session.GetUserId();
     private string CurrentRole => HttpContext.Session.GetString("UserRole") ?? string.Empty;
 
     private record Access(bool CanView, bool IsStaff, bool CanAnnounce);

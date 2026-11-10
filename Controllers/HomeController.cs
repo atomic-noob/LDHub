@@ -3,16 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Helpers;
 
 namespace LDHub.Controllers;
 
 public class HomeController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly LoginThrottle _throttle;
 
-    public HomeController(AppDbContext db)
+    public HomeController(AppDbContext db, LoginThrottle throttle)
     {
         _db = db;
+        _throttle = throttle;
     }
 
     // ── GET: / — public homepage ──────────────────────────────────
@@ -84,6 +87,14 @@ public async Task<IActionResult> Login(LoginViewModel model)
     {
         return View(model);
     }
+
+    // Too many wrong passwords recently? Stop here.
+    var throttleKey = LoginThrottle.Key(HttpContext, model.Email);
+    if (_throttle.IsLocked(throttleKey, out var wait))
+    {
+        ViewBag.Error = $"Too many failed attempts. Please try again in {Math.Ceiling(wait.TotalMinutes)} minute(s).";
+        return View(model);
+    }
  
     // Find active user by email
     var user = await _db.Users
@@ -95,6 +106,7 @@ public async Task<IActionResult> Login(LoginViewModel model)
     // Check if user exists
     if (user == null)
     {
+        _throttle.RegisterFailure(throttleKey);
         ViewBag.Error = "Invalid email or password.";
         return View(model);
     }
@@ -102,6 +114,7 @@ public async Task<IActionResult> Login(LoginViewModel model)
     // Check password
     if (!BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
     {
+        _throttle.RegisterFailure(throttleKey);
         ViewBag.Error = "Invalid email or password.";
         return View(model);
     }
@@ -109,10 +122,13 @@ public async Task<IActionResult> Login(LoginViewModel model)
     // Block admin from using this login page
     if (user.UserRoles.Any(r => r.Role == "Admin"))
     {
+        _throttle.RegisterFailure(throttleKey);
         ViewBag.Error = "Invalid email or password.";
         return View(model);
     }
  
+    _throttle.Reset(throttleKey);
+
     // ── SET BASIC SESSION ──────────────────────────────────────
     HttpContext.Session.SetString("UserId",    user.UserId.ToString());
     HttpContext.Session.SetString("UserName",  $"{user.FirstName} {user.LastName}");

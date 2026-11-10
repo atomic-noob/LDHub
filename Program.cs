@@ -1,4 +1,5 @@
 using LDHub.Data;
+using LDHub.Helpers;
 using LDHub.Repositories;
 using LDHub.Repositories.Interfaces;
 using LDHub.Services;
@@ -45,6 +46,7 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddSingleton<LoginThrottle>();
 // builder.Services.AddScoped<ITrainingService, TrainingService>();
 // builder.Services.AddScoped<IModuleService, ModuleService>();
 // builder.Services.AddScoped<IQuizService, QuizService>();
@@ -83,9 +85,17 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();  // Redirect HTTP → HTTPS automatically
+app.UseSession();            // before static files so private uploads can be login-checked
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    ctx.Response.Headers["X-Frame-Options"]        = "SAMEORIGIN";
+    ctx.Response.Headers["Referrer-Policy"]        = "strict-origin-when-cross-origin";
+    await next();
+});
+app.UseMiddleware<PrivateUploadsMiddleware>();   // login check for /uploads/modules, certificates, profile-photos
 app.UseStaticFiles();        // Serve files from wwwroot/ (CSS, JS, images)
 app.UseRouting();            // Match incoming URLs to controllers
-app.UseSession();            // Enable session BEFORE authorization
 app.UseAuthorization();      // Check role permissions
 
 // ── 6. DEFAULT ROUTE ──────────────────────────────────────────────

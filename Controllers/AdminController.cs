@@ -1,17 +1,21 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
-using LDHub.Data;using BCrypt.Net;
+using LDHub.Data;
+using LDHub.Helpers;
+using BCrypt.Net;
 
 namespace LDHub.Controllers;
 
 public class AdminController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly LoginThrottle _throttle;
 
-    public AdminController(AppDbContext db)
+    public AdminController(AppDbContext db, LoginThrottle throttle)
     {
         _db = db;
+        _throttle = throttle;
     }
 
     // ── Auth check helper ─────────────────────────────────────────
@@ -38,6 +42,14 @@ public class AdminController : Controller
         if (!ModelState.IsValid)
             return View("~/Views/Admin/Index.cshtml", model);
 
+        // Too many wrong passwords recently? Stop here.
+        var throttleKey = LoginThrottle.Key(HttpContext, model.Email);
+        if (_throttle.IsLocked(throttleKey, out var wait))
+        {
+            ViewBag.Error = $"Too many failed attempts. Please try again in {Math.Ceiling(wait.TotalMinutes)} minute(s).";
+            return View("~/Views/Admin/Index.cshtml", model);
+        }
+
         // Find user by email
         var user = await _db.Users
             .Include(u => u.UserRoles)
@@ -46,6 +58,7 @@ public class AdminController : Controller
         // Check if user exists and is Admin
         if (user == null || !user.UserRoles.Any(r => r.Role == "Admin"))
         {
+            _throttle.RegisterFailure(throttleKey);
             ViewBag.Error = "Invalid email or password.";
             return View("~/Views/Admin/Index.cshtml", model);
         }
@@ -53,9 +66,12 @@ public class AdminController : Controller
         // Verify password
        if (!BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
 {
-    ViewBag.Error = "Invalid email or password.";
+    _throttle.RegisterFailure(throttleKey);
+            ViewBag.Error = "Invalid email or password.";
     return View("~/Views/Admin/Index.cshtml", model);
 }
+
+        _throttle.Reset(throttleKey);
 
         // Set session
         HttpContext.Session.SetString("UserRole", "Admin");
