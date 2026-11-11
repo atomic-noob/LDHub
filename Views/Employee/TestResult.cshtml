@@ -9,8 +9,13 @@
     var attemptsUsed  = ViewBag.AttemptsUsed as int?    ?? 0;
     var attemptsLeft  = ViewBag.AttemptsLeft as int?    ?? 0;
     var isPostTest    = testType == "PostTest";
+    
 
-    var percentage    = totalPoints > 0 ? Math.Round(score / totalPoints * 100) : 0;
+  var percentage  = totalPoints > 0 ? Math.Round(score / totalPoints * 100) : 0;
+var scoreText   = score.ToString("0.##");
+var totalText   = totalPoints.ToString("0.##");
+var percentText = percentage.ToString("0");
+var minText     = training?.MinimumScore.ToString("0.##");
 
     ViewData["Title"] = "Test Result";
 }
@@ -19,7 +24,7 @@
     <style>
         body { background: #f4fdf6; }
         .content-wrapper { background: linear-gradient(180deg, #ffffff 0%, #f4fff7 100%); }
-        .success-gradient { background: linear-gradient(225deg, #9BEC00, #4BB543, #117554); color: white; }
+        .success-gradient { background: linear-gradient(225deg, #117554, #117554, #117554); color: white; }
         .result-circle {
             width: 160px; height: 160px;
             border-radius: 50%;
@@ -30,7 +35,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,.15);
         }
         .result-circle.passed {
-            background: linear-gradient(135deg, #9BEC00, #4BB543);
+            background: linear-gradient(135deg, #117554, #117554);
             color: white;
         }
         .result-circle.failed {
@@ -55,29 +60,31 @@
             display: inline-block;
             margin: 0 3px;
         }
-        .attempt-dot.used-pass  { background: #4BB543; }
+        .attempt-dot.used-pass  { background: #117554; }
         .attempt-dot.used-fail  { background: #dc3545; }
         .attempt-dot.remaining  { background: #dee2e6; border: 2px solid #adb5bd; }
+
+
+        .btn-success,
+.bg-success,
+.progress-bar.bg-success {
+    background: #117554 !important;
+    border-color: #117554 !important;
+    color: #fff !important;
+}
+.btn-success:hover { background: #0d5c43 !important; border-color: #0d5c43 !important; }
+.text-success { color: #117554 !important; }
+.alert-success {
+    background: #e6f4ef;
+    border-color: #117554;
+    color: #0d5c43;
+}
     </style>
 }
 
 <div class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">
-                    <i class="fas fa-poll mr-2 text-success"></i> Test Result
-                </h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item">
-                        <a href="@Url.Action("Dashboard", "Employee")">Dashboard</a>
-                    </li>
-                    <li class="breadcrumb-item active">Result</li>
-                </ol>
-            </div>
-        </div>
+       
     </div>
 </div>
 
@@ -88,7 +95,7 @@
 
                 @* Main Result Card *@
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header text-center success-gradient py-3">
+                    <div class="card-header text-center  py-3">
                         <h4 class="mb-0 font-weight-bold">
                             @training?.TrainingTitle
                         </h4>
@@ -98,8 +105,8 @@
 
                         @* Score Circle *@
                         <div class="result-circle @(isPostTest ? (isPassed ? "passed" : "failed") : "pretest")">
-                            <div class="score-number">@percentage%</div>
-                            <div class="score-label">@score / @totalPoints pts</div>
+                          <div class="score-number">@percentText%</div>
+                            <div class="score-label">@scoreText / @totalText pts</div>
                         </div>
 
                         @* Result Message *@
@@ -120,11 +127,11 @@
                         }
                         else if (isPassed)
                         {
-                            <h4 class="text-success font-weight-bold mb-1">
+                            <h4 class=" font-weight-bold mb-1">
                                 <i class="fas fa-trophy mr-2"></i>Congratulations! You Passed!
                             </h4>
                             <p class="text-muted mb-3">
-                                You met the minimum passing score of <strong>@training?.MinimumScore pts</strong>.
+                                You met the minimum passing score of <strong>@minText pts</strong>.
                                 Your certificate is now available.
                             </p>
                             <div class="alert alert-success">
@@ -138,8 +145,8 @@
                                 <i class="fas fa-times-circle mr-2"></i>Not Passed
                             </h4>
                             <p class="text-muted mb-3">
-                                You need <strong>@training?.MinimumScore pts</strong> to pass.
-                                You scored <strong>@score pts</strong>.
+                               You need <strong>@minText pts</strong> to pass.
+You scored <strong>@scoreText pts</strong>.
                                 You have <strong>@attemptsLeft attempt@(attemptsLeft != 1 ? "s" : "")</strong> remaining.
                             </p>
                             <div class="alert alert-warning">
@@ -163,28 +170,28 @@
                         }
 
                         @* Score Breakdown *@
-                        <div class="row text-center mt-3 mb-3">
-                            <div class="col-4">
-                                <div class="border rounded p-2">
-                                    <div class="h4 mb-0 text-success font-weight-bold">@score</div>
-                                    <small class="text-muted">Your Score</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="border rounded p-2">
-                                    <div class="h4 mb-0 font-weight-bold">@totalPoints</div>
-                                    <small class="text-muted">Total Points</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="border rounded p-2">
-                                    <div class="h4 mb-0 @(isPostTest ? (isPassed ? "text-success" : "text-danger") : "text-primary") font-weight-bold">
-                                        @percentage%
-                                    </div>
-                                    <small class="text-muted">Percentage</small>
-                                </div>
-                            </div>
-                        </div>
+                       <div class="row text-center mt-3 mb-3">
+    <div class="col-4">
+        <div class="border rounded p-2">
+            <div class="h4 mb-0 font-weight-bold">@scoreText</div>
+            <small class="text-muted">Your Score</small>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="border rounded p-2">
+            <div class="h4 mb-0 font-weight-bold">@totalText</div>
+            <small class="text-muted">Total Points</small>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="border rounded p-2">
+            <div class="h4 mb-0 @(isPostTest ? (isPassed ? "text-success" : "text-danger") : "text-primary") font-weight-bold">
+                @percentText%
+            </div>
+            <small class="text-muted">Percentage</small>
+        </div>
+    </div>
+</div>
 
                         @* Attempt Dots (post-test only) *@
                         @if (isPostTest)
@@ -212,28 +219,28 @@
                         }
 
                         @* Minimum score bar (post-test only) *@
-                        @if (isPostTest && training?.MinimumScore > 0)
-                        {
-                            var minPct    = totalPoints > 0 ? Math.Round((decimal)training.MinimumScore / totalPoints * 100) : 0;
-                            var scorePct  = totalPoints > 0 ? Math.Round(score / totalPoints * 100) : 0;
-                            <div class="mt-2 mb-3 text-left">
-                                <small class="text-muted">
-                                    Score vs Minimum (@training.MinimumScore pts required)
-                                </small>
-                                <div class="progress mt-1" style="height:20px; border-radius:10px;">
-                                    <div class="progress-bar @(isPassed ? "bg-success" : "bg-danger")"
-                                         role="progressbar"
-                                         style="width:@scorePct%">
-                                        @score pts
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between mt-1">
-                                    <small>0</small>
-                                    <small class="text-warning">Min: @training.MinimumScore pts (@minPct%)</small>
-                                    <small>@totalPoints pts</small>
-                                </div>
-                            </div>
-                        }
+                      @if (isPostTest && training?.MinimumScore > 0)
+{
+    var minPct    = totalPoints > 0 ? Math.Round((decimal)training.MinimumScore / totalPoints * 100) : 0;
+    var scorePct  = totalPoints > 0 ? Math.Round(score / totalPoints * 100) : 0;
+    <div class="mt-2 mb-3 text-left">
+        <small class="text-muted">
+            Score vs Minimum (@minText pts required)
+        </small>
+        <div class="progress mt-1" style="height:20px; border-radius:10px;">
+            <div class="progress-bar @(isPassed ? "bg-success" : "bg-danger")"
+                 role="progressbar"
+                 style="width:@scorePct%">
+                @scoreText pts
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+            <small>0</small>
+            <small class="text-warning">Min: @minText pts (@minPct%)</small>
+            <small>@totalText pts</small>
+        </div>
+    </div>
+}
 
                     </div>
 
@@ -295,7 +302,7 @@ $(function () {
         icon: 'success',
         title: 'Congratulations!',
         text: 'You passed the post-test and completed the training!',
-        confirmButtonColor: '#4BB543',
+        confirmButtonColor: '#117554',
         confirmButtonText: 'View Result'
     });
         </text>

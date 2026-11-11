@@ -49,14 +49,7 @@
 
 <div class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">Training Evaluation</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item active">Evaluation</li>
-                </ol>
-            </div>
-        </div>
+        
     </div>
 </div>
 
@@ -65,7 +58,7 @@
 
         @* Training Info Banner *@
         <div class="card shadow-sm mb-4">
-            <div class="card-header success-gradient">
+            <div class="card-header ">
                 <h3 class="card-title">
                     <i class="fas fa-clipboard-list mr-2"></i>@training?.TrainingTitle
                 </h3>
@@ -115,7 +108,7 @@
                 {
                     <div class="question-card">
                         <div class="d-flex align-items-start">
-                            <span class="q-num">@qNum</span>
+                            <span class="q-num btn-success">@qNum</span>
                             <div class="flex-grow-1">
                                 <strong>
                                     @q.QuestionText
