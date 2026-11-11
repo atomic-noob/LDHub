@@ -7,154 +7,159 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>DENR L&D Hub - @ViewData["Title"]</title>
 
-    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css"/>
-    <link rel="stylesheet" href="~/css/auth.css"/>
+    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/auth.css" />
 </head>
+
 <body>
 
-<div class="auth-container">
-    <div class="auth-wrapper">
+    <div class="auth-container">
+        <div class="auth-wrapper">
 
-        <div class="auth-left">
-            <img src="~/dist/img/denrlogo.jpg" class="auth-logo" alt="DENR Logo">
-            <h1 class="auth-title">
-                DENR<br>
-                Learning & Development Hub
-            </h1>
-            <p class="auth-subtitle">
-                Learning. Growing. Serving.
-            </p>
+            <div class="auth-left">
+                <img src="~/dist/img/denrlogo.jpg" class="auth-logo" alt="DENR Logo">
+                <h1 class="auth-title">
+                    DENR<br>
+                    Learning & Development Hub
+                </h1>
+                <p class="auth-subtitle">
+                    Learning. Growing. Serving.
+                </p>
 
-            <div class="auth-feature">
-                <div class="auth-icon">
-                    <i class="fas fa-leaf"></i>
-                </div>
-                <div>
-                    <strong>Official Platform</strong><br>
-                    Talent Development Division
-                </div>
-            </div>
-
-            <div class="auth-feature">
-                <div class="auth-icon">
-                    <i class="fas fa-user-graduate"></i>
-                </div>
-                <div>
-                    <strong>Professional Development</strong><br>
-                    Digital Learning Experience
-                </div>
-            </div>
-
-            <div class="auth-feature">
-                <div class="auth-icon">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
-                <div>
-                    <strong>Secure Access</strong><br>
-                    Protected Employee Portal
-                </div>
-            </div>
-        </div>
-
-        <div class="glass-card">
-            <div class="text-center mb-4">
-                <img src="~/dist/img/denrlogo.jpg" width="70" class="rounded-circle shadow" alt="DENR Logo Tiny">
-            </div>
-
-            <h2 class="glass-title">Welcome Back</h2>
-            <p class="glass-description">
-                Sign in to continue to the DENR L&D Hub
-            </p>
-
-            @if (ViewBag.Error != null)
-            {
-                <div class="alert alert-danger">
-                    @ViewBag.Error
-                </div>
-            }
-
-            <div asp-validation-summary="ModelOnly" class="text-warning mb-3"></div>
-
-            <form asp-action="Login" asp-controller="Home" method="post">
-                @Html.AntiForgeryToken()
-
-                <div class="form-group mb-3">
-                    <label class="form-label">Email Address</label>
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">
-                                <i class="fas fa-envelope"></i>
-                            </span>
-                        </div>
-                        <input asp-for="Email" class="form-control" placeholder="Enter your email">
+                <div class="auth-feature">
+                    <div class="auth-icon">
+                        <i class="fas fa-leaf"></i>
                     </div>
-                    <span asp-validation-for="Email" class="text-warning small"></span>
-                </div>
-
-                <div class="form-group mb-4">
-                    <label class="form-label">Password</label>
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">
-                                <i class="fas fa-lock"></i>
-                            </span>
-                        </div>
-                        <input asp-for="Password" type="password" class="form-control" id="password" placeholder="Enter your password">
-                        <div class="input-group-append">
-                            <span class="input-group-text togglePassword" style="cursor: pointer;">
-                                <i class="fas fa-eye"></i>
-                            </span>
-                        </div>
+                    <div>
+                        <strong>Official Platform</strong><br>
+                        Talent Development Division
                     </div>
-                    <span asp-validation-for="Password" class="text-warning small"></span>
                 </div>
 
-                <button type="submit" class="btn-auth w-100">
-                    <i class="fas fa-sign-in-alt me-2"></i> Login
-                </button>
-
-                <div class="text-center mt-4">
-                    <a asp-controller="Account" asp-action="Register" class="text-white">
-                        Create an Account
-                    </a>
+                <div class="auth-feature">
+                    <div class="auth-icon">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <strong>Professional Development</strong><br>
+                        Digital Learning Experience
+                    </div>
                 </div>
 
-                <div class="text-center mt-3">
-                    <a href="/" class="text-white-50">
-                        Back to Home
-                    </a>
+                <div class="auth-feature">
+                    <div class="auth-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div>
+                        <strong>Secure Access</strong><br>
+                        Protected Employee Portal
+                    </div>
                 </div>
-            </form>
+            </div>
+
+            <div class="glass-card">
+                <div class="text-center mb-4">
+                    <img src="~/dist/img/denrlogo.jpg" class="auth-logo" alt="DENR Logo width=" 70" ">
+
+                </div>
+
+                <h2 class=" glass-title">Welcome Back</h2>
+                <p class="glass-description">
+                    Sign in to continue to the DENR L&D Hub
+                </p>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger">
+                        @ViewBag.Error
+                    </div>
+                }
+
+                <div asp-validation-summary="ModelOnly" class="text-warning mb-3"></div>
+
+                <form asp-action="Login" asp-controller="Home" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">Email Address</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                            </div>
+                            <input asp-for="Email" class="form-control" placeholder="Enter your email">
+                        </div>
+                        <span asp-validation-for="Email" class="text-warning small"></span>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                            </div>
+                            <input asp-for="Password" type="password" class="form-control" id="password"
+                                   placeholder="Enter your password">
+                            <div class="input-group-append">
+                                <span class="input-group-text togglePassword" style="cursor: pointer;">
+                                    <i class="fas fa-eye"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <span asp-validation-for="Password" class="text-warning small"></span>
+                    </div>
+
+                    <button type="submit" class="btn-auth w-100">
+                        <i class="fas fa-sign-in-alt me-2"></i> Login
+                    </button>
+
+                    <div class="text-center mt-4">
+                        <a asp-controller="Account" asp-action="Register" class="text-white">
+                            Create an Account
+                        </a>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="/" class="text-white-50">
+                            Back to Home
+                        </a>
+                    </div>
+                </form>
+            </div>
+
         </div>
-
     </div>
-</div>
 
-<script src="~/plugins/jquery/jquery.min.js"></script>
-<script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/plugins/jquery/jquery.min.js"></script>
+    <script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 
-<script>
-    $(document).ready(function () {
-        $('.togglePassword').click(function () {
-            var input = $("#password");
-            var icon = $(this).find("i");
+    <script>
+                $(document).ready(function () {
+                    $('.togglePassword').click(function () {
+                        var input = $("#password");
+                        var icon = $(this).find("i");
 
-            if (input.attr("type") === "password") {
-                input.attr("type", "text");
-                icon.removeClass("fa-eye").addClass("fa-eye-slash");
-            } else {
-                input.attr("type", "password");
-                icon.removeClass("fa-eye-slash").addClass("fa-eye");
-            }
-        });
-    });
-</script>
+                        if (input.attr("type") === "password") {
+                            input.attr("type", "text");
+                            icon.removeClass("fa-eye").addClass("fa-eye-slash");
+                        } else {
+                            input.attr("type", "password");
+                            icon.removeClass("fa-eye-slash").addClass("fa-eye");
+                        }
+                    });
+                });
+    </script>
 
 </body>
+
 </html>
