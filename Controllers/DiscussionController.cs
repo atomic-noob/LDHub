@@ -206,7 +206,8 @@ public class DiscussionController : Controller
             await _notify.NotifyAsync(recipients,
                 "Announcement: " + title,
                 training.TrainingTitle,
-                Url.Action(nameof(Board), new { trainingId }));
+                Url.Action(nameof(Board), new { trainingId }),
+                trainingId);
 
             // Also email the group (skipped quietly when email is not configured)
             var recipientUsers = await _db.Users.AsNoTracking()
@@ -262,7 +263,8 @@ public class DiscussionController : Controller
             await _notify.NotifyAsync(new[] { parent.UserId },
                 "New reply to your post",
                 name + " replied on the discussion board.",
-                Url.Action(nameof(Board), new { trainingId = parent.TrainingId }));
+                Url.Action(nameof(Board), new { trainingId = parent.TrainingId }),
+                parent.TrainingId);
         }
 
         return RedirectToAction(nameof(Board), new { trainingId = parent.TrainingId });

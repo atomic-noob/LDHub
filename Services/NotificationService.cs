@@ -16,7 +16,7 @@ public class NotificationService : INotificationService
         _logger = logger;
     }
 
-    public async Task NotifyAsync(IEnumerable<int> userIds, string title, string? message, string? url)
+    public async Task NotifyAsync(IEnumerable<int> userIds, string title, string? message, string? url, int? trainingId = null)
     {
         var ids = userIds.Distinct().ToList();
         if (ids.Count == 0) return;
@@ -32,6 +32,7 @@ public class NotificationService : INotificationService
                     Title = Trim(title, 200),
                     Message = message == null ? null : Trim(message, 500),
                     Url = url == null ? null : Trim(url, 300),
+                    TrainingId = trainingId,
                     IsRead = false,
                     CreatedAt = now
                 });

@@ -15,6 +15,7 @@ public class NotificationController : Controller
     }
 
     private int? CurrentUserId => HttpContext.Session.GetUserId();
+    private string? CurrentRole => HttpContext.Session.GetString("UserRole");
 
     // GET: /Notification  (inbox, latest 100)
     public async Task<IActionResult> Index()
@@ -22,8 +23,10 @@ public class NotificationController : Controller
         var userId = CurrentUserId;
         if (userId == null) return RedirectToAction("Login", "Home");
 
-        var items = await _db.Notifications
-            .Where(n => n.UserId == userId)
+        // Only what fits the role the user is acting as (a RAAM never sees another region's trainings)
+        var visible = await _db.VisibleNotificationsAsync(userId.Value, CurrentRole);
+
+        var items = await visible
             .OrderByDescending(n => n.CreatedAt)
             .Take(100)
             .ToListAsync();
@@ -38,10 +41,11 @@ public class NotificationController : Controller
         var userId = CurrentUserId;
         if (userId == null) return Json(new { unread = 0, items = Array.Empty<object>() });
 
-        var unread = await _db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
+        var visible = await _db.VisibleNotificationsAsync(userId.Value, CurrentRole);
 
-        var latest = await _db.Notifications
-            .Where(n => n.UserId == userId)
+        var unread = await visible.CountAsync(n => !n.IsRead);
+
+        var latest = await visible
             .OrderByDescending(n => n.CreatedAt)
             .Take(6)
             .ToListAsync();
@@ -65,7 +69,8 @@ public class NotificationController : Controller
         var userId = CurrentUserId;
         if (userId == null) return RedirectToAction("Login", "Home");
 
-        var n = await _db.Notifications.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+        var visible = await _db.VisibleNotificationsAsync(userId.Value, CurrentRole);
+        var n = await visible.FirstOrDefaultAsync(x => x.Id == id);
         if (n == null) return RedirectToAction(nameof(Index));
 
         if (!n.IsRead)
@@ -89,8 +94,10 @@ public class NotificationController : Controller
         var userId = CurrentUserId;
         if (userId == null) return RedirectToAction("Login", "Home");
 
-        var unread = await _db.Notifications
-            .Where(n => n.UserId == userId && !n.IsRead)
+        var visible = await _db.VisibleNotificationsAsync(userId.Value, CurrentRole);
+
+        var unread = await visible
+            .Where(n => !n.IsRead)
             .ToListAsync();
 
         foreach (var n in unread) n.IsRead = true;

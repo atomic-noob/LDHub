@@ -375,7 +375,8 @@ public async Task<IActionResult> AssignParticipant(int trainingId, List<int> use
             await _notify.NotifyAsync(newlyAssignedIds,
                 "Enrolled: " + training.TrainingTitle,
                 "You have been enrolled in this training.",
-                Url.Action("Dashboard", "Employee"));
+                Url.Action("Dashboard", "Employee"),
+                trainingId);
         }
     }
 
@@ -480,7 +481,8 @@ public async Task<IActionResult> AssignResourcePerson(int trainingId, List<int> 
             await _notify.NotifyAsync(newInstructorIds,
                 "Assigned as Resource Person: " + training.TrainingTitle,
                 "You have been assigned to this training.",
-                Url.Action("Dashboard", "ResourcePerson"));
+                Url.Action("Dashboard", "ResourcePerson"),
+                trainingId);
         }
     }
 

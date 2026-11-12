@@ -28,6 +28,10 @@ public class Notification
     [MaxLength(300)]
     public string? Url { get; set; }
 
+    /// <summary>The training this notification is about (null when it is not about a training).</summary>
+    [Column("training_id")]
+    public int? TrainingId { get; set; }
+
     [Column("is_read")]
     public bool IsRead { get; set; }
 
