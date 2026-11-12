@@ -6,7 +6,7 @@
 <section class="content-header">
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center">
-            <h1 class="m-0">Notifications</h1>
+            <partial name="_BackButton" />
             @if (Model.Any(n => !n.IsRead))
             {
                 <form asp-controller="Notification" asp-action="MarkAllRead" method="post">

@@ -1,0 +1,34 @@
+@using LDHub.Helpers
+@{
+    // If the browser has no earlier page from this site, go to the user's own dashboard instead.
+    var role = Context.Session.GetString("UserRole");
+    var fallback = role switch
+    {
+        AppRoles.Admin          => Url.Action("Dashboard", "Admin"),
+        AppRoles.CourseManager  => Url.Action("Dashboard", "CourseManager"),
+        AppRoles.Raam           => Url.Action("Dashboard", "Raam"),
+        AppRoles.ResourcePerson => Url.Action("Dashboard", "ResourcePerson"),
+        _                       => Url.Action("Dashboard", "Employee")
+    } ?? "/";
+}
+<a href="@fallback" class="btn btn-sm btn-outline-secondary js-back-button">
+    <i class="fas fa-arrow-left mr-1"></i> Back
+</a>
+<script>
+    (function () {
+        var button = document.querySelector('.js-back-button');
+        if (!button) return;
+        button.addEventListener('click', function (e) {
+            try {
+                var from = document.referrer ? new URL(document.referrer) : null;
+                var sameSite = from && from.origin === location.origin;
+                // Never go "back" into a test, quiz or evaluation form that was just submitted
+                var wasTestPage = from && /\/(pretest|posttest|taketest|takequiz|submittest|submitquiz|evaluation\/take|evaluation\/submit)/i.test(from.pathname);
+                if (sameSite && !wasTestPage && history.length > 1) {
+                    e.preventDefault();
+                    history.back();
+                }
+            } catch (err) { /* fall through to the dashboard link */ }
+        });
+    })();
+</script>
