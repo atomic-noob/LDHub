@@ -484,3 +484,9 @@ $RECYCLE.BIN/
 
 wwwroot/plugins/
 wwwroot/dist/
+# ── Secrets and runtime data: never commit ──
+DataProtection-Keys/
+wwwroot/uploads/
+appsettings.Production.json
+appsettings.Local.json
+*.pfx

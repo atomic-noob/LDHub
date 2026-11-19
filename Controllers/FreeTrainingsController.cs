@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -17,7 +18,7 @@ public class FreeTrainingsController : Controller
     }
 
     private bool IsAdmin() =>
-        HttpContext.Session.GetString("UserRole") == "Admin";
+        HttpContext.Session.GetString("UserRole") == AppRoles.Admin;
 
     private int GetUserId()
     {
@@ -27,15 +28,15 @@ public class FreeTrainingsController : Controller
 
     private void SetViewBag()
     {
-        ViewBag.ActiveRole = "Admin";
+        ViewBag.ActiveRole = AppRoles.Admin;
         ViewBag.UserName   = HttpContext.Session.GetString("UserName");
         ViewBag.UserPhoto  = HttpContext.Session.GetString("UserPhoto");
     }
 
     // ── GET: /FreeTrainings/Index ──────────────────────────────
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public async Task<IActionResult> Index()
     {
-        if (!IsAdmin()) return RedirectToAction("Index", "Admin");
         SetViewBag();
 
         var trainings = await _db.FreeTrainings
@@ -47,9 +48,9 @@ public class FreeTrainingsController : Controller
     }
 
     // ── GET: /FreeTrainings/Create ─────────────────────────────
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public async Task<IActionResult> Create()
     {
-        if (!IsAdmin()) return RedirectToAction("Index", "Admin");
         SetViewBag();
 
         ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
@@ -59,9 +60,9 @@ public class FreeTrainingsController : Controller
     // ── POST: /FreeTrainings/Create ────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public async Task<IActionResult> Create(FreeTraining model, IFormFile? photo)
     {
-        if (!IsAdmin()) return RedirectToAction("Index", "Admin");
 
         // Validate Monday-Friday only
         if (model.StartDate.HasValue && (model.StartDate.Value.DayOfWeek == DayOfWeek.Saturday || model.StartDate.Value.DayOfWeek == DayOfWeek.Sunday))
@@ -78,6 +79,15 @@ public class FreeTrainingsController : Controller
             // Handle photo upload
             if (photo != null && photo.Length > 0)
             {
+                var photoError = UploadValidator.Validate(
+                    photo, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+                if (photoError != null)
+                {
+                    ModelState.AddModelError("Photo", photoError);
+                    ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+                    return View("~/Views/FreeTrainings/Create.cshtml", model);
+                }
+
                 var uploadDir = Path.Combine(_env.WebRootPath, "uploads", "free-trainings");
                 Directory.CreateDirectory(uploadDir);
                 var fileName = $"{Guid.NewGuid()}{Path.GetExtension(photo.FileName)}";
@@ -104,9 +114,9 @@ public class FreeTrainingsController : Controller
     }
 
     // ── GET: /FreeTrainings/Edit/{id} ──────────────────────────
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public async Task<IActionResult> Edit(int id)
     {
-        if (!IsAdmin()) return RedirectToAction("Index", "Admin");
         SetViewBag();
 
         var training = await _db.FreeTrainings.FindAsync(id);
@@ -119,9 +129,9 @@ public class FreeTrainingsController : Controller
     // ── POST: /FreeTrainings/Edit ──────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public async Task<IActionResult> Edit(int id, FreeTraining model, IFormFile? photo)
     {
-        if (!IsAdmin()) return RedirectToAction("Index", "Admin");
 
         var training = await _db.FreeTrainings.FindAsync(id);
         if (training == null) return NotFound();
@@ -132,6 +142,18 @@ public class FreeTrainingsController : Controller
             TempData["Error"] = "Start date must be a weekday (Monday to Friday).";
             ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
             return View("~/Views/FreeTrainings/Edit.cshtml", model);
+        }
+
+        if (photo != null && photo.Length > 0)
+        {
+            var photoError = UploadValidator.Validate(
+                photo, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+            if (photoError != null)
+            {
+                TempData["Error"] = photoError;
+                ViewBag.Regions = await _db.Regions.OrderBy(r => r.RegionName).ToListAsync();
+                return View("~/Views/FreeTrainings/Edit.cshtml", model);
+            }
         }
 
         training.Title            = model.Title;
@@ -163,9 +185,9 @@ public class FreeTrainingsController : Controller
     // ── POST: /FreeTrainings/Delete ────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        if (!IsAdmin()) return RedirectToAction("Index", "Admin");
 
         var training = await _db.FreeTrainings.FindAsync(id);
         if (training != null)
@@ -181,9 +203,9 @@ public class FreeTrainingsController : Controller
     // ── POST: /FreeTrainings/ToggleActive ──────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public async Task<IActionResult> ToggleActive(int id)
     {
-        if (!IsAdmin()) return RedirectToAction("Index", "Admin");
 
         var training = await _db.FreeTrainings.FindAsync(id);
         if (training != null)

@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Data;
@@ -15,7 +16,7 @@ public class ResourcePersonController : Controller
     }
 
     private bool IsResourcePerson() =>
-        HttpContext.Session.GetString("UserRole") == "ResourcePerson";
+        HttpContext.Session.GetString("UserRole") == AppRoles.ResourcePerson;
 
     private int GetUserId()
     {
@@ -25,15 +26,15 @@ public class ResourcePersonController : Controller
 
     private void SetViewBag()
     {
-        ViewBag.ActiveRole = "ResourcePerson";
+        ViewBag.ActiveRole = AppRoles.ResourcePerson;
         ViewBag.UserName   = HttpContext.Session.GetString("UserName");
         ViewBag.UserPhoto  = HttpContext.Session.GetString("UserPhoto");
     }
 
     // ── GET: /ResourcePerson/Index ────────────────────────────────
+    [RequireRole(AppRoles.ResourcePerson)]
     public async Task<IActionResult> Index()
     {
-        if (!IsResourcePerson()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var userId = GetUserId();
@@ -91,9 +92,9 @@ ViewBag.User = user;
     }
 
     // ── GET: /ResourcePerson/TrainingHistory ──────────────────────
+    [RequireRole(AppRoles.ResourcePerson)]
     public async Task<IActionResult> TrainingHistory()
     {
-        if (!IsResourcePerson()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var userId = GetUserId();
@@ -116,25 +117,25 @@ ViewBag.User = user;
     }
 
     // ── GET: /ResourcePerson/Dashboard ───────────────────────────
+    [RequireRole(AppRoles.ResourcePerson)]
     public IActionResult Dashboard()
     {
-        if (!IsResourcePerson()) return RedirectToAction("Login", "Home");
         SetViewBag();
         return RedirectToAction("Index");
     }
 
     // ── GET: /ResourcePerson/Grades ──────────────────────────────
+    [RequireRole(AppRoles.ResourcePerson)]
     public IActionResult Grades()
     {
-        if (!IsResourcePerson()) return RedirectToAction("Login", "Home");
         SetViewBag();
         return RedirectToAction("Index", "Content", new { area = "" });
     }
 
     // ── GET: /ResourcePerson/TestResult ──────────────────────────
+    [RequireRole(AppRoles.ResourcePerson)]
     public IActionResult TestResult()
     {
-        if (!IsResourcePerson()) return RedirectToAction("Login", "Home");
         SetViewBag();
         return RedirectToAction("TestMaker", "Content");
     }

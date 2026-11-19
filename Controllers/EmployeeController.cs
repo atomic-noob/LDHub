@@ -1,3 +1,6 @@
+using LDHub.Helpers;
+using LDHub.Services.Interfaces;
+using LDHub.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -9,15 +12,17 @@ namespace LDHub.Controllers;
 public class EmployeeController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly ITestSessionService _tests;
 
-    public EmployeeController(AppDbContext db)
+    public EmployeeController(AppDbContext db, ITestSessionService tests)
     {
         _db = db;
+        _tests = tests;
     }
 
     // ── Auth check helper ─────────────────────────────────────────
     private bool IsEmployee() =>
-        HttpContext.Session.GetString("UserRole") == "Employee";
+        HttpContext.Session.GetString("UserRole") == AppRoles.Employee;
 
     // ── Get current logged in user ID from session ─────────────────
     private int GetUserId()
@@ -29,22 +34,21 @@ public class EmployeeController : Controller
     // ── ViewBag helper ────────────────────────────────────────────
     private void SetViewBag()
     {
-        ViewBag.ActiveRole = "Employee";
+        ViewBag.ActiveRole = AppRoles.Employee;
         ViewBag.UserName   = HttpContext.Session.GetString("UserName");
         ViewBag.UserPhoto  = HttpContext.Session.GetString("UserPhoto");
     }
 
     // ── GET: /Employee/Dashboard ──────────────────────────────────
+    [RequireRole(AppRoles.Employee)]
     public async Task<IActionResult> Dashboard()
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var userId = GetUserId();
         var now    = DateTime.Now;
-        // TEMP DEBUG
-        Console.WriteLine($"SESSION UserId: {HttpContext.Session.GetInt32("UserId")}");
-        Console.WriteLine($"GetUserId() returns: {userId}");
+        // Grade tests whose time ran out while the participant was away
+        await _tests.FinalizeExpiredAsync(userId);
 
         // Get all enrollments
         var enrollments = await _db.TrainingParticipants
@@ -58,9 +62,9 @@ public class EmployeeController : Controller
         {// Only auto-complete if EndDate is set AND has passed
     if (tp.Training?.EndDate != null
     && now > tp.Training.EndDate
-    && tp.CompletionStatus != "Completed")
+    && tp.CompletionStatus != EnrollmentStatus.Completed)
             {
-                tp.CompletionStatus = "Completed";
+                tp.CompletionStatus = EnrollmentStatus.Completed;
                 anyUpdated = true;
             }
         }
@@ -68,7 +72,7 @@ public class EmployeeController : Controller
 
        // ── Get current active enrollment (include upcoming ones too) ──
                 var currentEnrollment = enrollments
-                    .Where(tp => tp.CompletionStatus != "Completed"
+                    .Where(tp => tp.CompletionStatus != EnrollmentStatus.Completed
                             && (tp.Training?.EndDate == null || tp.Training.EndDate >= now))
                     .OrderBy(tp => tp.Training?.StartDate)
                     .FirstOrDefault();
@@ -110,7 +114,7 @@ ViewBag.CompletedModuleIds = completedModuleIds;
             preTestTaken = await _db.ParticipantTestAttempts
                 .AnyAsync(a => a.UserId     == userId
                             && a.TrainingId == currentEnrollment.TrainingId
-                            && a.TestType   == "PreTest");
+                            && a.TestType   == TestTypes.PreTest);
         }
 
         // ── Check if all modules are done and post-test is available ──
@@ -124,7 +128,7 @@ ViewBag.CompletedModuleIds = completedModuleIds;
             var postAttempts = await _db.ParticipantTestAttempts
                 .Where(a => a.UserId     == userId
                          && a.TrainingId == currentEnrollment.TrainingId
-                         && a.TestType   == "PostTest")
+                         && a.TestType   == TestTypes.PostTest)
                 .ToListAsync();
 
             postTestTaken    = postAttempts.Any();
@@ -148,14 +152,14 @@ ViewBag.EvalDone         = evalDone;
 ViewBag.HasEvalQuestions = hasEvalQuestions;
 
         ViewBag.TotalEnrolled   = enrollments.Count;
-        ViewBag.TotalCompleted  = enrollments.Count(tp => tp.CompletionStatus == "Completed");
+        ViewBag.TotalCompleted  = enrollments.Count(tp => tp.CompletionStatus == EnrollmentStatus.Completed);
         ViewBag.TotalOngoing    = enrollments.Count(tp =>
             tp.Training != null &&
             now >= tp.Training.StartDate &&
             now <= tp.Training.EndDate);
         ViewBag.Enrollment      = currentEnrollment;
         ViewBag.Modules         = modules;
-        ViewBag.CompletedCount  = enrollments.Count(tp => tp.CompletionStatus == "Completed");
+        ViewBag.CompletedCount  = enrollments.Count(tp => tp.CompletionStatus == EnrollmentStatus.Completed);
         ViewBag.PreTestTaken    = preTestTaken;
         ViewBag.PostTestTaken   = postTestTaken;
         ViewBag.PostTestAttempts = postTestAttempts;
@@ -168,10 +172,65 @@ ViewBag.HasEvalQuestions = hasEvalQuestions;
         return View("~/Views/Employee/Dashboard.cshtml", enrollments);
     }
 
+
+    private IActionResult RedirectToResult(ParticipantTestAttempt a) =>
+        RedirectToAction("TestResult", new
+        {
+            trainingId    = a.TrainingId,
+            testType      = a.TestType,
+            score         = (int)a.Score,
+            totalPoints   = (int)a.TotalPoints,
+            isPassed      = a.IsPassed ? 1 : 0,
+            attemptNumber = a.AttemptNumber
+        });
+
+    // ── POST: /Employee/SaveProgress (autosave from the test and quiz pages) ──
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveProgress([FromBody] SaveProgressRequest req)
+    {
+        if (!IsEmployee()) return Json(new { ok = false, loggedOut = true });
+        var userId = GetUserId();
+
+        if (req.TestType is not (TestTypes.PreTest or TestTypes.PostTest or TestTypes.Quiz))
+            return Json(new { ok = false });
+
+        var session = await _db.TestSessions.FirstOrDefaultAsync(s =>
+            s.UserId == userId && s.TrainingId == req.TrainingId &&
+            s.TestType == req.TestType && s.ModuleId == req.ModuleId &&
+            s.Status == "InProgress");
+
+        if (session == null) return Json(new { ok = false, noSession = true });
+
+        var now = DateTime.UtcNow;
+        if (session.ExpiresAt != null && now > session.ExpiresAt.Value.AddSeconds(TestSessionService.GraceSeconds))
+            return Json(new { ok = false, expired = true });
+
+        var clean = (req.Answers ?? new Dictionary<string, string?>())
+            .Where(kv => TestSessionService.IsAnswerKey(kv.Key) && (kv.Value?.Length ?? 0) <= 500)
+            .Take(500)
+            .ToDictionary(kv => kv.Key, kv => kv.Value ?? string.Empty);
+
+        session.AnswersJson = System.Text.Json.JsonSerializer.Serialize(clean);
+        session.LastSavedAt = now;
+        await _db.SaveChangesAsync();
+
+        int? secondsLeft = session.ExpiresAt == null
+            ? null
+            : Math.Max(0, (int)(session.ExpiresAt.Value - now).TotalSeconds);
+
+        return Json(new { ok = true, secondsLeft });
+    }
+
+    // ── POST: /Employee/KeepAlive (stops the login from expiring during a long test) ──
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult KeepAlive() => Json(new { ok = IsEmployee() });
+
     // ── GET: /Employee/PreTest ────────────────────────────────────
+    [RequireRole(AppRoles.Employee)]
     public async Task<IActionResult> PreTest(int trainingId)
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var userId = GetUserId();
@@ -180,7 +239,7 @@ ViewBag.HasEvalQuestions = hasEvalQuestions;
         var alreadyTaken = await _db.ParticipantTestAttempts
             .AnyAsync(a => a.UserId     == userId
                         && a.TrainingId == trainingId
-                        && a.TestType   == "PreTest");
+                        && a.TestType   == TestTypes.PreTest);
 
         if (alreadyTaken)
         {
@@ -199,24 +258,31 @@ ViewBag.HasEvalQuestions = hasEvalQuestions;
 
         ViewBag.Training  = training;
         ViewBag.Questions = questions;
-        ViewBag.TestType  = "PreTest";
+        ViewBag.TestType  = TestTypes.PreTest;
+
+        var session = await _tests.StartOrResumeAsync(userId, trainingId, "PreTest", 1, 0);
+        ViewBag.AttemptNumber = 1;
+        ViewBag.SavedAnswers  = TestSessionService.ReadAnswers(session);
 
         return View("~/Views/Employee/TakeTest.cshtml");
     }
 
     // ── GET: /Employee/PostTest ───────────────────────────────────
+    [RequireRole(AppRoles.Employee)]
     public async Task<IActionResult> PostTest(int trainingId)
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var userId = GetUserId();
+
+        // Grade any earlier post-test whose time ran out while the participant was away
+        await _tests.FinalizeExpiredAsync(userId);
 
         // Check attempt count — max 3
         var attempts = await _db.ParticipantTestAttempts
             .Where(a => a.UserId     == userId
                      && a.TrainingId == trainingId
-                     && a.TestType   == "PostTest")
+                     && a.TestType   == TestTypes.PostTest)
             .ToListAsync();
 
         if (attempts.Count >= 3)
@@ -229,7 +295,7 @@ ViewBag.HasEvalQuestions = hasEvalQuestions;
         var preTestTaken = await _db.ParticipantTestAttempts
             .AnyAsync(a => a.UserId     == userId
                         && a.TrainingId == trainingId
-                        && a.TestType   == "PreTest");
+                        && a.TestType   == TestTypes.PreTest);
 
         if (!preTestTaken)
         {
@@ -259,9 +325,24 @@ if (hasQuestions && !evaluationDone)
 
         ViewBag.Training      = training;
         ViewBag.Questions     = questions;
-        ViewBag.TestType      = "PostTest";
-        ViewBag.AttemptNumber = attempts.Count + 1;
+        var session = await _tests.StartOrResumeAsync(
+            userId, trainingId, "PostTest", attempts.Count + 1, training.PosttestTimer);
+
+        // Time ran out while the participant was away: grade what was saved
+        if (session.ExpiresAt != null && session.ExpiresAt <= DateTime.UtcNow)
+        {
+            var finished = await _tests.RecordAttemptAsync(session, TestSessionService.ReadAnswers(session), auto: true);
+            TempData["Info"] = "Your time ran out while you were away. Your saved answers were submitted.";
+            return RedirectToResult(finished);
+        }
+
+        ViewBag.TestType      = TestTypes.PostTest;
+        ViewBag.AttemptNumber = session.AttemptNumber;
         ViewBag.Timer         = training.PosttestTimer; // minutes
+        ViewBag.SecondsLeft   = session.ExpiresAt == null
+            ? (int?)null
+            : Math.Max(0, (int)(session.ExpiresAt.Value - DateTime.UtcNow).TotalSeconds);
+        ViewBag.SavedAnswers  = TestSessionService.ReadAnswers(session);
 
         return View("~/Views/Employee/TakeTest.cshtml");
     }
@@ -269,95 +350,51 @@ if (hasQuestions && !evaluationDone)
     // ── POST: /Employee/SubmitTest ────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Employee)]
     public async Task<IActionResult> SubmitTest(int trainingId, string testType,
         int attemptNumber, IFormCollection form)
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
+        var userId = GetUserId();
 
-        var userId   = GetUserId();
-        var training = await _db.Trainings.FindAsync(trainingId);
-        if (training == null) return NotFound();
+        // The attempt is the one the server started. The posted attemptNumber is ignored.
+        var session = await _db.TestSessions.FirstOrDefaultAsync(s =>
+            s.UserId == userId && s.TrainingId == trainingId &&
+            s.TestType == testType && s.ModuleId == null && s.Status == "InProgress");
 
-        var questions = await _db.Questions
-            .Where(q => q.TrainingId == trainingId)
-            .ToListAsync();
-
-        decimal score       = 0;
-        decimal totalPoints = questions.Sum(q => q.Points);
-
-        foreach (var q in questions)
+        if (session == null)
         {
-            var answer = form[$"answer_{q.Id}"].ToString().Trim();
-            if (string.IsNullOrEmpty(answer)) continue;
+            // Double click or refresh after submitting: show the result that already exists
+            var last = await _db.ParticipantTestAttempts.AsNoTracking()
+                .Where(a => a.UserId == userId && a.TrainingId == trainingId && a.TestType == testType)
+                .OrderByDescending(a => a.TakenAt)
+                .FirstOrDefaultAsync();
+            if (last != null) return RedirectToResult(last);
 
-            bool correct = q.QuestionType switch
-            {
-                "true_false"      => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
-                "multiple_choice" => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
-                "identification"  => answer.Equals(q.CorrectAnswer, StringComparison.OrdinalIgnoreCase),
-                _                 => false
-            };
-
-            if (correct) score += q.Points;
+            TempData["Error"] = "We could not find an active test. Please start it again from your dashboard.";
+            return RedirectToAction("Dashboard");
         }
 
-        bool isPassed = testType == "PostTest"
-            ? score >= training.MinimumScore
-            : false; // pre-test never gates
+        var answers = TestSessionService.ReadAnswers(session);
 
-        var attempt = new ParticipantTestAttempt
+        // Within the deadline (plus a short grace period) the answers on the page win over the last autosave.
+        // Past it, only what was saved before the deadline counts.
+        var pastDeadline = session.ExpiresAt != null
+            && DateTime.UtcNow > session.ExpiresAt.Value.AddSeconds(TestSessionService.GraceSeconds);
+        if (!pastDeadline)
         {
-            TrainingId    = trainingId,
-            UserId        = userId,
-            TestType      = testType,
-            Score         = score,
-            TotalPoints   = totalPoints,
-            IsPassed      = isPassed,
-            AttemptNumber = attemptNumber,
-            TakenAt       = DateTime.UtcNow
-        };
-
-        _db.ParticipantTestAttempts.Add(attempt);
-
-        // If post-test passed → mark training as Completed
-        if (testType == "PostTest" && isPassed)
-        {
-            var enrollment = await _db.TrainingParticipants
-                .FirstOrDefaultAsync(tp => tp.TrainingId == trainingId
-                                        && tp.UserId     == userId);
-            if (enrollment != null)
-                enrollment.CompletionStatus = "Completed";
+            foreach (var key in form.Keys.Where(TestSessionService.IsAnswerKey))
+                answers[key] = form[key].ToString();
         }
 
-        // If post-test and first attempt → mark as In Progress
-        if (testType == "PostTest" && attemptNumber == 1)
-        {
-            var enrollment = await _db.TrainingParticipants
-                .FirstOrDefaultAsync(tp => tp.TrainingId == trainingId
-                                        && tp.UserId     == userId);
-            if (enrollment != null && enrollment.CompletionStatus == "Enrolled")
-                enrollment.CompletionStatus = "In Progress";
-        }
-
-        await _db.SaveChangesAsync();
-
-        // Redirect to results page
-        return RedirectToAction("TestResult", new
-        {
-            trainingId,
-            testType,
-            score         = (int)score,
-            totalPoints   = (int)totalPoints,
-            isPassed      = isPassed ? 1 : 0,
-            attemptNumber
-        });
+        var attempt = await _tests.RecordAttemptAsync(session, answers, auto: pastDeadline);
+        return RedirectToResult(attempt);
     }
 
     // ── GET: /Employee/TestResult ─────────────────────────────────
+    [RequireRole(AppRoles.Employee)]
     public async Task<IActionResult> TestResult(int trainingId, string testType,
         decimal score, decimal totalPoints, int isPassed, int attemptNumber)
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var training = await _db.Trainings.FindAsync(trainingId);
@@ -367,7 +404,18 @@ if (hasQuestions && !evaluationDone)
         var usedAttempts = await _db.ParticipantTestAttempts
             .CountAsync(a => a.UserId     == userId
                           && a.TrainingId == trainingId
-                          && a.TestType   == "PostTest");
+                          && a.TestType   == TestTypes.PostTest);
+
+        // Use the saved attempt, not the numbers in the address bar
+        var savedAttempt = await _db.ParticipantTestAttempts.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.UserId == userId && a.TrainingId == trainingId
+                                   && a.TestType == testType && a.AttemptNumber == attemptNumber);
+        if (savedAttempt != null)
+        {
+            score       = savedAttempt.Score;
+            totalPoints = savedAttempt.TotalPoints;
+            isPassed    = savedAttempt.IsPassed ? 1 : 0;
+        }
 
         ViewBag.Training        = training;
         ViewBag.TestType        = testType;
@@ -411,9 +459,9 @@ if (hasQuestions && !evaluationDone)
     // ── POST: /Employee/UpdateProfile ─────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Employee)]
     public async Task<IActionResult> UpdateProfile(User model)
     {
-        if (!IsEmployee()) return RedirectToAction("Login", "Home");
 
         var userId = GetUserId();
         var user   = await _db.Users.FindAsync(userId);
@@ -440,9 +488,9 @@ if (hasQuestions && !evaluationDone)
     // ── GET: /Employee/Grade ─────────────────────────────────────
 // REPLACE the existing Grade action in EmployeeController.cs with this:
 
+[RequireRole(AppRoles.Employee)]
 public async Task<IActionResult> Grade()
 {
-    if (!IsEmployee()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var userId = GetUserId();
@@ -474,12 +522,12 @@ public async Task<IActionResult> Grade()
         var trainingId = tp.TrainingId;
 
         var preTest = attempts
-            .Where(a => a.TrainingId == trainingId && a.TestType == "PreTest")
+            .Where(a => a.TrainingId == trainingId && a.TestType == TestTypes.PreTest)
             .OrderByDescending(a => a.TakenAt)
             .FirstOrDefault();
 
         var postTests = attempts
-            .Where(a => a.TrainingId == trainingId && a.TestType == "PostTest")
+            .Where(a => a.TrainingId == trainingId && a.TestType == TestTypes.PostTest)
             .OrderByDescending(a => a.Score)
             .ToList();
 
@@ -512,9 +560,9 @@ public async Task<IActionResult> Grade()
 
 
     // ── GET: /Employee/TakeQuiz ───────────────────────────────────
+[RequireRole(AppRoles.Employee)]
 public async Task<IActionResult> TakeQuiz(int moduleId)
 {
-    if (!IsEmployee()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var userId = GetUserId();
@@ -535,14 +583,34 @@ public async Task<IActionResult> TakeQuiz(int moduleId)
     var module = await _db.TrainingModules.FindAsync(moduleId);
 
     ViewBag.Module = module;
+
+    // Keep the participant's selected answers in the database while they work
+    if (module != null)
+    {
+        var quizSession = await _db.TestSessions.FirstOrDefaultAsync(s =>
+            s.UserId == userId && s.ModuleId == moduleId &&
+            s.TestType == TestTypes.Quiz && s.Status == "InProgress");
+        if (quizSession == null)
+        {
+            quizSession = new TestSession
+            {
+                UserId = userId, TrainingId = module.TrainingId, ModuleId = moduleId,
+                TestType = TestTypes.Quiz, AttemptNumber = 1, Status = "InProgress"
+            };
+            _db.TestSessions.Add(quizSession);
+            await _db.SaveChangesAsync();
+        }
+        ViewBag.SavedAnswers = TestSessionService.ReadAnswers(quizSession);
+    }
+
     return View("~/Views/Employee/TakeQuiz.cshtml", quiz);
 }
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Employee)]
 public async Task<IActionResult> SubmitQuiz(int moduleId, int quizId,
     int trainingId, IFormCollection form)
 {
-    if (!IsEmployee()) return RedirectToAction("Login", "Home");
  
     var userId = GetUserId();
  
@@ -570,6 +638,12 @@ public async Task<IActionResult> SubmitQuiz(int moduleId, int quizId,
  
     int scorePercentage = total > 0 ? (int)Math.Round((double)correct / total * 100) : 0;
     bool passed         = scorePercentage >= quiz.PassingScore;
+
+    // Close the saved-progress session for this quiz
+    var openQuiz = await _db.TestSessions.FirstOrDefaultAsync(s =>
+        s.UserId == userId && s.ModuleId == moduleId &&
+        s.TestType == TestTypes.Quiz && s.Status == "InProgress");
+    if (openQuiz != null) { openQuiz.Status = "Submitted"; openQuiz.LastSavedAt = DateTime.UtcNow; }
  
     // ── Save to database ──
    var existing = await _db.QuizAttempts
@@ -636,9 +710,9 @@ return RedirectToAction("QuizResult");
 }
  
 // ── GET: /Employee/QuizResult ─────────────────────────────────
+[RequireRole(AppRoles.Employee)]
 public IActionResult QuizResult()
 {
-    if (!IsEmployee()) return RedirectToAction("Login", "Home");
     SetViewBag();
     return View("~/Views/Employee/QuizResult.cshtml");
 }
@@ -646,9 +720,9 @@ public IActionResult QuizResult()
 // ── GET: /Employee/QuizResult/{moduleId} — view past quiz score ──
 // (used by the "View Score" link on Dashboard for already-completed quizzes)
 [HttpGet("Employee/QuizResultByModule/{moduleId}")]
+[RequireRole(AppRoles.Employee)]
 public async Task<IActionResult> QuizResultByModule(int moduleId)
 {
-    if (!IsEmployee()) return RedirectToAction("Login", "Home");
     SetViewBag();
  
     var userId = GetUserId();
@@ -676,11 +750,26 @@ public async Task<IActionResult> QuizResultByModule(int moduleId)
 
 // ── POST: /Employee/MarkModuleDone ────────────────────────────
 [HttpPost]
+[ValidateAntiForgeryToken]
 public async Task<IActionResult> MarkModuleDone(int moduleId, int trainingId)
 {
     if (!IsEmployee()) return Json(new { success = false });
 
     var userId = GetUserId();
+
+    // The module must exist, belong to the posted training, and the user must be enrolled in it
+    var module = await _db.TrainingModules.AsNoTracking()
+        .Include(m => m.Quiz)
+        .FirstOrDefaultAsync(m => m.ModuleId == moduleId);
+    if (module == null || module.TrainingId != trainingId)
+        return Json(new { success = false });
+
+    var enrolled = await _db.TrainingParticipants
+        .AnyAsync(tp => tp.TrainingId == module.TrainingId && tp.UserId == userId);
+    if (!enrolled) return Json(new { success = false });
+
+    // Quiz modules are completed by passing the quiz (SubmitQuiz), never by a direct call
+    if (module.Quiz != null) return Json(new { success = false });
 
     var exists = await _db.ModuleProgresses
         .AnyAsync(mp => mp.UserId == userId && mp.ModuleId == moduleId);
@@ -691,7 +780,7 @@ public async Task<IActionResult> MarkModuleDone(int moduleId, int trainingId)
         {
             UserId      = userId,
             ModuleId    = moduleId,
-            TrainingId  = trainingId,
+            TrainingId  = module.TrainingId,
             CompletedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync();

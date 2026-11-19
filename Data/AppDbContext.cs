@@ -43,12 +43,65 @@ public DbSet<QuizChoice> QuizChoices { get; set; }
 public DbSet<ModuleTextContent> ModuleTextContents { get; set; }
 public DbSet<ModuleTextTopic> ModuleTextTopics { get; set; }
   public DbSet<Announcement> Announcements { get; set; }
+  public DbSet<Notification> Notifications { get; set; }
+  public DbSet<TrainingPost> TrainingPosts { get; set; }
+  public DbSet<TestSession> TestSessions { get; set; }
   
 
         // ── Relationships & Constraints ───────────────────────────
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Extra indexes for common lookups. Each one starts with a column that is NOT a foreign key,
+            // so EF keeps the foreign-key indexes that MySQL requires (dropping them fails on MySQL).
+            modelBuilder.Entity<ParticipantTestAttempt>()
+                .HasIndex(a => new { a.TestType, a.UserId, a.TrainingId });
+
+            modelBuilder.Entity<Training>()
+                .HasIndex(t => t.StartDate);
+
+            // Test sessions: find a user's in-progress test fast; removed with the user or training
+            modelBuilder.Entity<TestSession>()
+                .HasIndex(t => new { t.UserId, t.TrainingId, t.TestType, t.Status });
+
+            modelBuilder.Entity<TestSession>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TestSession>()
+                .HasOne<Training>()
+                .WithMany()
+                .HasForeignKey(t => t.TrainingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Discussion board: posts belong to a training; replies belong to a post
+            modelBuilder.Entity<TrainingPost>()
+                .HasIndex(p => new { p.TrainingId, p.CreatedAt });
+
+            modelBuilder.Entity<TrainingPost>()
+                .HasOne<Training>()
+                .WithMany()
+                .HasForeignKey(p => p.TrainingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TrainingPost>()
+                .HasOne<TrainingPost>()
+                .WithMany()
+                .HasForeignKey(p => p.ParentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Notifications: fast lookup of a user's unread items; removed with the user
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => new { n.UserId, n.IsRead });
+
+            modelBuilder.Entity<Notification>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // One user can have many roles
             modelBuilder.Entity<UserRole>()

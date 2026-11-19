@@ -1,26 +1,36 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
-using LDHub.Data;using BCrypt.Net;
+using LDHub.Data;
+using LDHub.Helpers;
+using LDHub.Services.Interfaces;
+using BCrypt.Net;
 
 namespace LDHub.Controllers;
 
 public class AdminController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly LoginThrottle _throttle;
+    private readonly IAdminDashboardService _dashboard;
+    private readonly IUserApprovalService _approvals;
 
-    public AdminController(AppDbContext db)
+    public AdminController(AppDbContext db, LoginThrottle throttle,
+        IAdminDashboardService dashboard, IUserApprovalService approvals)
     {
         _db = db;
+        _throttle = throttle;
+        _dashboard = dashboard;
+        _approvals = approvals;
     }
 
     // ── Auth check helper ─────────────────────────────────────────
     private bool IsAdmin() =>
-        HttpContext.Session.GetString("UserRole") == "Admin";
+        HttpContext.Session.GetString("UserRole") == AppRoles.Admin;
 
     private void SetViewBag()
     {
-        ViewBag.ActiveRole = "Admin";
+        ViewBag.ActiveRole = AppRoles.Admin;
         ViewBag.UserName = HttpContext.Session.GetString("UserName");
         ViewBag.UserPhoto = HttpContext.Session.GetString("UserPhoto");
     }
@@ -38,14 +48,23 @@ public class AdminController : Controller
         if (!ModelState.IsValid)
             return View("~/Views/Admin/Index.cshtml", model);
 
+        // Too many wrong passwords recently? Stop here.
+        var throttleKey = LoginThrottle.Key(HttpContext, model.Email);
+        if (_throttle.IsLocked(throttleKey, out var wait))
+        {
+            ViewBag.Error = $"Too many failed attempts. Please try again in {Math.Ceiling(wait.TotalMinutes)} minute(s).";
+            return View("~/Views/Admin/Index.cshtml", model);
+        }
+
         // Find user by email
         var user = await _db.Users
             .Include(u => u.UserRoles)
             .FirstOrDefaultAsync(u => u.Email == model.Email);
 
         // Check if user exists and is Admin
-        if (user == null || !user.UserRoles.Any(r => r.Role == "Admin"))
+        if (user == null || !user.UserRoles.Any(r => r.Role == AppRoles.Admin))
         {
+            _throttle.RegisterFailure(throttleKey);
             ViewBag.Error = "Invalid email or password.";
             return View("~/Views/Admin/Index.cshtml", model);
         }
@@ -53,19 +72,21 @@ public class AdminController : Controller
         // Verify password
        if (!BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
 {
-    ViewBag.Error = "Invalid email or password.";
+    _throttle.RegisterFailure(throttleKey);
+            ViewBag.Error = "Invalid email or password.";
     return View("~/Views/Admin/Index.cshtml", model);
 }
 
+        _throttle.Reset(throttleKey);
+
         // Set session
-        HttpContext.Session.SetString("UserRole", "Admin");
+        HttpContext.Session.SetString("UserRole", AppRoles.Admin);
         HttpContext.Session.SetString("UserId", user.UserId.ToString());
         HttpContext.Session.SetString("UserName", $"{user.FirstName} {user.LastName}");
         HttpContext.Session.SetString("UserPhoto", user.Photo ?? "");
 
         return RedirectToAction("Dashboard", "Admin");
     }
-    // GET: /Admin/Hash — TEMPORARY, remove after use
 
 
     public IActionResult Logout()
@@ -75,131 +96,46 @@ public class AdminController : Controller
     }
 
     // ── Dashboard ─────────────────────────────────────────────────
+   [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
    public async Task<IActionResult> Dashboard()
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
     SetViewBag();
 
     var now = DateTime.Now;
 
-    // ── KPI Stats ──────────────────────────────────────────────
-    var totalEmployees  = await _db.Users
-        .Include(u => u.UserRoles)
-        .Where(u => u.UserRoles.Any(r => r.Role == "Employee") && u.IsExternal == false)
-        .CountAsync();
+    var d = await _dashboard.GetAsync(now);
 
-    var totalTrainings  = await _db.Trainings.CountAsync();
-
-    var activeTrainings = await _db.Trainings
-        .Where(t => t.StartDate <= now && t.EndDate >= now)
-        .CountAsync();
-
-    var completedTrainings = await _db.Trainings
-        .Where(t => t.EndDate < now)
-        .CountAsync();
-
-    var pendingCount = await _db.PendingParticipants
-        .Where(p => p.Status == "Inactive")
-        .CountAsync();
-
-    var totalSME = await _db.Users
-        .Include(u => u.UserRoles)
-        .Where(u => u.UserRoles.Any(r => r.Role == "ResourcePerson") && u.IsExternal == true)
-        .CountAsync();
-
-    var totalUsers = await _db.Users.CountAsync();
-
-    // ── Passing Rate ───────────────────────────────────────────
-    var allAttempts = await _db.ParticipantTestAttempts
-        .Where(a => a.TestType == "PostTest")
-        .ToListAsync();
-
-    var passedCount = allAttempts.Count(a => a.IsPassed);
-    var passingRate = allAttempts.Count > 0
-        ? Math.Round((double)passedCount / allAttempts.Count * 100, 1)
-        : 0;
-
-    // ── Monthly Trainings (Bar Chart) ──────────────────────────
-    var allTrainings = await _db.Trainings
-        .Include(t => t.TrainingParticipants)
-        .Include(t => t.Region)
-        .OrderByDescending(t => t.CreatedAt)
-        .ToListAsync();
-
-    var monthlyTrainings = Enumerable.Range(1, 12)
-        .Select(m => allTrainings.Count(t => t.CreatedAt.Month == m && t.CreatedAt.Year == now.Year))
-        .ToList();
-
-    // ── Training Status (Pie Chart) ────────────────────────────
-    var scheduledCount = allTrainings.Count(t => t.StartDate.HasValue && t.StartDate > now);
-    var ongoingCount   = allTrainings.Count(t => t.StartDate <= now && t.EndDate >= now);
-    var endedCount     = allTrainings.Count(t => t.EndDate.HasValue && t.EndDate < now);
-
-    // ── Participants per Region (Bar Chart) ────────────────────
-    var regions = await _db.Regions.ToListAsync();
-    var participantsByRegion = regions.Select(r => new
-    {
-        RegionName = r.RegionName,
-        Count      = _db.Users.Count(u => u.RegionId == r.RegionId
-                        && u.UserRoles.Any(ur => ur.Role == "Employee"))
-    }).OrderByDescending(r => r.Count).Take(10).ToList();
-
-    // ── Employee Registrations per Month (Line Chart) ──────────
-    var allUsers = await _db.Users.ToListAsync();
-    var monthlyRegistrations = Enumerable.Range(1, 12)
-        .Select(m => allUsers.Count(u => u.CreatedAt.Month == m && u.CreatedAt.Year == now.Year))
-        .ToList();
-
-    // ── Pass vs Fail (Pie Chart) ───────────────────────────────
-    var failedCount2 = allAttempts.Count(a => !a.IsPassed);
-
-    // ── Recent Trainings ───────────────────────────────────────
-    var recentTrainings = allTrainings.Take(5).ToList();
-
-    // ── Recent Pending ─────────────────────────────────────────
-    var recentPending = await _db.PendingParticipants
-        .Where(p => p.Status == "Inactive")
-        .OrderByDescending(p => p.CreatedAt)
-        .Take(5)
-        .ToListAsync();
-
-    // ── Pass to ViewBag ────────────────────────────────────────
-    ViewBag.TotalEmployees     = totalEmployees;
-    ViewBag.TotalTrainings     = totalTrainings;
-    ViewBag.ActiveTrainings    = activeTrainings;
-    ViewBag.CompletedTrainings = completedTrainings;
-    ViewBag.PendingCount       = pendingCount;
-    ViewBag.TotalSME           = totalSME;
-    ViewBag.TotalUsers         = totalUsers;
-    ViewBag.PassingRate        = passingRate;
-    ViewBag.PassedCount        = passedCount;
-    ViewBag.FailedCount        = failedCount2;
-    ViewBag.TotalAttempts      = allAttempts.Count;
+    ViewBag.TotalEmployees     = d.TotalEmployees;
+    ViewBag.TotalTrainings     = d.TotalTrainings;
+    ViewBag.ActiveTrainings    = d.ActiveTrainings;
+    ViewBag.CompletedTrainings = d.CompletedTrainings;
+    ViewBag.PendingCount       = d.PendingCount;
+    ViewBag.TotalSME           = d.TotalSME;
+    ViewBag.TotalUsers         = d.TotalUsers;
+    ViewBag.PassingRate        = d.PassingRate;
+    ViewBag.PassedCount        = d.PassedCount;
+    ViewBag.FailedCount        = d.FailedCount;
+    ViewBag.TotalAttempts      = d.TotalAttempts;
 
     // Chart data as JSON
-    ViewBag.MonthlyTrainings      = System.Text.Json.JsonSerializer.Serialize(monthlyTrainings);
-    ViewBag.MonthlyRegistrations  = System.Text.Json.JsonSerializer.Serialize(monthlyRegistrations);
-    ViewBag.RegionLabels          = System.Text.Json.JsonSerializer.Serialize(participantsByRegion.Select(r => r.RegionName).ToList());
-    ViewBag.RegionCounts          = System.Text.Json.JsonSerializer.Serialize(participantsByRegion.Select(r => r.Count).ToList());
-    ViewBag.ScheduledCount        = scheduledCount;
-    ViewBag.OngoingCount          = ongoingCount;
-    ViewBag.EndedCount            = endedCount;
+    ViewBag.MonthlyTrainings      = System.Text.Json.JsonSerializer.Serialize(d.MonthlyTrainings);
+    ViewBag.MonthlyRegistrations  = System.Text.Json.JsonSerializer.Serialize(d.MonthlyRegistrations);
+    ViewBag.RegionLabels          = System.Text.Json.JsonSerializer.Serialize(d.RegionLabels);
+    ViewBag.RegionCounts          = System.Text.Json.JsonSerializer.Serialize(d.RegionCounts);
+    ViewBag.ScheduledCount        = d.ScheduledCount;
+    ViewBag.OngoingCount          = d.OngoingCount;
+    ViewBag.EndedCount            = d.EndedCount;
 
-    ViewBag.RecentTrainings = recentTrainings;
-    ViewBag.RecentPending   = recentPending;
+    ViewBag.RecentTrainings = d.RecentTrainings;
+    ViewBag.RecentPending   = d.RecentPending;
 
     return View("~/Views/Admin/Dashboard.cshtml");
 }
-    public IActionResult Hash()
-{
-    var hash = BCrypt.Net.BCrypt.HashPassword("Password@123");
-    return Content(hash);
-}
 
     // ── Manage Users ──────────────────────────────────────────────
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> Employees()
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
     SetViewBag();
 
     var users = await _db.Users
@@ -208,7 +144,7 @@ public async Task<IActionResult> Employees()
         .Include(u => u.Office)
         .Include(u => u.Division)
         // ← Exclude Admin accounts
-        .Where(u => !u.UserRoles.Any(r => r.Role == "Admin"))
+        .Where(u => !u.UserRoles.Any(r => r.Role == AppRoles.Admin))
         .OrderBy(u => u.LastName)
         .ToListAsync();
 
@@ -218,9 +154,9 @@ public async Task<IActionResult> Employees()
 // POST: /Admin/EmployeeEdit
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> EmployeeEdit(User model)
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
 
     var user = await _db.Users.FindAsync(model.UserId);
     if (user == null)
@@ -249,9 +185,9 @@ public async Task<IActionResult> EmployeeEdit(User model)
 // POST: /Admin/ToggleEmployeeStatus
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> ToggleEmployeeStatus(int id)
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
 
     var user = await _db.Users.FindAsync(id);
     if (user == null)
@@ -260,7 +196,7 @@ public async Task<IActionResult> ToggleEmployeeStatus(int id)
         return RedirectToAction("Employees");
     }
 
-    user.Status    = user.Status == "Active" ? "Inactive" : "Active";
+    user.Status    = user.Status == RecordStatus.Active ? "Inactive" : "Active";
     user.UpdatedAt = DateTime.UtcNow;
     await _db.SaveChangesAsync();
 
@@ -271,9 +207,9 @@ public async Task<IActionResult> ToggleEmployeeStatus(int id)
 // POST: /Admin/AssignRole
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> AssignRole(int userId, string role)
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
 
     // Check if role already assigned
     var exists = await _db.UserRoles
@@ -287,12 +223,12 @@ public async Task<IActionResult> AssignRole(int userId, string role)
 
     // Rule: only ONE additional role besides "Employee" is allowed
     // (Raam, CourseManager, ResourcePerson are mutually exclusive)
-    if (role != "Employee")
+    if (role != AppRoles.Employee)
     {
         var hasOtherSpecialRole = await _db.UserRoles
             .AnyAsync(r => r.UserId == userId
-                        && r.Role != "Employee"
-                        && r.Role != "Admin");
+                        && r.Role != AppRoles.Employee
+                        && r.Role != AppRoles.Admin);
 
         if (hasOtherSpecialRole)
         {
@@ -317,9 +253,9 @@ public async Task<IActionResult> AssignRole(int userId, string role)
 // POST: /Admin/RemoveRole
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> RemoveRole(int userId, string role)
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
 
     var userRole = await _db.UserRoles
         .FirstOrDefaultAsync(r => r.UserId == userId && r.Role == role);
@@ -346,9 +282,9 @@ public async Task<IActionResult> RemoveRole(int userId, string role)
     return RedirectToAction("Employees");
 }
 
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public async Task<IActionResult> PendingEmployees()
         {
-            if (!IsAdmin()) return RedirectToAction("Index");
             SetViewBag();
 
             var pending = await _db.PendingParticipants
@@ -364,9 +300,9 @@ public async Task<IActionResult> RemoveRole(int userId, string role)
     // POST: /Admin/ApproveEmployee
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> ApproveEmployee(int id)
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
 
     var pending = await _db.PendingParticipants
         .FirstOrDefaultAsync(p => p.ParticipantId == id);
@@ -377,49 +313,12 @@ public async Task<IActionResult> ApproveEmployee(int id)
         return RedirectToAction("PendingEmployees");
     }
 
-    // Check if email already exists in users
-    var exists = await _db.Users.AnyAsync(u => u.Email == pending.Email);
-    if (exists)
+    var error = await _approvals.ApproveAsync(pending, removePending: true);
+    if (error != null)
     {
-        TempData["Error"] = "Email already exists in users!";
+        TempData["Error"] = error;
         return RedirectToAction("PendingEmployees");
     }
-
-    // Copy to users table
-    var user = new User
-    {
-        FirstName     = pending.FirstName,
-        MiddleName    = pending.MiddleName,
-        LastName      = pending.LastName,
-        Email         = pending.Email,
-        Password      = pending.Password,
-        ContactNumber = pending.ContactNumber,
-        Gender        = pending.Gender,
-        Age           = pending.Age,
-        Position      = pending.Position,
-        Designation   = pending.Designation,
-        SalaryGrade   = pending.SalaryGrade,
-        RegionId      = pending.RegionId,
-        OfficeId      = pending.OfficeId,
-        DivisionId    = pending.DivisionId,
-        Status        = "Active",
-        CreatedAt     = DateTime.UtcNow
-    };
-
-    _db.Users.Add(user);
-    await _db.SaveChangesAsync();
-
-    // Assign Employee role
-    _db.UserRoles.Add(new UserRole
-    {
-        UserId     = user.UserId,
-        Role       = "Employee",
-        AssignedAt = DateTime.UtcNow
-    });
-
-    // Remove from pending
-    _db.PendingParticipants.Remove(pending);
-    await _db.SaveChangesAsync();
 
     TempData["Success"] = $"{pending.FirstName} {pending.LastName} has been approved!";
     return RedirectToAction("PendingEmployees");
@@ -428,9 +327,9 @@ public async Task<IActionResult> ApproveEmployee(int id)
 // POST: /Admin/RejectEmployee
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> RejectEmployee(int id)
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
 
     var pending = await _db.PendingParticipants
         .FirstOrDefaultAsync(p => p.ParticipantId == id);
@@ -448,9 +347,9 @@ public async Task<IActionResult> RejectEmployee(int id)
     return RedirectToAction("PendingEmployees");
 }
 // ── GET: /Admin/ResourcePersons ───────────────────────────────
+[RequireRole(AppRoles.Admin)]
 public async Task<IActionResult> ResourcePersons()
 {
-    if (!IsAdmin()) return RedirectToAction("Login", "Home");
     SetViewBag();
  
     var resourcePersons = await _db.Users
@@ -467,13 +366,13 @@ public async Task<IActionResult> ResourcePersons()
 // ── POST: /Admin/CreateResourcePerson ────────────────────────
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin)]
 public async Task<IActionResult> CreateResourcePerson(
     string firstName, string lastName, string? middleName,
     string email, string password, string? organization,
     string? expertise, string? contactNumber, string? gender,
     int? regionId, int? officeId, int? divisionId)
 {
-    if (!IsAdmin()) return RedirectToAction("Login", "Home");
  
     // Check email exists
     var emailExists = await _db.Users.AnyAsync(u => u.Email == email);
@@ -483,6 +382,13 @@ public async Task<IActionResult> CreateResourcePerson(
         return RedirectToAction("ResourcePersons");
     }
  
+    var passwordError = PasswordPolicy.Validate(password);
+    if (passwordError != null)
+    {
+        TempData["Error"] = passwordError;
+        return RedirectToAction("ResourcePersons");
+    }
+
     var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
  
     var user = new User
@@ -500,7 +406,7 @@ public async Task<IActionResult> CreateResourcePerson(
         OfficeId      = officeId,
         DivisionId    = divisionId,
         IsExternal    = true,
-        Status = "Active",
+        Status = RecordStatus.Active,
         CreatedAt     = DateTime.UtcNow,
         UpdatedAt     = DateTime.UtcNow
     };
@@ -512,7 +418,7 @@ public async Task<IActionResult> CreateResourcePerson(
     _db.UserRoles.Add(new UserRole
     {
         UserId   = user.UserId,
-        Role = "ResourcePerson"
+        Role = AppRoles.ResourcePerson
     });
     await _db.SaveChangesAsync();
  
@@ -523,13 +429,13 @@ public async Task<IActionResult> CreateResourcePerson(
 // ── POST: /Admin/EditResourcePerson ──────────────────────────
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin)]
 public async Task<IActionResult> EditResourcePerson(
     int userId, string firstName, string lastName, string? middleName,
     string email, string? newPassword, string? organization,
     string? expertise, string? contactNumber, string? gender,
     int? regionId, int? officeId, int? divisionId)
 {
-    if (!IsAdmin()) return RedirectToAction("Login", "Home");
  
     var user = await _db.Users.FindAsync(userId);
     if (user == null)
@@ -553,7 +459,16 @@ public async Task<IActionResult> EditResourcePerson(
  
     // Only update password if new one provided
     if (!string.IsNullOrWhiteSpace(newPassword))
+    {
+        var passwordError = PasswordPolicy.Validate(newPassword);
+        if (passwordError != null)
+        {
+            TempData["Error"] = passwordError;
+            return RedirectToAction("ResourcePersons");   // nothing is saved
+        }
+
         user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+    }
  
     await _db.SaveChangesAsync();
  
@@ -564,9 +479,9 @@ public async Task<IActionResult> EditResourcePerson(
 // ── POST: /Admin/ToggleResourcePersonStatus ───────────────────
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin)]
 public async Task<IActionResult> ToggleResourcePersonStatus(int userId)
 {
-    if (!IsAdmin()) return RedirectToAction("Login", "Home");
 
     var user = await _db.Users.FindAsync(userId);
     if (user == null)
@@ -575,7 +490,7 @@ public async Task<IActionResult> ToggleResourcePersonStatus(int userId)
         return RedirectToAction("ResourcePersons");
     }
 
-    user.Status    = user.Status == "Active" ? "Inactive" : "Active";
+    user.Status    = user.Status == RecordStatus.Active ? "Inactive" : "Active";
     user.UpdatedAt = DateTime.UtcNow;
 
     await _db.SaveChangesAsync();
@@ -588,54 +503,54 @@ public async Task<IActionResult> ToggleResourcePersonStatus(int userId)
 
 
     // ── Trainings ─────────────────────────────────────────────────
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public IActionResult Trainings()
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
         SetViewBag();
         return View("~/Views/Admin/Trainings.cshtml");
     }
 
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public IActionResult FreeTrainings()
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
         SetViewBag();
         return View("~/Views/Admin/FreeTrainings.cshtml");
     }
 
     // ── Announcements ─────────────────────────────────────────────
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public IActionResult Announcements()
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
         SetViewBag();
         return View("~/Views/Admin/Announcements.cshtml");
     }
 
     // ── Reports ───────────────────────────────────────────────────
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public IActionResult ReportUsers()
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
         SetViewBag();
         return View("~/Views/Admin/ReportUsers.cshtml");
     }
 
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public IActionResult ReportIdp()
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
         SetViewBag();
         return View("~/Views/Admin/ReportIdp.cshtml");
     }
 
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public IActionResult ReportTraining()
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
         SetViewBag();
         return View("~/Views/Admin/ReportTraining.cshtml");
     }
 
     // ── FAQs ──────────────────────────────────────────────────────
+    [RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
     public IActionResult Faqs()
     {
-        if (!IsAdmin()) return RedirectToAction("Index");
         SetViewBag();
         return View("~/Views/Admin/Faqs.cshtml");
     }
@@ -651,9 +566,9 @@ public async Task<IActionResult> GetDivisionsByOffice(int officeId)
 }
 
 // ── GET: /Admin/AccountSettings ──────────────────────────────
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> AccountSettings()
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
     SetViewBag();
 
     var userId = int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
@@ -665,10 +580,10 @@ public async Task<IActionResult> AccountSettings()
 // ── POST: /Admin/UpdateAdminAccount ──────────────────────────
 [HttpPost]
 [ValidateAntiForgeryToken]
+[RequireRole(AppRoles.Admin, RedirectAction = "Index", RedirectController = "Admin")]
 public async Task<IActionResult> UpdateAdminAccount(string email, 
     string? newPassword, string currentPassword)
 {
-    if (!IsAdmin()) return RedirectToAction("Index");
 
     var userId = int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
     var admin  = await _db.Users.FindAsync(userId);
@@ -680,6 +595,17 @@ public async Task<IActionResult> UpdateAdminAccount(string email,
     {
         TempData["Error"] = "Current password is incorrect!";
         return RedirectToAction("AccountSettings");
+    }
+
+    // Check the new password before changing anything
+    if (!string.IsNullOrEmpty(newPassword))
+    {
+        var passwordError = PasswordPolicy.Validate(newPassword);
+        if (passwordError != null)
+        {
+            TempData["Error"] = passwordError;
+            return RedirectToAction("AccountSettings");
+        }
     }
 
     // Update email

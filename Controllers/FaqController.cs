@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -18,7 +19,7 @@ public class FaqController : Controller
 
     // ── Auth guard ────────────────────────────────────────────────
     private bool IsAdmin()
-        => HttpContext.Session.GetString("UserRole") == "Admin";
+        => HttpContext.Session.GetString("UserRole") == AppRoles.Admin;
 
     private IActionResult AdminOnly()
         => RedirectToAction("Login", "Home");
@@ -64,6 +65,14 @@ public class FaqController : Controller
         // Handle image upload
         if (imageFile != null && imageFile.Length > 0)
         {
+            var imageError = UploadValidator.Validate(
+                imageFile, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+            if (imageError != null)
+            {
+                ModelState.AddModelError("", imageError);
+                return View(model);
+            }
+
             var uploadPath = Path.Combine(
                 _env.WebRootPath, "uploads", "faqs");
 
@@ -118,6 +127,14 @@ public class FaqController : Controller
         // Handle image upload
         if (imageFile != null && imageFile.Length > 0)
         {
+            var imageError = UploadValidator.Validate(
+                imageFile, UploadValidator.ImageExtensions, UploadValidator.ImageMaxBytes);
+            if (imageError != null)
+            {
+                ModelState.AddModelError("", imageError);
+                return View(model);
+            }
+
             // Delete old image if exists
             if (!string.IsNullOrEmpty(existing.ImagePath))
             {

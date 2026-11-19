@@ -1,4 +1,5 @@
 using LDHub.Data;
+using LDHub.Helpers;
 using LDHub.Repositories;
 using LDHub.Repositories.Interfaces;
 using LDHub.Services;
@@ -9,9 +10,13 @@ using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Ensure a persistent folder for DataProtection keys in development so
-// session cookies can be unprotected across restarts.
-var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys");
+// DataProtection keys must live OUTSIDE the repo and survive restarts/deploys.
+// Set DATAPROTECTION_KEYS_PATH to a persistent folder on the server. If unset, keys go
+// to the user's local app-data folder, never into the project folder.
+var keysFolder = builder.Configuration["DATAPROTECTION_KEYS_PATH"]
+    ?? Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "LDHub", "DataProtection-Keys");
 Directory.CreateDirectory(keysFolder);
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(keysFolder))
@@ -42,7 +47,14 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 // builder.Services.AddScoped<IAuthService, AuthService>();
 // builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 // builder.Services.AddScoped<IApprovalService, ApprovalService>();
-// builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ITestSessionService, TestSessionService>();
+builder.Services.AddScoped<ITrainingReportService, TrainingReportService>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<IUserApprovalService, UserApprovalService>();
+builder.Services.AddSingleton<LoginThrottle>();
 // builder.Services.AddScoped<ITrainingService, TrainingService>();
 // builder.Services.AddScoped<IModuleService, ModuleService>();
 // builder.Services.AddScoped<IQuizService, QuizService>();
@@ -81,9 +93,17 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();  // Redirect HTTP → HTTPS automatically
+app.UseSession();            // before static files so private uploads can be login-checked
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    ctx.Response.Headers["X-Frame-Options"]        = "SAMEORIGIN";
+    ctx.Response.Headers["Referrer-Policy"]        = "strict-origin-when-cross-origin";
+    await next();
+});
+app.UseMiddleware<PrivateUploadsMiddleware>();   // login check for /uploads/modules, certificates, profile-photos
 app.UseStaticFiles();        // Serve files from wwwroot/ (CSS, JS, images)
 app.UseRouting();            // Match incoming URLs to controllers
-app.UseSession();            // Enable session BEFORE authorization
 app.UseAuthorization();      // Check role permissions
 
 // ── 6. DEFAULT ROUTE ──────────────────────────────────────────────

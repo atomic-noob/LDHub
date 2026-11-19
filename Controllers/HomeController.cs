@@ -3,16 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
 using LDHub.Data;
+using LDHub.Helpers;
 
 namespace LDHub.Controllers;
 
 public class HomeController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly LoginThrottle _throttle;
 
-    public HomeController(AppDbContext db)
+    public HomeController(AppDbContext db, LoginThrottle throttle)
     {
         _db = db;
+        _throttle = throttle;
     }
 
     // ── GET: / — public homepage ──────────────────────────────────
@@ -22,6 +25,7 @@ public class HomeController : Controller
  
     // Load active free trainings
     var freeTrainings = await _db.FreeTrainings
+        .AsNoTracking()
         .Include(t => t.Region)
         .Where(t => t.IsActive && t.EndDate >= now)
         .OrderBy(t => t.StartDate)
@@ -31,6 +35,7 @@ public class HomeController : Controller
  
     // Load active FAQs ordered by display_order
     var faqs = await _db.Faqs
+        .AsNoTracking()
         .Where(f => f.IsActive)
         .OrderBy(f => f.DisplayOrder)
         .ThenBy(f => f.CreatedAt)
@@ -84,17 +89,26 @@ public async Task<IActionResult> Login(LoginViewModel model)
     {
         return View(model);
     }
+
+    // Too many wrong passwords recently? Stop here.
+    var throttleKey = LoginThrottle.Key(HttpContext, model.Email);
+    if (_throttle.IsLocked(throttleKey, out var wait))
+    {
+        ViewBag.Error = $"Too many failed attempts. Please try again in {Math.Ceiling(wait.TotalMinutes)} minute(s).";
+        return View(model);
+    }
  
     // Find active user by email
     var user = await _db.Users
         .Include(u => u.UserRoles)
         .FirstOrDefaultAsync(u =>
             u.Email == model.Email &&
-            u.Status == "Active");
+            u.Status == RecordStatus.Active);
  
     // Check if user exists
     if (user == null)
     {
+        _throttle.RegisterFailure(throttleKey);
         ViewBag.Error = "Invalid email or password.";
         return View(model);
     }
@@ -102,17 +116,21 @@ public async Task<IActionResult> Login(LoginViewModel model)
     // Check password
     if (!BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
     {
+        _throttle.RegisterFailure(throttleKey);
         ViewBag.Error = "Invalid email or password.";
         return View(model);
     }
  
     // Block admin from using this login page
-    if (user.UserRoles.Any(r => r.Role == "Admin"))
+    if (user.UserRoles.Any(r => r.Role == AppRoles.Admin))
     {
+        _throttle.RegisterFailure(throttleKey);
         ViewBag.Error = "Invalid email or password.";
         return View(model);
     }
  
+    _throttle.Reset(throttleKey);
+
     // ── SET BASIC SESSION ──────────────────────────────────────
     HttpContext.Session.SetString("UserId",    user.UserId.ToString());
     HttpContext.Session.SetString("UserName",  $"{user.FirstName} {user.LastName}");
@@ -126,7 +144,7 @@ public async Task<IActionResult> Login(LoginViewModel model)
     // ── EXTERNAL RESOURCE PERSON ───────────────────────────────
     if (user.IsExternal && roles.Contains("ResourcePerson"))
     {
-        HttpContext.Session.SetString("UserRole", "ResourcePerson");
+        HttpContext.Session.SetString("UserRole", AppRoles.ResourcePerson);
         return RedirectToAction("Index", "ResourcePerson");
     }
  
@@ -145,7 +163,7 @@ public async Task<IActionResult> Login(LoginViewModel model)
     }
  
     // ── DEFAULT: EMPLOYEE DASHBOARD ───────────────────────────
-    HttpContext.Session.SetString("UserRole", "Employee");
+    HttpContext.Session.SetString("UserRole", AppRoles.Employee);
     return RedirectToAction("Dashboard", "Employee");
 }
 

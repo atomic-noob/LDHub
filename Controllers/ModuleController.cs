@@ -1,3 +1,4 @@
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -20,12 +21,28 @@ public class ModuleController : Controller
     // ── Auth helpers ──────────────────────────────────────────────
     // Check if user is CourseManager or ResourcePerson
     private bool IsCourseManager() =>
-        HttpContext.Session.GetString("UserRole") == "CourseManager";
+        HttpContext.Session.GetString("UserRole") == AppRoles.CourseManager;
 
     private bool IsResourcePerson() =>
-        HttpContext.Session.GetString("UserRole") == "ResourcePerson";
+        HttpContext.Session.GetString("UserRole") == AppRoles.ResourcePerson;
 
     private bool HasAccess() => IsCourseManager() || IsResourcePerson();
+
+    // May this user work on this training?
+    // Course Managers: any training. Resource Persons: only the ones they are assigned to.
+    private async Task<bool> CanAccessTrainingAsync(int trainingId)
+    {
+        if (IsCourseManager()) return true;
+
+        if (IsResourcePerson())
+        {
+            var userId = GetUserId();
+            return await _db.TrainingInstructors
+                .AnyAsync(ti => ti.TrainingId == trainingId && ti.UserId == userId);
+        }
+
+        return false;
+    }
 
     private int GetUserId() =>
         int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
@@ -41,9 +58,9 @@ public class ModuleController : Controller
     // Shows list of trainings
     // CourseManager → sees ALL trainings
     // ResourcePerson → sees only assigned trainings
+  [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
   public async Task<IActionResult> Index()
 {
-    if (!HasAccess()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var userId = GetUserId();
@@ -66,18 +83,14 @@ public class ModuleController : Controller
     }
 
     // DEBUG — remove after fixing
-    System.Console.WriteLine($"Role: {HttpContext.Session.GetString("UserRole")}");
-    System.Console.WriteLine($"UserId: {userId}");
-    System.Console.WriteLine($"Trainings count: {trainings.Count}");
-
     return View("~/Views/Module/Index.cshtml", trainings);
 }
 
     // ── GET: /Module/Modules/5 ────────────────────────────────────
     // Shows list of modules for a specific training
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Modules(int id)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
         SetViewBag();
 
         var training = await _db.Trainings.FindAsync(id);
@@ -105,9 +118,12 @@ public class ModuleController : Controller
     // Create new module — called from modal
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Create(TrainingModule model, IFormFile? file)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
+
+        if (!await CanAccessTrainingAsync(model.TrainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
 
         model.UploadedBy = GetUserId();
         model.UploadedAt = DateTime.UtcNow;
@@ -118,11 +134,19 @@ public class ModuleController : Controller
             model.LectureSource == "file" && 
             file != null && file.Length > 0)
         {
+            var uploadError = UploadValidator.Validate(
+                file, UploadValidator.ModuleExtensions, UploadValidator.ModuleMaxBytes);
+            if (uploadError != null)
+            {
+                TempData["Error"] = uploadError;
+                return RedirectToAction("Modules", "CourseManager", new { trainingId = model.TrainingId });
+            }
+
             var uploadsFolder = Path.Combine(
                 Directory.GetCurrentDirectory(), "wwwroot", "uploads", "modules");
             Directory.CreateDirectory(uploadsFolder);
 
-            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var fileName = $"{Guid.NewGuid()}_{UploadValidator.SafeFileName(file.FileName)}";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -171,12 +195,15 @@ public class ModuleController : Controller
     // ── POST: /Module/Edit ────────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Edit(TrainingModule model, IFormFile? file)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
 
         var existing = await _db.TrainingModules.FindAsync(model.ModuleId);
         if (existing == null) return NotFound();
+
+        if (!await CanAccessTrainingAsync(existing.TrainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
 
         existing.ModuleName        = model.ModuleName;
         existing.ModuleDescription = model.ModuleDescription;
@@ -187,11 +214,19 @@ public class ModuleController : Controller
         // Handle file upload
         if (file != null && file.Length > 0)
         {
+            var uploadError = UploadValidator.Validate(
+                file, UploadValidator.ModuleExtensions, UploadValidator.ModuleMaxBytes);
+            if (uploadError != null)
+            {
+                TempData["Error"] = uploadError;
+                return RedirectToAction("Modules", "CourseManager", new { trainingId = existing.TrainingId });
+            }
+
             var uploadsFolder = Path.Combine(
                 Directory.GetCurrentDirectory(), "wwwroot", "uploads", "modules");
             Directory.CreateDirectory(uploadsFolder);
 
-            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var fileName = $"{Guid.NewGuid()}_{UploadValidator.SafeFileName(file.FileName)}";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -212,11 +247,16 @@ public class ModuleController : Controller
     // ── POST: /Module/Delete ──────────────────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> Delete(int moduleId, int trainingId)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
 
-        var module = await _db.TrainingModules.FindAsync(moduleId);
+        if (!await CanAccessTrainingAsync(trainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+        // Only a module that belongs to this training
+        var module = await _db.TrainingModules
+            .FirstOrDefaultAsync(m => m.ModuleId == moduleId && m.TrainingId == trainingId);
         if (module != null)
         {
             _db.TrainingModules.Remove(module);
@@ -231,17 +271,22 @@ public class ModuleController : Controller
     // Save quiz questions and choices
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> SaveQuiz(int quizId, int trainingId,
         List<string> questionTexts,
         List<List<string>> choices,
         List<int> correctChoices)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
 
+        if (!await CanAccessTrainingAsync(trainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+        // Only a quiz that belongs to a module of this training
         var quiz = await _db.Quizzes
             .Include(q => q.Questions)
                 .ThenInclude(q => q.Choices)
-            .FirstOrDefaultAsync(q => q.QuizId == quizId);
+            .FirstOrDefaultAsync(q => q.QuizId == quizId
+                && _db.TrainingModules.Any(m => m.ModuleId == q.ModuleId && m.TrainingId == trainingId));
 
         if (quiz == null) return NotFound();
 
@@ -249,7 +294,7 @@ public class ModuleController : Controller
         _db.QuizQuestions.RemoveRange(quiz.Questions);
         await _db.SaveChangesAsync();
 
-        // Add new questions
+        // Add new questions with their choices, then save once
         for (int i = 0; i < questionTexts.Count; i++)
         {
             if (string.IsNullOrWhiteSpace(questionTexts[i])) continue;
@@ -259,25 +304,24 @@ public class ModuleController : Controller
                 QuizId       = quizId,
                 QuestionText = questionTexts[i]
             };
-            _db.QuizQuestions.Add(question);
-            await _db.SaveChangesAsync();
 
-            // Add choices
             if (choices.Count > i)
             {
                 for (int j = 0; j < choices[i].Count; j++)
                 {
                     if (string.IsNullOrWhiteSpace(choices[i][j])) continue;
-                    _db.QuizChoices.Add(new QuizChoice
+                    question.Choices.Add(new QuizChoice
                     {
-                        QuestionId = question.QuestionId,
                         ChoiceText = choices[i][j],
                         IsCorrect  = correctChoices.Count > i && correctChoices[i] == j
                     });
                 }
-                await _db.SaveChangesAsync();
             }
+
+            _db.QuizQuestions.Add(question);
         }
+
+        await _db.SaveChangesAsync();   // all questions and choices in one transaction
 
         TempData["Success"] = "Quiz saved!";
         return RedirectToAction("Modules", "CourseManager", new { trainingId = trainingId });
@@ -287,11 +331,15 @@ public class ModuleController : Controller
     // Save text module content and topics
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.CourseManager, AppRoles.ResourcePerson)]
     public async Task<IActionResult> SaveText(int moduleId, int trainingId,
         string? introduction, string? referencesText,
         List<string> topicTitles, List<string> topicBodies)
     {
-        if (!HasAccess()) return RedirectToAction("Login", "Home");
+
+        if (!await CanAccessTrainingAsync(trainingId) ||
+            !await _db.TrainingModules.AnyAsync(m => m.ModuleId == moduleId && m.TrainingId == trainingId))
+            return StatusCode(StatusCodes.Status403Forbidden);
 
         var content = await _db.ModuleTextContents
             .Include(c => c.Topics)
@@ -334,7 +382,14 @@ public class ModuleController : Controller
     [HttpGet]
     public async Task<IActionResult> GetQuiz(int moduleId)
     {
-        var quiz = await _db.Quizzes
+        var moduleTrainingId = await _db.TrainingModules
+            .Where(m => m.ModuleId == moduleId)
+            .Select(m => (int?)m.TrainingId)
+            .FirstOrDefaultAsync();
+        if (moduleTrainingId == null || !await CanAccessTrainingAsync(moduleTrainingId.Value))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+var quiz = await _db.Quizzes
             .Include(q => q.Questions)
                 .ThenInclude(q => q.Choices)
             .FirstOrDefaultAsync(q => q.ModuleId == moduleId);
@@ -364,7 +419,14 @@ public class ModuleController : Controller
     [HttpGet]
     public async Task<IActionResult> GetTextContent(int moduleId)
     {
-        var content = await _db.ModuleTextContents
+        var moduleTrainingId = await _db.TrainingModules
+            .Where(m => m.ModuleId == moduleId)
+            .Select(m => (int?)m.TrainingId)
+            .FirstOrDefaultAsync();
+        if (moduleTrainingId == null || !await CanAccessTrainingAsync(moduleTrainingId.Value))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+var content = await _db.ModuleTextContents
             .Include(c => c.Topics)
             .FirstOrDefaultAsync(c => c.ModuleId == moduleId);
 

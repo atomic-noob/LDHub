@@ -26,39 +26,27 @@
         }
         .region-banner h4 { font-weight: 800; margin-bottom: 3px; }
         .region-banner p  { opacity: .85; margin-bottom: 0; font-size: .95rem; }
-        .stat-card {
-            border-radius: 10px;
-            padding: 20px;
-            color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,.1);
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .stat-card .stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; }
-        .stat-card .stat-label  { font-size: .9rem; opacity: .85; margin-top: 5px; }
-        .stat-card .stat-icon   { font-size: 3rem; opacity: .3; }
-        .stat-card.green  { background: linear-gradient(135deg, #4BB543, #117554); }
-        .stat-card.blue   { background: linear-gradient(135deg, #0984e3, #74b9ff); }
-        .stat-card.orange { background: linear-gradient(135deg, #e17055, #fdcb6e); }
-        .stat-card.purple { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
-        .stat-card.teal   { background: linear-gradient(135deg, #00b894, #55efc4); }
-        .training-row { transition: background .2s; }
-        .training-row:hover { background: #f4fdf6; }
+      .stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 20px;
+    color: #1f2937;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.stat-card .stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+.stat-card .stat-label  { font-size: .9rem; color: #6b7280; margin-top: 5px; }
+.stat-card .stat-icon   { font-size: 3rem; color: #d1d5db; }
     </style>
 }
 
 <div class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">RAAM Dashboard</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item active">Dashboard</li>
-                </ol>
-            </div>
-        </div>
+     
     </div>
 </div>
 
@@ -139,7 +127,7 @@
             @* Recent Trainings *@
             <div class="col-lg-12">
                 <div class="card shadow-sm">
-                    <div class="card-header success-gradient">
+                    <div class="card-header ">
                         <h3 class="card-title">
                             <i class="fas fa-book mr-2"></i>Recent Trainings in @regionName
                         </h3>

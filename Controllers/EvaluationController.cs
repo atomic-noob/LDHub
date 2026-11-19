@@ -1,4 +1,5 @@
 // Controllers/EvaluationController.cs
+using LDHub.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LDHub.Models;
@@ -14,7 +15,7 @@ public class EvaluationController : Controller
     private bool CanAccess()
     {
         var role = HttpContext.Session.GetString("UserRole");
-        return role == "Admin" || role == "CourseManager" || role == "Raam";
+        return role == AppRoles.Admin || role == AppRoles.CourseManager || role == AppRoles.Raam;
     }
 
     private void SetViewBag()
@@ -24,9 +25,9 @@ public class EvaluationController : Controller
     }
 
     // ── GET: /Evaluation/Index ─────────────────────────────// ── GET: /Evaluation/Index ─────────────────────────────
+[RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
 public async Task<IActionResult> Index(int? trainingId)
 {
-    if (!CanAccess()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var role     = HttpContext.Session.GetString("UserRole");
@@ -34,7 +35,7 @@ public async Task<IActionResult> Index(int? trainingId)
 
     IQueryable<Training> trainingsQuery = _db.Trainings;
 
-    if (role == "Raam")
+    if (role == AppRoles.Raam)
         trainingsQuery = trainingsQuery.Where(t => t.RegionId == regionId);
 
     ViewBag.Trainings  = await trainingsQuery.OrderByDescending(t => t.CreatedAt).ToListAsync();
@@ -46,7 +47,7 @@ public async Task<IActionResult> Index(int? trainingId)
     if (training == null) return View();
 
     // ── Block RAAM from managing evaluation questions outside their region ──
-    if (role == "Raam" && training.RegionId != regionId)
+    if (role == AppRoles.Raam && training.RegionId != regionId)
     {
         TempData["Error"] = "You do not have access to this training's evaluation.";
         return RedirectToAction("Index");
@@ -66,7 +67,7 @@ public async Task<IActionResult> Index(int? trainingId)
 private async Task<int?> GetRaamRegionId()
 {
     var role = HttpContext.Session.GetString("UserRole");
-    if (role != "Raam") return null;
+    if (role != AppRoles.Raam) return null;
 
     var userIdStr = HttpContext.Session.GetString("UserId");
     if (!int.TryParse(userIdStr, out int userId)) return null;
@@ -78,11 +79,17 @@ private async Task<int?> GetRaamRegionId()
     // ── POST: /Evaluation/SaveQuestion ─────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> SaveQuestion(
         int questionId, int trainingId, string questionText, string questionType,
         string? choiceA, string? choiceB, string? choiceC, string? choiceD, bool isRequired)
     {
-        if (!CanAccess()) return RedirectToAction("Login", "Home");
+
+        if (!await _db.CanManageTrainingAsync(HttpContext.Session, trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", new { trainingId });
+        }
 
         if (questionId == 0)
         {
@@ -107,7 +114,8 @@ private async Task<int?> GetRaamRegionId()
         }
         else
         {
-            var q = await _db.EvaluationQuestions.FindAsync(questionId);
+            var q = await _db.EvaluationQuestions
+                .FirstOrDefaultAsync(x => x.Id == questionId && x.TrainingId == trainingId);
             if (q != null)
             {
                 q.QuestionText = questionText;
@@ -128,11 +136,18 @@ private async Task<int?> GetRaamRegionId()
     // ── POST: /Evaluation/DeleteQuestion ───────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
     public async Task<IActionResult> DeleteQuestion(int questionId, int trainingId)
     {
-        if (!CanAccess()) return RedirectToAction("Login", "Home");
 
-        var q = await _db.EvaluationQuestions.FindAsync(questionId);
+        if (!await _db.CanManageTrainingAsync(HttpContext.Session, trainingId))
+        {
+            TempData["Error"] = "You do not have access to this training.";
+            return RedirectToAction("Index", new { trainingId });
+        }
+
+        var q = await _db.EvaluationQuestions
+            .FirstOrDefaultAsync(x => x.Id == questionId && x.TrainingId == trainingId);
         if (q != null)
         {
             _db.EvaluationQuestions.Remove(q);
@@ -153,6 +168,13 @@ public async Task<IActionResult> Take(int trainingId)
         return RedirectToAction("Login", "Home");
 
     SetViewBag();
+
+    // Only people enrolled in this training can evaluate it
+    if (!await _db.TrainingParticipants.AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId))
+    {
+        TempData["Error"] = "You are not enrolled in this training.";
+        return RedirectToAction("Dashboard", "Employee");
+    }
 
     // Check if already submitted
     var alreadySubmitted = await _db.EvaluationResponses
@@ -187,6 +209,13 @@ public async Task<IActionResult> Submit(int trainingId, IFormCollection form)
     if (!int.TryParse(userIdStr, out int userId))
         return RedirectToAction("Login", "Home");
 
+    // Only people enrolled in this training can evaluate it
+    if (!await _db.TrainingParticipants.AnyAsync(tp => tp.TrainingId == trainingId && tp.UserId == userId))
+    {
+        TempData["Error"] = "You are not enrolled in this training.";
+        return RedirectToAction("Dashboard", "Employee");
+    }
+
     // Prevent duplicate submission
     var alreadySubmitted = await _db.EvaluationResponses
         .AnyAsync(r => r.TrainingId == trainingId && r.UserId == userId);
@@ -211,10 +240,14 @@ public async Task<IActionResult> Submit(int trainingId, IFormCollection form)
     // Save answers
     var questionIds = form["question_ids"].Select(id => int.Parse(id)).ToList();
 
+    // Load every answered question once instead of one query per question
+    var questionsById = await _db.EvaluationQuestions
+        .Where(q => q.TrainingId == trainingId && questionIds.Contains(q.Id))
+        .ToDictionaryAsync(q => q.Id);
+
     foreach (var qId in questionIds)
     {
-        var question = await _db.EvaluationQuestions.FindAsync(qId);
-        if (question == null) continue;
+        if (!questionsById.TryGetValue(qId, out var question)) continue;
 
         var answer = new EvaluationAnswer
         {
@@ -256,13 +289,16 @@ public static async Task<bool> HasCompletedEvaluation(
 }
 
 // ── GET: /Evaluation/Results ───────────────────────────────
+[RequireRole(AppRoles.Admin, AppRoles.CourseManager, AppRoles.Raam)]
 public async Task<IActionResult> Results(int trainingId)
 {
-    if (!CanAccess()) return RedirectToAction("Login", "Home");
     SetViewBag();
 
     var training = await _db.Trainings.FindAsync(trainingId);
     if (training == null) return NotFound();
+
+    if (!await _db.CanManageTrainingAsync(HttpContext.Session, trainingId))
+        return StatusCode(StatusCodes.Status403Forbidden);
 
     var responses = await _db.EvaluationResponses
         .Include(r => r.User)
