@@ -507,6 +507,10 @@ namespace LDHub.Migrations
                         .HasColumnType("varchar(200)")
                         .HasColumnName("title");
 
+                    b.Property<int?>("TrainingId")
+                        .HasColumnType("int")
+                        .HasColumnName("training_id");
+
                     b.Property<string>("Url")
                         .HasMaxLength(300)
                         .HasColumnType("varchar(300)")
